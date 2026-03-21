@@ -1,0 +1,3 @@
+# useless dependencies 
+__pycache__/
+Dockerfile

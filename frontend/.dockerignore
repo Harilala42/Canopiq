@@ -1,6 +1,5 @@
 # useless dependencies
+node_modules
 package-lock.json
-node_modules/
-__pycache__/
-dist/
-.env
+Dockerfile
+/dist

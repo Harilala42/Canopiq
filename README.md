@@ -1,12 +1,12 @@
 # Canopiq: Collaborative GeoSpatial AI Agent 🛰️ for Environmental Research 🌱
 
-Canopiq bridges the gap between complex geospatial data and actionable insights. Built specifically for researchers and academic students, this full-stack application allows users to query specific geographic locations using natural language. By orchestrating a Large Language Model (LLaMA) with the Google Earth Engine (GEE) API, Canopiq processes environmental queries and delivers comprehensive biomass reports. The platform features a real-time, multiplayer dashboard powered by Yjs, allowing distributed teams to analyze interactive maps and dynamic graphs simultaneously.
+Canopiq bridges the gap between complex geospatial data and actionable insights. Built specifically for researchers and academic students, this full-stack application allows users to query specific geographic locations using natural language. By orchestrating a Large Language Model (Gemini AI) with Google Earth Engine (GEE) API, Canopiq processes environmental queries and delivers comprehensive biomass reports. The platform features a real-time, multi-user dashboard powered by Yjs, allowing distributed teams to analyze interactive maps and dynamic graphs simultaneously.
 
 # ✨ Key Features
 
-- AI-Driven Geospatial Analysis: Natural language querying powered by LLaMA for localized biomass data extraction via Google Earth Engine.
+- AI-Driven Geospatial Analysis: Natural language querying powered by Gemini AI for localized biomass data extraction via Google Earth Engine.
 
-- Real-Time Collaboration: Multiplayer dashboard experience enabled by Yjs (CRDTs), allowing multiple researchers to view and interact with data simultaneously without conflict.
+- Real-Time Collaboration: Multi-user dashboard experience enabled by Yjs (CRDTs), allowing multiple researchers to view and interact with data simultaneously without conflict.
 
 - Dynamic Visualizations: Interactive mapping and graphing interfaces for instant, comprehensible environmental reporting.
 
@@ -20,6 +20,6 @@ Canopiq bridges the gap between complex geospatial data and actionable insights.
 
 - Database & Auth: Supabase (PostgreSQL)
 
-- AI & Data: LLaMA, Google Earth Engine (GEE) API
+- AI & Data: Gemini AI, Google Earth Engine (GEE) API
 
 - Collaboration: Yjs

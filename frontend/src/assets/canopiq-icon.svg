@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#534AB7"/>
+      <stop offset="100%" stop-color="#7F77DD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background square -->
+  <rect width="200" height="200" rx="44" fill="url(#bg-grad)"/>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="56" stroke="#AFA9EC" stroke-width="3.5" fill="none" opacity="0.7"/>
+
+  <!-- Inner filled circle -->
+  <circle cx="100" cy="100" r="22" fill="#CECBF6"/>
+
+  <!-- Cardinal tick marks -->
+  <line x1="100" y1="30" x2="100" y2="46" stroke="#AFA9EC" stroke-width="4" stroke-linecap="round"/>
+  <line x1="100" y1="154" x2="100" y2="170" stroke="#AFA9EC" stroke-width="4" stroke-linecap="round"/>
+  <line x1="30" y1="100" x2="46" y2="100" stroke="#AFA9EC" stroke-width="4" stroke-linecap="round"/>
+  <line x1="154" y1="100" x2="170" y2="100" stroke="#AFA9EC" stroke-width="4" stroke-linecap="round"/>
+</svg>
