@@ -9,7 +9,7 @@ services:
       - "3000:5173"
     networks:
       - canopiq_net
-    volumes:
+    volumes:                  # For hot reloading
       - ./frontend:/app
       - /app/node_modules
     depends_on:

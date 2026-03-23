@@ -1,0 +1,200 @@
+import useApi from '@/hooks/useAPI';
+import logo from '@/assets/logo.svg';
+import { useContext, JSX } from 'react';
+import { AlertContext } from "@/contexts/alertContext";
+import { SubmitButton } from '@/components/SubmitButton';
+import { RegisterInput } from '@/components/RegisterInput';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Formik, Form, Field as FormikField } from 'formik';
+import * as Yup from 'yup';
+import {
+	Box,
+	Checkbox,
+	Flex,
+	Field,
+	Heading,
+	Stack,
+	Text,
+	Image,
+	Link,
+	VStack
+} from '@chakra-ui/react';
+
+interface RegisterFormData
+{
+    email: string;
+	username: string;
+    password: string;
+    confirmPassword?: string;
+    consent?: boolean;
+}
+
+const RegisterSchema: Yup.ObjectSchema<RegisterFormData> = Yup.object().shape({
+	username: Yup.string()
+		.required('Username is required'),
+	email: Yup.string()
+		.email('Invalid email address')
+		.required('Email is required'),
+	password: Yup.string()
+		.required('Password is required')
+		.min(10, 'Password must be at least 10 characters')
+		.matches(
+			/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{10,}$/,
+			'Password must include an uppercase letter, a number, and a special character.'
+		),
+	confirmPassword: Yup.string()
+		.required('Confirm Password is required')
+		.oneOf([Yup.ref('password')], 'Passwords must match'),
+  	consent: Yup.boolean()
+		.oneOf([true], 'You must accept terms')
+		.required('You have to agree with our Terms')
+});
+
+function Register(): JSX.Element {
+	const navigate = useNavigate();
+	const { isLoading, execute } = useApi<RegisterFormData>();
+	const { showAlert } = useContext(AlertContext);
+
+	const handleRegister = async (formData: RegisterFormData) => {
+		try {
+			showAlert(true, `Register succesfully! Welcome ${formData.username}.`);
+			setTimeout(() => navigate('/login'), 2000);
+		} catch (err: any) {
+			const message = err?.message || "Registration failed! Try again.";
+			showAlert(false, message);
+			console.error("Registration failed:", message);
+		}
+	};
+
+	return (
+		<Flex minH="100vh" align="center" justify="center" bg="secondary" p={4}>
+			<Box w="full" maxW="350px">
+				<Formik<RegisterFormData>
+					initialValues={{
+						username: '',
+						email: '',
+						password: '',
+						confirmPassword: '',
+						consent: false,
+					}}
+					validationSchema={RegisterSchema}
+					onSubmit={handleRegister}
+				>
+					{({ errors, values, touched }) => (
+						<Form>
+							<Stack gap={4} align="center">
+								<VStack gap={5} align="center">
+									<Image src={logo} alt="Image, logo Canopiq" w="100px" />
+
+									<Heading size="4xl" className="title-styles">Register</Heading>
+									<Text fontSize="lg" fontWeight="bold" className="text-styles">Create your account</Text>
+								</VStack>
+
+								{/* Username Field */}
+								<RegisterInput 
+									label="Username" name="username" 
+									isInvalid={!!errors.username && touched.username} 
+									aria-label="Enter your username" maxLength={25}
+									error={errors.username} 
+								/>
+
+								{/* Email Field */}
+								<RegisterInput 
+									label="Email" name="email"
+									isInvalid={!!errors.email && touched.email} 
+									aria-label="Enter your email" maxLength={50}
+									error={errors.email} 
+								/>
+
+								{/* Password Field */}
+								<RegisterInput 
+									label="Password" name="password" type="password" 
+									isInvalid={!!errors.password && touched.password} 
+									aria-label="Enter your password" maxLength={30}
+									error={errors.password} 
+								>
+									<Flex justify="flex-end" w="full" mt={1}>
+										<Field.HelperText className="text-styles" fontSize="xs" fontWeight="bold" color="primary" aria-live="polite">
+											{values.password.length} character(s)
+										</Field.HelperText>
+									</Flex>
+								</RegisterInput>
+
+								{/* Confirm Password Field */}
+								<RegisterInput 
+									label="Confirm Password"
+									name="confirmPassword" type="password"
+									isInvalid={!!errors.confirmPassword && touched.confirmPassword} 
+									aria-label="Confirm your password" maxLength={30}
+									error={errors.confirmPassword} 
+								/>
+
+								{/* Terms and Consent */}
+								<FormikField name="consent">
+									{({ field, form }: any) => {
+										const isInvalid = !!form.errors.consent && form.touched.consent;
+
+										return (
+											<Field.Root invalid={isInvalid}>
+												<Checkbox.Root
+													id="consent"
+													checked={field.value}
+													onCheckedChange={(e) => form.setFieldValue("consent", !!e.checked)}
+													size="lg" cursor="pointer"
+													aria-label="You have to agree with our terms"
+												>
+													<Checkbox.HiddenInput />
+													<Checkbox.Control borderColor="white" 
+														_checked={{ bgColor: "primary", color: "secondary", border: "none" }} 
+														_invalid={{ borderColor: "red.500", bgColor: "transparent" }}
+														_hover={{ borderColor: "primary" }}
+													/>
+													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500">
+														By signing up, you agree to Canopiq's{' '}
+														<Link asChild color="primary" fontWeight="bold"
+															_hover={{ textDecoration: "underline" }}
+															aria-label="Hyperlink to our Terms of Use"
+														>
+															<RouterLink to="/terms-of-use">Terms of Use</RouterLink>
+														</Link>{' '}
+														and{' '}
+														<Link asChild color="primary" fontWeight="bold"
+															_hover={{ textDecoration: "underline" }}
+															aria-label="Hyperlink to our Privacy Policy"
+														>
+															<RouterLink to="/privacy-policy">Privacy Policy</RouterLink>
+														</Link>.
+													</Checkbox.Label>
+												</Checkbox.Root>
+											</Field.Root>
+										);
+									}}
+								</FormikField>
+
+								{/* Submit Button */}
+								<SubmitButton 
+									name="Register" 
+									loading={isLoading} disabled={isLoading}
+									aria-label="Register"
+								/>
+
+								<Text className="title-styles" fontSize="md" fontWeight="medium">
+									Already have an account?{" "}
+									<Link asChild color="primary"
+										_hover={{ textDecoration: "underline" }}
+										aria-label="Already have an account?"
+										fontWeight="bold"
+									>
+										<RouterLink to="/login">Login!</RouterLink>
+									</Link>
+								</Text>
+							</Stack>
+						</Form>
+					)}
+				</Formik>
+			</Box>
+		</Flex>
+	);
+}
+
+export default Register;
