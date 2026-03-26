@@ -45,8 +45,9 @@ function Login(): JSX.Element {
 	const handleLoginSubmit = async (formData: LoginFormData) => {
 		try {
 			
+			showAlert(true, "Welcome back! You’re now logged in.");
 		} catch (err: any) {
-			showAlert(false, "Failed to login. Try Again!");
+			showAlert(false, "Login failed! Please try Again.");
 			console.error("Failed to login:", err.message);
 		}
 	};
@@ -59,7 +60,8 @@ function Login(): JSX.Element {
 		try {
 			
 		} catch(err: any) {
-			console.error("Google Auth failed:", err.message);
+			showAlert(false, "Google sign-in failed! Please try again.");
+			console.error("Failed to login with Google:", err.message);
 		} finally {
 			setIsGoogleAuth(false);
 		}

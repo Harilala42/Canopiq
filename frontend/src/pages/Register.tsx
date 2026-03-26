@@ -57,12 +57,12 @@ function Register(): JSX.Element {
 
 	const handleRegister = async (formData: RegisterFormData) => {
 		try {
-			showAlert(true, `Register succesfully! Welcome ${formData.username}.`);
+
+			showAlert(true, `Register successful! Welcome ${formData.username}.`);
 			setTimeout(() => navigate('/login'), 2000);
 		} catch (err: any) {
-			const message = err?.message || "Registration failed! Try again.";
-			showAlert(false, message);
-			console.error("Registration failed:", message);
+			showAlert(false, "Registration failed! Please try again.");
+			console.error("Failed to register:", err.message);
 		}
 	};
 

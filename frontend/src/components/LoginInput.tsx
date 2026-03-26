@@ -30,13 +30,13 @@ export const LoginInput = ({ name, label, error, type="text", isInvalid=false, c
             </Field.Label>
             
             <Box position="relative" w="full">
-                <FormikField bg="secondary" borderColor="text" borderRadius="xl" h="50px" color="text"
+                <FormikField bg="secondary" className="text-styles" borderColor="text" borderRadius="xl" h="50px" color="text"
                     as={Input}
                     name={name} id={name} type={currentType}
                     _placeholder={{ fontFamily: "FiraCode", color: "text", opacity: 0.8 }}
-                    _hover={{ borderColor: "primary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
+                    _hover={{ borderColor: "primary" }}
                     {...props}
                 />
 
