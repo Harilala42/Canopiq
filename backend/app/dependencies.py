@@ -1,8 +1,8 @@
 import os
+from typing import Annotated
 from dotenv import load_dotenv
-from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
+from fastapi import HTTPException, Cookie, Request
 
 load_dotenv()
 
@@ -10,20 +10,23 @@ url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-security_scheme = HTTPBearer()
-
 def get_supabase():
     return supabase
 
-async def check_auth(token: HTTPAuthorizationCredentials = Depends(security_scheme)):
+async def check_auth(
+    request: Request,
+    access_token: Annotated[str | None, Cookie()] = None
+):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
     try:
-        token = token.credentials
-        if not token: raise Exception("Missing token")
-
-        response = supabase.auth.get_user(token)
+        response = supabase.auth.get_user(access_token)
         if not response or not response.user:
-            raise Exception("Invalid or expired token")
+            raise Exception("Invalid or expired session")
 
+        request.state.user = response.user
         return response.user
     except Exception as err:
-        raise HTTPException(status_code=401, detail=str(err))
+        print("ERROR: Auth Error:", str(err))
+        raise HTTPException(status_code=401, detail="Session expired or invalid")

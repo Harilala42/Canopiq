@@ -5,7 +5,7 @@ import { useState, useContext, JSX } from 'react';
 import { AuthContext } from '@/contexts/authContext';
 import { AlertContext } from "@/contexts/alertContext";
 import { SubmitButton } from '@/components/SubmitButton';
-import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
 	Box,
 	Flex, 
@@ -37,18 +37,27 @@ const LoginSchema: Yup.ObjectSchema<LoginFormData> = Yup.object().shape({
 });
 
 function Login(): JSX.Element {
-	const [isGoogleAuth, setIsGoogleAuth] = useState<boolean>(false);
+	const navigate = useNavigate();
 	const { isLoading, execute } = useApi();
+	const [isGoogleAuth, setIsGoogleAuth] = useState<boolean>(false);
 	const { showAlert } = useContext(AlertContext);
 	const { login } = useContext(AuthContext);
 
 	const handleLoginSubmit = async (formData: LoginFormData) => {
 		try {
-			
+			await execute({
+				url: import.meta.env.VITE_API_AUTH_LOGIN_WITH_PASSWORD,
+				method: "POST",
+				body: formData
+			});
+
+			login();
 			showAlert(true, "Welcome back! You’re now logged in.");
+			setTimeout(() => navigate('/'), 2000);
 		} catch (err: any) {
-			showAlert(false, "Login failed! Please try Again.");
+			const msgErr = err.message || "Login failed! Please try Again.";
 			console.error("Failed to login:", err.message);
+			showAlert(false, msgErr);
 		}
 	};
 

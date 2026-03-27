@@ -57,12 +57,18 @@ function Register(): JSX.Element {
 
 	const handleRegister = async (formData: RegisterFormData) => {
 		try {
+			await execute({
+				url: import.meta.env.VITE_API_AUTH_REGISTER,
+				method: "POST",
+				body: formData
+			});
 
 			showAlert(true, `Register successful! Welcome ${formData.username}.`);
 			setTimeout(() => navigate('/login'), 2000);
 		} catch (err: any) {
-			showAlert(false, "Registration failed! Please try again.");
+			const msgErr = err.message || "Registration failed! Please try again.";
 			console.error("Failed to register:", err.message);
+			showAlert(false, msgErr);
 		}
 	};
 

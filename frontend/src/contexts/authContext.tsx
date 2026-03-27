@@ -1,56 +1,63 @@
-import { createContext, useState, useEffect } from 'react';
-import { jwtDecode } from "jwt-decode";
+import useApi from '@/hooks/useAPI';
+import { UserData } from "@/types/user";
+import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { AlertContext } from "@/contexts/alertContext";
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-	const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+	const [user, setUser] = useState<UserData | null>(null);
+	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
-
-	const isTokenExpired = (token: string): boolean => {
-		if (token) {
-			const decoded: any = jwtDecode(token);
-			const currentTime: number = Date.now() / 1000;
-
-			if (decoded.exp < currentTime) {
-				console.warn("JWT token is expired");
-				setIsLoggedIn(false);
-				return (true);
-			}
-
-			setIsLoggedIn(true);
-		}
-		return (false);
-	};
+	const { showAlert } = useContext(AlertContext);
+	const { execute } = useApi();
 
 	useEffect(() => {
-		isTokenExpired(localStorage.getItem("token")) && logout();
-		setIsLoading(false);
+		checkSession();
 	}, []);
 
-	const getToken = (): string | null => {
-		const token: string = localStorage.getItem("token");
-		if (!token || isTokenExpired(token)) {
-			logout();
-			return (null);
+	const checkSession = useCallback(async () => {
+		try {
+			const userData: UserData = await execute({ 
+                url: import.meta.env.VITE_API_AUTH_GET_ME, 
+                method: "GET" 
+            });
+
+			if (!userData) throw Error("User's data is missing");
+
+			localStorage.setItem("user_profile", JSON.stringify(userData));
+			setIsAuthenticated(true);
+			setUser(userData);
+		} catch(err: any) {
+			setIsAuthenticated(false);
+			setUser(null);
+		} finally {
+			setIsLoading(false);
 		}
+	}, []);
 
-		return (token);
-	}
+	const login = () => setIsAuthenticated(true);
 
-	const login = (accessToken: string) => {
-		localStorage.setItem("token", accessToken);
-		setIsLoggedIn(true);
-	};
+	const logout = async () => {
+		try {
+			await execute({
+				url: import.meta.env.VITE_API_AUTH_LOGOUT,
+				method: "POST"
+			});
 
-	const logout = () => {
-		localStorage.removeItem("token");
-		sessionStorage.clear();
-		setIsLoggedIn(false);
+			localStorage.removeItem("user_profile");
+			sessionStorage.clear();
+
+			setIsAuthenticated(false);
+			showAlert(true, "See you soon! You've successfully signed out.");
+		} catch(err: any) {
+			console.log("Failed to logout:", err.message);
+			showAlert(false, "Oops! We couldn't log you out right now.");
+		}
 	};
 
 	return (
-		<AuthContext.Provider value={{ isLoggedIn, isLoading, login, logout, getToken }}>
+		<AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
 			{children}
 		</AuthContext.Provider>
 	);

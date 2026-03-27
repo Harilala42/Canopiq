@@ -6,7 +6,9 @@ const customConfig = defineConfig({
 			colors: {
 				text: { value: "#cecbf6" },
 				primary: { value: "#534ab7" },
-				secondary: { value: "#1a1535" }
+				secondary: { value: "#1a1535" },
+				success: { value: "#1D9E75" },
+				error: { value: "#D85A30" }
 			},
 			fonts: {
 				Sansation: { value: "'Sansation', sans-serif" },

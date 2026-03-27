@@ -1,22 +1,19 @@
 import { createContext, useState } from "react";
+import { toaster } from "@/components/ui/toaster";
 
 export const AlertContext = createContext(null);
 
 export const AlertProvider = ({ children }) => {
-	const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("");
-
   const showAlert = (status: boolean = false, msg: string) => {
-    setIsSuccess(status);
-    setMessage(msg);
-    setIsOpen(true);
+      toaster.create({
+        title: msg,
+        type: status ? "success" : "error",
+        duration: 5000
+      });
   };
 
-  const closeAlert = () => setIsOpen(false);
-
   return (
-    <AlertContext.Provider value={{ isOpen, isSuccess, message, showAlert, closeAlert }}>
+    <AlertContext.Provider value={{ showAlert }}>
       {children}
     </AlertContext.Provider>
   );

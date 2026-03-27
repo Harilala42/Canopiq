@@ -4,6 +4,7 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { ProtectedRoute } from "@/pages/ProtectedRoute";
 import { AlertProvider } from "@/contexts/alertContext";
 import { AuthProvider } from "@/contexts/authContext";
+import { Toaster } from "@/components/ui/toaster";
 import Register from "@/pages/Register";
 import Layout from "@/pages/Layout";
 import Login from "@/pages/Login";
@@ -26,6 +27,7 @@ function App() {
 							<Route path="/" element={<></>} />
 						</Route>
 					</Routes>
+					<Toaster />
 				</AuthProvider>
 			</AlertProvider>
 		</ChakraProvider>

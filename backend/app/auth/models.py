@@ -35,3 +35,14 @@ def refresh_session(refresh_token: str):
 
     new_session = client.auth.refresh_session(refresh_token)
     return new_session
+
+def get_user_profile(user_id: str):
+    client = supabase()
+
+    response = client.table("profiles") \
+        .select("*") \
+        .eq("id", user_id) \
+        .single() \
+        .execute()
+    
+    return response.data

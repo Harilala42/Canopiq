@@ -1,5 +1,4 @@
-import { useState, useCallback, useContext } from 'react';
-import { AuthContext } from '@/contexts/authContext';
+import { useState, useCallback } from 'react';
 import axios, { AxiosError } from 'axios';
 
 interface ExecuteOptions<T = any>
@@ -7,8 +6,7 @@ interface ExecuteOptions<T = any>
 	url: string;
 	method?: "GET" | "POST" | "DELETE" | "PUT" | "PATCH";
 	body?: T | null;
-	params?: Record<string, any> | null; 
-	useToken?: boolean;
+	params?: Record<string, any> | null;
 }
 
 interface APIData<T = any>
@@ -22,20 +20,40 @@ interface APIData<T = any>
 }
 
 const api = axios.create({
-	baseURL: "http://localhost:8000/",
-	timeout: 15000
+	baseURL: import.meta.env.VITE_API_URL,
+	withCredentials: true,
+	timeout: 15000,
 });
+
+// api.interceptors.response.use(
+//     (response) => response,
+//     async (error) => {
+//         const originalRequest = error.config;
+
+//         if (error.response?.status === 401 && !originalRequest._retry) {
+//             originalRequest._retry = true;
+
+//             try {
+//                 await api.post(import.meta.env.VITE_API_AUTH_REFRESH_TOKEN);
+                
+//                 return api(originalRequest);
+//             } catch (refreshError) {
+//                 window.location.href = "/login";
+//                 return Promise.reject(refreshError);
+//             }
+//         }
+//         return Promise.reject(error);
+//     }
+// );
 
 const useApi = <T = any>(): APIData<T> => {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [data, setData] = useState<T | null>(null);
 	const [error, setError] = useState<any>(null);
-	const { getToken } = useContext(AuthContext);
 
 	const execute = useCallback(
 	async ({
 		url,
-		useToken = false,
 		method = "GET",
 		body = null,
 		params = null
@@ -44,16 +62,9 @@ const useApi = <T = any>(): APIData<T> => {
 		setIsLoading(true);
 
 		try {
-			const headers: Record<string, string> = {};
-			if (useToken) {
-				const token: string | null = getToken();
-				if (token) headers['Authorization'] = `Bearer ${token}`;
-			}
-
 			const response = await api({ 
 				url, 
-				method, 
-				headers,
+				method,
 				data: body,
 				params
 			});
@@ -61,11 +72,19 @@ const useApi = <T = any>(): APIData<T> => {
 			setData(response.data);
 			return (response.data);
 		} catch (err: any) {
-			const axiosError = err as AxiosError<{ message?: string }>;
-			const errorMessage = axiosError.response?.data?.message || err.message || 'Something went wrong';
-			
+			const axiosError = err as AxiosError<{ detail?: string | any[] }>;
+			const detail = axiosError.response?.data?.detail;
+			let errorMessage: string;
+
+			if (typeof detail === 'string')
+				errorMessage = detail;
+			else if (Array.isArray(detail) && detail[0]?.msg)
+				errorMessage = "Invalid input provided";
+			else
+				errorMessage = err.message || 'Something went wrong';
+
 			setError(errorMessage);
-			throw new Error(`Failed to call ${url}: ` + errorMessage);
+			throw new Error(errorMessage);
 		} finally {
 			setIsLoading(false);
 		}
