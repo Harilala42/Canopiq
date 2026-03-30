@@ -19,8 +19,7 @@ export const AuthProvider = ({ children }) => {
 	const checkSession = useCallback(async () => {
 		try {
 			const userData: UserData = await execute({ 
-                url: import.meta.env.VITE_API_AUTH_GET_ME, 
-                method: "GET" 
+                url: import.meta.env.VITE_API_AUTH_GET_ME
             });
 
 			if (!userData) throw Error("User's data is missing");
@@ -36,8 +35,8 @@ export const AuthProvider = ({ children }) => {
 		}
 	}, []);
 
-	const login = () => setIsAuthenticated(true);
-
+	const login = async () => await checkSession();
+	
 	const logout = async () => {
 		try {
 			await execute({
@@ -48,6 +47,7 @@ export const AuthProvider = ({ children }) => {
 			localStorage.removeItem("user_profile");
 			sessionStorage.clear();
 
+			setUser(null);
 			setIsAuthenticated(false);
 			showAlert(true, "See you soon! You've successfully signed out.");
 		} catch(err: any) {

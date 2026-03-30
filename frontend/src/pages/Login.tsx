@@ -67,7 +67,7 @@ function Login(): JSX.Element {
 		setIsGoogleAuth(true);
 
 		try {
-			
+			window.location.href = import.meta.env.VITE_API_URL + import.meta.env.VITE_API_AUTH_LOGIN_WITH_GOOGLE;
 		} catch(err: any) {
 			showAlert(false, "Google sign-in failed! Please try again.");
 			console.error("Failed to login with Google:", err.message);

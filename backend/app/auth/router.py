@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, Response, Cookie
-from app.auth.models import register_with_password, login_with_password, refresh_session, get_user_profile
-from app.auth.schemas import RegisterForm, LoginForm
-from app.dependencies import check_auth
+import os
 from typing import Annotated
+import app.auth.models as auth_models
+from app.auth.schemas import RegisterForm, LoginForm, UserProfile
+from fastapi import APIRouter, HTTPException, Depends, Request, Response, Cookie
+from fastapi.responses import RedirectResponse
+from app.dependencies import check_auth
 
 public_router = APIRouter()
 
@@ -10,9 +12,19 @@ public_router = APIRouter()
 @public_router.post("/auth/register", tags=["auth"])
 async def register_user(payload: RegisterForm):
 	try:
-		result = register_with_password(payload.model_dump())
+		result = auth_models.register_with_password(payload.model_dump())
 		if not result:
 			raise Exception("User registration failed")
+		
+		user_id = result.user.id
+		user = UserProfile(
+			id=user_id,
+			email=payload.email,
+			username=payload.username,
+			avatar_url=None
+		)
+
+		auth_models.set_user_profile(user.model_dump())
 
 		return { "message": "User registered successfully" }
 	except Exception as err:
@@ -20,21 +32,45 @@ async def register_user(payload: RegisterForm):
 		print("ERROR: Failed to register:", str(err))
 
 		if "rate limit" in error_msg:
-			raise HTTPException(status_code=429, detail="Too many requests! Please try again later.")
+			raise HTTPException(
+				status_code=429, 
+				detail= {
+					"code": "RATE_LIMITED",
+					"message": "Too many registration attempts. Please try again later."
+				}
+			)
 
 		if "invalid" in error_msg:
-			raise HTTPException(status_code=400, detail="Invalid email address provided.")
+			raise HTTPException(
+				status_code=401,
+				detail={
+					"code": "INVALID_CREDENTIALS",
+					"message": "Invalid email provided. Please enter a valid email address."
+				}
+			)
 
 		if "duplicate" in error_msg or "already in use" in error_msg:
-			raise HTTPException(status_code=400, detail="Email already in use.")
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "EMAIL_ALREADY_USED",
+					"message": "Email already in use"
+				}
+			)
 
-		raise HTTPException(status_code=500, detail="Something went wrong.")
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)
 
 # Endpoint to login via email/password
 @public_router.post("/auth/login", tags=["auth"])
 async def login_user_with_password(payload: LoginForm, response: Response):
 	try:
-		result = login_with_password(payload.model_dump())
+		result = auth_models.login_with_password(payload.model_dump())
 		if not result or not result.session:
 			return Exception("User login failed")
 		
@@ -63,15 +99,30 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 		print("ERROR: Failed to login:", str(err))
 
 		if "invalid" in error_msg or "not valid" in error_msg:
-			raise HTTPException(status_code=401, detail="Invalid email or password")
+			raise HTTPException(
+				status_code=401,
+				detail={
+					"code": "INVALID_CREDENTIALS",
+					"message": "Invalid email or password"
+				}
+			)
 		
 		if "not confirmed" in error_msg:
 			raise HTTPException(
 				status_code=403,
-				message="Email still not confirmed. Please verify your email."
+				detail={
+					"code": "FORBIDDEN",
+					"message": "Email still not confirmed. Please verify your email."
+				}
 			)
 
-		raise HTTPException(status_code=500, detail="Something went wrong.")
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)
 
 # Endpoint to logout user's session	
 @public_router.post("/auth/logout", tags=["auth"])
@@ -91,20 +142,24 @@ async def logout(response: Response):
 	)
 
 	return { "message": "Logged out successfully" }
-	
-router = APIRouter(dependencies=[Depends(check_auth)])
-	
+
 # Endpoint to refresh access token
-@router.post("/auth/refresh", tags=["auth"])
+@public_router.post("/auth/refresh", tags=["auth"])
 async def refresh_access_token(
 	response: Response,
 	refresh_token: Annotated[str | None, Cookie()]
 ):
 	if not refresh_token:
-		raise HTTPException(status_code=401, detail="Missing refresh token")
+		raise HTTPException(
+			status_code=401,
+			detail={
+				"code": "MISSING_REFRESH_TOKEN",
+				"message": "Missing refresh token"
+			}
+		)
 
 	try:
-		result = refresh_session(refresh_token)
+		result = auth_models.refresh_session(refresh_token)
 		if not result or not result.session:
 			raise Exception("Refresh token failed")
 		
@@ -124,22 +179,127 @@ async def refresh_access_token(
 		print("ERROR: Failed to refresh token:", str(err))
 
 		if "invalid" in error_msg or "not valid" in error_msg:
-			raise HTTPException(status_code=401, detail="Invalid refresh token")
+			raise HTTPException(
+				status_code=401,
+				detail={
+					"code": "INVALID_REFRESH_TOKEN",
+					"message": "Invalid refresh token"
+				}
+			)
 
-		raise HTTPException(status_code=500, detail="Something went wrong.")
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)
+	
+# Endpoint to login via Google OAuth
+@public_router.get("/auth/google", tags=["auth"])
+async def login_with_google():
+	try:
+		result = auth_models.login_with_google()
+		if not result or not result.url:
+			raise Exception("Google login failed")
+
+		return RedirectResponse(url=result.url)
+	except Exception as err:
+		print("ERROR: Failed to login with Google:", str(err))
+
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)
+
+# Endpoint to handle Google OAuth callback
+@public_router.get("/auth/google/callback", tags=["auth"])
+async def google_callback(code: str):
+	if not code:
+		raise HTTPException(
+			status_code=401,
+			detail={
+				"code": "MISSING_AUTH_CODE",
+				"message": "Missing authorization code"
+			}
+		)
+
+	try:
+		result = auth_models.handle_google_callback(code)
+		if not result or not result.session:
+			raise Exception("Google OAuth callback failed")
+		 
+		user = UserProfile(
+			id=result.user.id,
+			email=result.user.email,
+			username=result.user.user_metadata["name"].split(" ")[0],
+			avatar_url=None
+		)
+
+		auth_models.set_user_profile(user.model_dump())
+		
+		access_token = result.session.access_token
+		refresh_token = result.session.refresh_token
+
+		redirect = RedirectResponse(url=os.environ.get("FRONDEND_URL"))
+		
+		redirect.set_cookie(
+			key="access_token",
+			value=access_token,
+			httponly=True,
+			samesite="lax",
+			secure=False
+		)
+
+		redirect.set_cookie(
+			key="refresh_token",
+			value=refresh_token,
+			httponly=True,
+			samesite="lax",
+			secure=False
+		)
+
+		return redirect
+	except Exception as err:
+		print("ERROR: Google OAuth callback failed:", str(err))
+
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)
+	
+router = APIRouter(dependencies=[Depends(check_auth)])
 	
 # Endpoint to retrieve user's data
 @router.get("/auth/me", tags=["auth"])
 async def check_user_profile(request: Request):
 	try:
 		user_id = request.state.user.id
-		user_data = get_user_profile(user_id)
+		user_data = auth_models.get_user_profile(user_id)
 
 		if not user_data:
-			raise HTTPException(status_code=404, detail="User profile not found")
+			raise HTTPException(
+				status_code=404,
+				detail={
+					"code": "RESOURCE_NOT_FOUND",
+					"message": "User profile not found"
+				}
+			)
 
 		return user_data
 	except Exception as err:
 		print("ERROR: Failed to retrieve user's data:", str(err))
 
-		raise HTTPException(status_code=500, detail="Something went wrong.")
+		raise HTTPException(
+			status_code=500,
+			detail={
+				"code": "INTERNAL_SERVER_ERROR",
+				"message": "Something went wrong"
+			}
+		)

@@ -25,26 +25,39 @@ const api = axios.create({
 	timeout: 15000,
 });
 
-// api.interceptors.response.use(
-//     (response) => response,
-//     async (error) => {
-//         const originalRequest = error.config;
+// Interceptor to handle token refresh
+api.interceptors.response.use(
+    (response) => response,
+    async (err: any) => {
+        const originalRequest = err.config;
+		const status: number = err.response?.status;
+		const code: string = err.response?.data?.detail?.code;
 
-//         if (error.response?.status === 401 && !originalRequest._retry) {
-//             originalRequest._retry = true;
+        if (status === 401 && code === "TOKEN_EXPIRED" && !originalRequest._retry) {
+            originalRequest._retry = true;
 
-//             try {
-//                 await api.post(import.meta.env.VITE_API_AUTH_REFRESH_TOKEN);
+            try {
+                await api.post(import.meta.env.VITE_API_AUTH_REFRESH_TOKEN);
                 
-//                 return api(originalRequest);
-//             } catch (refreshError) {
-//                 window.location.href = "/login";
-//                 return Promise.reject(refreshError);
-//             }
-//         }
-//         return Promise.reject(error);
-//     }
-// );
+                return api(originalRequest);
+            } catch (refreshError) {
+				try {
+                    await api.post(import.meta.env.VITE_API_AUTH_LOGOUT);
+                } catch (_) {
+                    // ignore logout errors
+                }
+
+				localStorage.removeItem("user_profile");
+				sessionStorage.clear();
+
+                window.location.href = "/login";
+                return Promise.reject(refreshError);
+            }
+        }
+		
+        return Promise.reject(err);
+    }
+);
 
 const useApi = <T = any>(): APIData<T> => {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -72,16 +85,16 @@ const useApi = <T = any>(): APIData<T> => {
 			setData(response.data);
 			return (response.data);
 		} catch (err: any) {
-			const axiosError = err as AxiosError<{ detail?: string | any[] }>;
-			const detail = axiosError.response?.data?.detail;
+			const axiosError: any = err as AxiosError;
+			const detail: any = axiosError.response?.data?.detail;
 			let errorMessage: string;
 
-			if (typeof detail === 'string')
-				errorMessage = detail;
+			if (typeof detail === "object" && detail?.message)
+				errorMessage = detail.message;
 			else if (Array.isArray(detail) && detail[0]?.msg)
 				errorMessage = "Invalid input provided";
 			else
-				errorMessage = err.message || 'Something went wrong';
+				errorMessage = 'Something went wrong';
 
 			setError(errorMessage);
 			throw new Error(errorMessage);

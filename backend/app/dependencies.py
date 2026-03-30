@@ -18,7 +18,13 @@ async def check_auth(
     access_token: Annotated[str | None, Cookie()] = None
 ):
     if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(
+            status_code=401, 
+            detail= {
+                "code": "MISSING_ACCESS_TOKEN",
+                "message": "Not authenticated"
+            }
+        )
 
     try:
         response = supabase.auth.get_user(access_token)
@@ -29,4 +35,11 @@ async def check_auth(
         return response.user
     except Exception as err:
         print("ERROR: Auth Error:", str(err))
-        raise HTTPException(status_code=401, detail="Session expired or invalid")
+        
+        raise HTTPException(
+            status_code=401, 
+            detail= {
+                "code": "TOKEN_EXPIRED",
+                "message": "Session expired or invalid"
+            }
+        )
