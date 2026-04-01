@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router, public_router
+from app.llm.router import router as llm_router
 
 app = FastAPI(
     title="Canopiq",
@@ -30,3 +31,4 @@ PUBLIC_ROUTES=[
 
 app.include_router(public_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
+app.include_router(llm_router, prefix="/api/v1", tags=["llm"])

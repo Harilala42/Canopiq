@@ -57,7 +57,7 @@ def get_user_profile(user_id: str):
         .maybe_single() \
         .execute()
     
-    return response.data
+    return response.data if response and response.data else None
 
 def set_user_profile(user_data: dict):
     client = supabase()

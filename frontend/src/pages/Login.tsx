@@ -71,8 +71,6 @@ function Login(): JSX.Element {
 		} catch(err: any) {
 			showAlert(false, "Google sign-in failed! Please try again.");
 			console.error("Failed to login with Google:", err.message);
-		} finally {
-			setIsGoogleAuth(false);
 		}
 	}
 
