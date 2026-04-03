@@ -2,8 +2,10 @@ import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
 import { useContext, JSX } from 'react';
 import { AlertContext } from "@/contexts/alertContext";
+import { ThemeContext } from "@/contexts/themeContext";
 import { SubmitButton } from '@/components/SubmitButton';
 import { RegisterInput } from '@/components/RegisterInput';
+import { FullScreen } from '@/components/FullScreen';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Formik, Form, Field as FormikField } from 'formik';
 import * as Yup from 'yup';
@@ -54,6 +56,7 @@ function Register(): JSX.Element {
 	const navigate = useNavigate();
 	const { isLoading, execute } = useApi<RegisterFormData>();
 	const { showAlert } = useContext(AlertContext);
+	const { theme } = useContext(ThemeContext);
 
 	const handleRegister = async (formData: RegisterFormData) => {
 		try {
@@ -73,7 +76,7 @@ function Register(): JSX.Element {
 	};
 
 	return (
-		<Flex minH="100vh" align="center" justify="center" bg="secondary" p={4}>
+		<FullScreen>
 			<Box w="full" maxW="350px">
 				<Formik<RegisterFormData>
 					initialValues={{
@@ -120,7 +123,12 @@ function Register(): JSX.Element {
 									error={errors.password} 
 								>
 									<Flex justify="flex-end" w="full" mt={1}>
-										<Field.HelperText className="text-styles" fontSize="xs" fontWeight="bold" color="primary" aria-live="polite">
+										<Field.HelperText 
+											className="text-styles" 
+											fontSize="xs" fontWeight="bold" 
+											color={theme === "dark" ? "primary" : "secondary"} 
+											aria-live="polite"
+										>
 											{values.password.length} character(s)
 										</Field.HelperText>
 									</Flex>
@@ -151,20 +159,26 @@ function Register(): JSX.Element {
 												>
 													<Checkbox.HiddenInput />
 													<Checkbox.Control borderColor="white" 
-														_checked={{ bgColor: "primary", color: "secondary", border: "none" }} 
+														_checked={{ 
+															bgColor: theme === "dark" ? "primary" : "secondary",
+															color: theme === "dark" ? "secondary" : "primary",
+															border: "none" 
+														}} 
 														_invalid={{ borderColor: "red.500", bgColor: "transparent" }}
-														_hover={{ borderColor: "primary" }}
+														_hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
 													/>
 													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500">
 														By signing up, you agree to Canopiq's{' '}
-														<Link asChild color="primary" fontWeight="bold"
+														<Link asChild fontWeight="bold"
+															color={theme === "dark" ? "primary" : "secondary"}
 															_hover={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Terms of Use"
 														>
 															<RouterLink to="/terms-of-use">Terms of Use</RouterLink>
 														</Link>{' '}
 														and{' '}
-														<Link asChild color="primary" fontWeight="bold"
+														<Link asChild fontWeight="bold"
+															color={theme === "dark" ? "primary" : "secondary"}
 															_hover={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Privacy Policy"
 														>
@@ -186,7 +200,8 @@ function Register(): JSX.Element {
 
 								<Text className="title-styles" fontSize="md" fontWeight="medium">
 									Already have an account?{" "}
-									<Link asChild color="primary"
+									<Link asChild 
+										color={theme === "dark" ? "primary" : "secondary"}
 										_hover={{ textDecoration: "underline" }}
 										aria-label="Already have an account?"
 										fontWeight="bold"
@@ -199,7 +214,7 @@ function Register(): JSX.Element {
 					)}
 				</Formik>
 			</Box>
-		</Flex>
+		</FullScreen>
 	);
 }
 

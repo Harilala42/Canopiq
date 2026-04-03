@@ -1,4 +1,4 @@
-import { useState, JSX } from 'react';
+import { useState, useContext, JSX } from 'react';
 import { LuEye, LuEyeOff } from "react-icons/lu";
 import { Field as FormikField } from 'formik';
 import { 
@@ -8,6 +8,7 @@ import {
     IconButton, 
     InputProps 
 } from '@chakra-ui/react';
+import { ThemeContext } from '@/contexts/themeContext';
 
 interface RegisterInputProps extends InputProps
 {
@@ -22,6 +23,7 @@ interface RegisterInputProps extends InputProps
 export const RegisterInput = ({ name, label, error, type="text", isInvalid=false, children, ...props }: RegisterInputProps): JSX.Element => {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const currentType = (type != "password") ? "text" : (showPassword ? "text" : "password");
+    const { theme } = useContext(ThemeContext);
 
     return (
         <Field.Root invalid={isInvalid}>
@@ -29,12 +31,13 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 <FormikField as={ Input }
                     className="peer text-styles" 
                     id={ name } name={ name } type={currentType}
-                    bg="secondary" borderColor="text" borderRadius="xl" 
+                    bg={theme === "dark" ? "secondary" : "primary"} 
+                    borderColor="text" borderRadius="xl" 
                     h="50px" px="1rem" pt="1rem"
                     transition="border-color 0.2s"
                     placeholder=" "
                     
-                    _hover={{ borderColor: "primary" }}
+                    _hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
                     { ...props }
@@ -51,7 +54,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                     _peerFocus={{
                         top: "0.5rem",
                         transform: "translateY(0) scale(0.8)",
-                        color: "primary"
+                        color: theme === "dark" ? "primary" : "secondary"
                     }}
                     css={{
                         ".peer:not(:placeholder-shown) ~ &": {

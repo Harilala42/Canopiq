@@ -1,15 +1,24 @@
-import { useContext, JSX } from 'react';
-import { Outlet } from "react-router-dom";
-import { Box, Button, Grid, GridItem } from '@chakra-ui/react';
+import { JSX } from 'react';
+import { Grid, GridItem } from '@chakra-ui/react';
 import { FullScreen } from '@/components/FullScreen';
-import { AuthContext } from '@/contexts/authContext';
+import { Header } from '@/components/Header';
 
 function Layout(): JSX.Element {
-	const { logout } = useContext(AuthContext);
-
 	return (
-		<FullScreen bg="secondary">
-			<Button className="text-styles" bg="primary" onClick={logout}>Log out</Button>
+		<FullScreen>
+			<Grid 
+				w="100vw" h="100vh" 
+				templateRows="80px 1fr"
+				templateColumns="repeat(4, 1fr)"
+			>
+				<GridItem rowSpan={1} colSpan={4}>
+					<Header />
+				</GridItem>
+
+				<GridItem rowSpan={1} colSpan={4} display="flex" overflow="hidden">
+
+				</GridItem>
+			</Grid>
 		</FullScreen>
 	);
 }

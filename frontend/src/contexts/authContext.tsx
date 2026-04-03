@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
 
 			if (!userData) throw Error("User's data is missing");
 
-			localStorage.setItem("user_profile", JSON.stringify(userData));
 			setIsAuthenticated(true);
 			setUser(userData);
 		} catch(err: any) {
@@ -44,7 +43,6 @@ export const AuthProvider = ({ children }) => {
 				method: "POST"
 			});
 
-			localStorage.removeItem("user_profile");
 			sessionStorage.clear();
 
 			setUser(null);

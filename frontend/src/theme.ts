@@ -19,7 +19,13 @@ const customConfig = defineConfig({
 	globalCss: {
 		"*": {
 			margin: 0,
-			padding: 0
+			padding: 0,
+			cursor: "none !important",
+			transition: `
+				background-color 0.3s ease,
+				border-color 0.3s ease,
+				color 0.3s ease
+			`
 		},
 		".title-styles": {
 			fontFamily: "Sansation",

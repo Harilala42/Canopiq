@@ -47,9 +47,7 @@ api.interceptors.response.use(
                     // ignore logout errors
                 }
 
-				localStorage.removeItem("user_profile");
 				sessionStorage.clear();
-
                 window.location.href = "/login";
                 return Promise.reject(refreshError);
             }
