@@ -31,9 +31,10 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 <FormikField as={ Input }
                     className="peer text-styles" 
                     id={ name } name={ name } type={currentType}
-                    bg={theme === "dark" ? "secondary" : "primary"} 
-                    borderColor="text" borderRadius="xl" 
-                    h="50px" px="1rem" pt="1rem"
+                    bg={theme === "dark" ? "secondary" : "text"} 
+                    borderColor={theme === "dark" ? "text" : "primary"} 
+                    borderRadius="xl" h="50px" px="1rem" pt="1rem"
+                    color={theme === "dark" ? "text" : "primary"}
                     transition="border-color 0.2s"
                     placeholder=" "
                     
@@ -46,6 +47,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 <Field.Label
                     className="text-styles" htmlFor={ name }
                     position="absolute" left="1rem" top="50%" 
+                    color={theme === "dark" ? "text" : "primary"}
                     transform="translateY(-50%)"
                     transition="all 0.2s ease-out"
                     transformOrigin="left top" 
@@ -60,7 +62,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                         ".peer:not(:placeholder-shown) ~ &": {
                             top: "0.5rem",
                             transform: "translateY(0) scale(0.8)",
-                            color: "primary"
+                            color: theme === "dark" ? "text" : "primary"
                         }
                     }}
                 >{ label }
@@ -69,7 +71,8 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 {/* Password Toggle Button */}
                 {(type == "password") && (
                     <IconButton position="absolute" right="2" top="50%" transform="translateY(-50%)"
-                        bgColor="transparent" color="white"
+                        bgColor="transparent"
+                        color={theme === "dark" ? "text" : "primary"}
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         aria-controls={name}

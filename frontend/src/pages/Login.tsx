@@ -5,8 +5,8 @@ import { useState, useContext, JSX } from 'react';
 import { AuthContext } from '@/contexts/authContext';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from '@/contexts/themeContext';
-import { SubmitButton } from '@/components/SubmitButton';
 import { FullScreen } from '@/components/FullScreen';
+import { Button } from '@/components/Button';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
 	Box,
@@ -91,8 +91,8 @@ function Login(): JSX.Element {
 								<VStack gap={5} align="center">
 									<Image src={logo} alt="Image, logo Canopiq" w="100px" />
 
-									<Heading size="4xl" className="title-styles">Login</Heading>
-									<Text fontSize="lg" fontWeight="bold" className="text-styles">Access your account</Text>
+									<Heading size="4xl" className="title-styles" color={theme === "dark" ? "text" : "primary"}>Login</Heading>
+									<Text fontSize="lg" fontWeight="bold" className="text-styles" color={theme === "dark" ? "text" : "primary"}>Access your account</Text>
 								</VStack>
 
 								{/* Email or Username Field */}
@@ -124,29 +124,35 @@ function Login(): JSX.Element {
                                 </LoginInput>
 
 								{/* Submit Button */}
-								<SubmitButton 
-									name="Login" 
+								<Button 
 									loading={isLoading && !isGoogleAuth} 
-									disabled={isLoading && !isGoogleAuth}
-									aria-label="Login"
-								/>
+									disabled={isLoading && !isGoogleAuth} 
+									aria-label="Login" h="50px"
+								>
+									Login
+								</Button>
 
 								{/* Button to trigger Google Auth */}
 								<Flex align="center" w="full" gap={4}>
-									<Separator flex={1} borderColor="text" />
-									<IconButton variant="outline" borderRadius="full" w="50px" h="50px" bg={theme === "dark" ? "secondary" : "primary"} borderColor="text"
+									<Separator flex={1} borderColor={ theme === "dark" ? "text" : "primary" } />
+									<IconButton 
+										w="50px" h="50px" 
+										variant="outline" borderRadius="full" 
+										bg={theme === "dark" ? "secondary" : "text"} 
+										borderColor={ theme === "dark" ? "text" : "primary" }
 										onClick={handleGoogleAuth} disabled={isGoogleAuth}
 										aria-label="Authenticate via Google account"
-										_hover={{ bg: "text" }}
+										_hover={{ bg: theme === "dark" ? "text" : "primary" }}
 									>
 										{ !isGoogleAuth ? <Image src={googleLogo} alt="Image, Google Logo" w="24px" /> : <Spinner color={theme === "dark" ? "primary" : "secondary"} size="sm" /> }
 									</IconButton>
-									<Separator flex={1} borderColor="text" />
+									<Separator flex={1} borderColor={ theme === "dark" ? "text" : "primary" } />
 								</Flex>
 
-								<Text className="title-styles" fontSize="md" fontWeight="medium">
+								<Text className="title-styles" fontSize="md" fontWeight="medium" color={theme === "dark" ? "text" : "primary"}>
 									Not a member yet?{" "}
-									<Link asChild color={theme === "dark" ? "primary" : "secondary"}
+									<Link asChild
+										color={theme === "dark" ? "primary" : "secondary"}
 										_hover={{ textDecoration: "underline" }}
 										aria-label="Not a member yet ?"
 										fontWeight="bold"

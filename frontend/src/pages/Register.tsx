@@ -3,8 +3,8 @@ import logo from '@/assets/logo.svg';
 import { useContext, JSX } from 'react';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from "@/contexts/themeContext";
-import { SubmitButton } from '@/components/SubmitButton';
 import { RegisterInput } from '@/components/RegisterInput';
+import { Button } from '@/components/Button';
 import { FullScreen } from '@/components/FullScreen';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Formik, Form, Field as FormikField } from 'formik';
@@ -95,8 +95,8 @@ function Register(): JSX.Element {
 								<VStack gap={5} align="center">
 									<Image src={logo} alt="Image, logo Canopiq" w="100px" />
 
-									<Heading size="4xl" className="title-styles">Register</Heading>
-									<Text fontSize="lg" fontWeight="bold" className="text-styles">Create your account</Text>
+									<Heading size="4xl" className="title-styles" color={theme === "dark" ? "text" : "primary"}>Register</Heading>
+									<Text fontSize="lg" fontWeight="bold" className="text-styles" color={theme === "dark" ? "text" : "primary"}>Create your account</Text>
 								</VStack>
 
 								{/* Username Field */}
@@ -158,16 +158,17 @@ function Register(): JSX.Element {
 													aria-label="You have to agree with our terms"
 												>
 													<Checkbox.HiddenInput />
-													<Checkbox.Control borderColor="white" 
+													<Checkbox.Control 
 														_checked={{ 
 															bgColor: theme === "dark" ? "primary" : "secondary",
-															color: theme === "dark" ? "secondary" : "primary",
+															color: theme === "dark" ? "secondary" : "text",
 															border: "none" 
 														}} 
+														borderColor={theme === "dark" ? "text" : "primary"}
 														_invalid={{ borderColor: "red.500", bgColor: "transparent" }}
 														_hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
 													/>
-													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500">
+													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500" color={theme === "dark" ? "text" : "primary"}>
 														By signing up, you agree to Canopiq's{' '}
 														<Link asChild fontWeight="bold"
 															color={theme === "dark" ? "primary" : "secondary"}
@@ -192,13 +193,11 @@ function Register(): JSX.Element {
 								</FormikField>
 
 								{/* Submit Button */}
-								<SubmitButton 
-									name="Register" 
-									loading={isLoading} disabled={isLoading}
-									aria-label="Register"
-								/>
+								<Button loading={isLoading} disabled={isLoading} aria-label="Register" h="50px">
+									Register
+								</Button>
 
-								<Text className="title-styles" fontSize="md" fontWeight="medium">
+								<Text className="title-styles" fontSize="md" fontWeight="medium" color={theme === "dark" ? "text" : "primary"}>
 									Already have an account?{" "}
 									<Link asChild 
 										color={theme === "dark" ? "primary" : "secondary"}

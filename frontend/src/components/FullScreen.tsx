@@ -56,7 +56,7 @@ export const FullScreen = ({ children, ...props }: FullScreenProps): JSX.Element
             justifyContent="center"
             alignItems="center"
             overflow="hidden"
-            bg={theme === "dark" ? "secondary" : "primary"}
+            bg={theme === "dark" ? "secondary" : "text"}
             {...props}
         >
             {children}
@@ -64,20 +64,21 @@ export const FullScreen = ({ children, ...props }: FullScreenProps): JSX.Element
             {(!isOnMobile && isInside) && (<Box
                 position="fixed"
                 top={0} left={0}
+                color={theme === "dark" ? "text" : "primary"}
                 transform={`translate(${mousePosition.x}px, ${mousePosition.y}px)`}
                 pointerEvents="none"
                 zIndex={9999}
             >
                 {cursorType === "default" && (
-                    <LuMousePointer2 size={24} color="white" />
+                    <LuMousePointer2 size={24} />
                 )}
 
                 {cursorType === "pointer" && (
-                    <LuPointer size={24} color="white" />
+                    <LuPointer size={24} />
                 )}
 
                 {cursorType === "disabled" && (
-                    <LuMousePointerBan size={24} color="white" />
+                    <LuMousePointerBan size={24} />
                 )}
             </Box>)}
         </Flex>
