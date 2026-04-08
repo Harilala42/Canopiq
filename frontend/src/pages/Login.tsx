@@ -1,7 +1,7 @@
 import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
 import googleLogo from '@/assets/googleLogo.svg';
-import { useState, useContext, JSX } from 'react';
+import { useState, useContext, useCallback, JSX } from 'react';
 import { AuthContext } from '@/contexts/authContext';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from '@/contexts/themeContext';
@@ -46,7 +46,7 @@ function Login(): JSX.Element {
 	const { theme } = useContext(ThemeContext);
 	const { login } = useContext(AuthContext);
 
-	const handleLoginSubmit = async (formData: LoginFormData) => {
+	const handleLoginSubmit = useCallback(async (formData: LoginFormData) => {
 		try {
 			await execute({
 				url: import.meta.env.VITE_API_AUTH_LOGIN_WITH_PASSWORD,
@@ -62,9 +62,9 @@ function Login(): JSX.Element {
 			console.error("Failed to login:", err.message);
 			showAlert(false, msgErr);
 		}
-	};
+	}, []);
 
-	const handleGoogleAuth = async (e: React.MouseEvent<HTMLButtonElement>) => {
+	const handleGoogleAuth = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
 
 		setIsGoogleAuth(true);
@@ -75,7 +75,7 @@ function Login(): JSX.Element {
 			showAlert(false, "Google sign-in failed! Please try again.");
 			console.error("Failed to login with Google:", err.message);
 		}
-	}
+	}, []);
 
 	return (
 		<FullScreen>

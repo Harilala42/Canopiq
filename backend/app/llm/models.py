@@ -34,7 +34,7 @@ def get_chat_message(chat_id: str, user_id: str):
     client = supabase()
 
     messages_list = client.table("messages") \
-        .select("role", "content") \
+        .select("role", "content", "id", "created_at") \
         .eq("chat_id", str(chat_id)) \
         .eq("user_id", str(user_id)) \
         .order("created_at", desc=False) \
@@ -93,6 +93,17 @@ def get_user_chats(user_id: str):
         .select("id, created_at, title") \
         .eq("user_id", user_id) \
         .order("created_at", desc=True) \
+        .execute()
+    
+    return response.data if response and response.data else None
+
+def rename_chat(chat_id: str, user_id: str, new_title: str):
+    client = supabase()
+
+    response = client.table("chats") \
+        .update({ "title": new_title }) \
+        .eq("id", chat_id) \
+        .eq("user_id", user_id) \
         .execute()
     
     return response.data if response and response.data else None

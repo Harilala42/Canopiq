@@ -7,6 +7,8 @@ const customConfig = defineConfig({
 				text: { value: "#cecbf6" },
 				primary: { value: "#534ab7" },
 				secondary: { value: "#1a1535" },
+				variantDark: { value: "#261f4d" },
+				variantLight: { value: "#AFA9EC" },
 				success: { value: "#1D9E75" },
 				error: { value: "#D85A30" }
 			},
@@ -20,7 +22,6 @@ const customConfig = defineConfig({
 		"*": {
 			margin: 0,
 			padding: 0,
-			cursor: "none !important",
 			transition: `
 				background-color 0.3s ease,
 				border-color 0.3s ease,

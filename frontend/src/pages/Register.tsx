@@ -1,6 +1,6 @@
 import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
-import { useContext, JSX } from 'react';
+import { useContext, useCallback, JSX } from 'react';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from "@/contexts/themeContext";
 import { RegisterInput } from '@/components/RegisterInput';
@@ -58,7 +58,7 @@ function Register(): JSX.Element {
 	const { showAlert } = useContext(AlertContext);
 	const { theme } = useContext(ThemeContext);
 
-	const handleRegister = async (formData: RegisterFormData) => {
+	const handleRegister = useCallback(async (formData: RegisterFormData) => {
 		try {
 			await execute({
 				url: import.meta.env.VITE_API_AUTH_REGISTER,
@@ -73,7 +73,7 @@ function Register(): JSX.Element {
 			console.error("Failed to register:", err.message);
 			showAlert(false, msgErr);
 		}
-	};
+	}, []);
 
 	return (
 		<FullScreen>

@@ -14,7 +14,7 @@ export const Header = (): JSX.Element => {
             align="center" 
             justify="space-between" 
             bg={ theme === "dark" ? "secondary" : "text" }
-            borderBottom="1px solid" borderColor={ theme === "dark" ? "text" : "primary" }
+            borderBottom="1px solid" borderColor={ theme === "dark" ? "variantDark" : "variantLight" }
             w="100%" h="100%"
             p={4}
         >
