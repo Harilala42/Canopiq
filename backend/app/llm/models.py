@@ -90,7 +90,7 @@ def get_user_chats(user_id: str):
     client = supabase()
 
     response = client.table("chats") \
-        .select("id, created_at, title") \
+        .select("id, created_at, title, is_pinned") \
         .eq("user_id", user_id) \
         .order("created_at", desc=True) \
         .execute()
@@ -102,6 +102,17 @@ def rename_chat(chat_id: str, user_id: str, new_title: str):
 
     response = client.table("chats") \
         .update({ "title": new_title }) \
+        .eq("id", chat_id) \
+        .eq("user_id", user_id) \
+        .execute()
+    
+    return response.data if response and response.data else None
+
+def toggle_chat_pin(chat_id: str, user_id: str, is_pinned: bool):
+    client = supabase()
+
+    response = client.table("chats") \
+        .update({ "is_pinned": is_pinned }) \
         .eq("id", chat_id) \
         .eq("user_id", user_id) \
         .execute()

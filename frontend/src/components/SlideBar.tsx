@@ -1,8 +1,8 @@
 import logo from '@/assets/logo.svg';
 import { ChatData } from '@/types/chat';
-import { useState, useEffect, useContext, useCallback, memo, JSX } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo, memo, JSX } from 'react';
 import { VStack, HStack, Box, Image, Text, Menu, Portal, Dialog, Input, Spinner } from '@chakra-ui/react';
-import { LuPanelLeft, LuPanelRight, LuCirclePlus, LuEllipsisVertical, LuSearch, LuTrash, LuPin, LuPencil, LuX } from 'react-icons/lu';
+import { LuPanelLeft, LuPanelRight, LuCirclePlus, LuEllipsisVertical, LuSearch, LuTrash, LuPin, LuPinOff, LuPencil, LuX } from 'react-icons/lu';
 import { AlertContext } from '@/contexts/alertContext';
 import { ThemeContext } from '@/contexts/themeContext';
 import { IconButton } from '@/components/IconButton';
@@ -23,7 +23,7 @@ interface MenuItemProps
     onClick?: () => void;
 }
 
-interface RenameDialogProps
+interface ChatDialogProps
 {
     query: ChatData,
     isOpen: boolean,
@@ -53,7 +53,7 @@ const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Elemen
     )
 });
 
-const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: RenameDialogProps): JSX.Element => {
+const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps): JSX.Element => {
     const [newTitle, setNewTitle] = useState<string>(query.title);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const { showAlert } = useContext(AlertContext);
@@ -159,7 +159,9 @@ const MenuOptions = memo((
     : { query: ChatData, setQuery: React.Dispatch<React.SetStateAction<ChatData[]>> }
 ): JSX.Element => {
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
+    const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
     const [isUpdating, setIsUpdating] = useState<boolean>(false);
+    const [isHovered, setIsHovered] = useState<boolean>(false);
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
     const { execute } = useApi();
@@ -177,7 +179,29 @@ const MenuOptions = memo((
             console.error("Failed to delete query:", err.message);
             showAlert(false, "Failed to delete the query. Please try again later.");
         }
-    }, [query]);
+    }, [query.id]);
+
+    const togglePin = useCallback(async () => {
+        setIsPinned(prev => !prev);
+
+        try {
+            await execute({
+                url: import.meta.env.VITE_API_LLM_CHAT_TOGGLE_PIN.replace("{chat_id}", query.id),
+                method: "PATCH",
+                body: { is_pinned: !isPinned }
+            });
+
+            setQuery(prev => {
+                return prev.map(q => {
+                    return q.id === query.id ? { ...q, is_pinned: !q.is_pinned } : q
+                });
+            });
+        } catch (err: any) {
+            setIsPinned(query.is_pinned);
+            console.error("Failed to toggle the query pin:", err.message);
+            showAlert(false, "Failed to toggle the query pin. Please try again later.");
+        }
+    }, [query.id]);
 
     return (
         <>
@@ -189,18 +213,24 @@ const MenuOptions = memo((
                     <IconButton 
                         aria-label="edit query" 
                         bg={menuOpen ? (theme === "dark" ? "variantDark" : "variantLight") : "transparent"}
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
                     >
-                        <LuEllipsisVertical />
+                        { !isPinned || isHovered || menuOpen ? <LuEllipsisVertical /> : <LuPin /> }
                     </IconButton>
                 </Menu.Trigger>
                 <Portal>
                     <Menu.Positioner>
                         <Menu.Content bg={ theme === "dark" ? "primary" : "text" }>
-                            <MenuItem icon={LuPin} name="Pin" />
+                            <MenuItem 
+                                icon={!isPinned ? LuPin : LuPinOff} 
+                                name={!isPinned ? "Pin" : "Pin-off"} 
+                                onClick={togglePin}
+                            />
 
                             <MenuItem icon={LuPencil} name="Rename" onClick={() => setIsUpdating(true)} />
 
-                            <MenuItem icon={LuTrash} name="Delete" onClick={() => deleteQuery()} />
+                            <MenuItem icon={LuTrash} name="Delete" onClick={deleteQuery} />
                         </Menu.Content>
                     </Menu.Positioner>
                 </Portal>
@@ -225,6 +255,15 @@ export const SlideBar = (
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
     const { execute } = useApi();
+
+    const sortedChats = useMemo(() => {
+        return [...queries].sort((a, b) => {
+            const timeA = Date.parse(a.created_at) || 0;
+            const timeB = Date.parse(b.created_at) || 0;
+
+            return Number(b.is_pinned) - Number(a.is_pinned) || timeB - timeA;
+        });
+    }, [queries]);
 
     const fetchQueries = useCallback(async () => {
         setIsLoading(true);
@@ -344,7 +383,7 @@ export const SlideBar = (
                 </HStack>
 
                 {
-                    queries.length > 0 && (queries.map((query: ChatData) => {
+                    queries.length > 0 && (sortedChats.map((query: ChatData) => {
                         return (
                             <HStack 
                                 key={query.id} w="100%"

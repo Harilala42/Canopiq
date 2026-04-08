@@ -109,7 +109,8 @@ async def create_new_chat(request: Request):
             "chat": {
                 "id": chat[0]["id"],
                 "created_at": chat[0]["created_at"],
-                "title": chat[0]["title"]
+                "title": chat[0]["title"],
+                "is_pinned": chat[0]["is_pinned"]
             },
             "message": "Chat created successfully"
         }
@@ -179,6 +180,7 @@ async def rename_user_chat(
                 "id": updated_chat[0]["id"],
                 "title": updated_chat[0]["title"],
                 "created_at": updated_chat[0]["created_at"],
+                "is_pinned": updated_chat[0]["is_pinned"]
             },
             "message": "Chat renamed successfully"
         }
@@ -199,3 +201,48 @@ async def rename_user_chat(
             status_code=500,
             detail={"code": "RENAME_FAILED", "message": str(err)}
         )
+
+@router.patch("/llm/chat/{chat_id}/pin", tags=["llm"])
+async def toggle_chat_pin(
+    chat_id: str, 
+    request: Request,
+    is_pinned: bool = Body(..., embed=True)
+):
+    try:
+        user_id = request.state.user.id
+        if not llm_models.chat_exists(chat_id, user_id):
+            raise Exception("Chat history not found")
+
+        updated_chat = llm_models.toggle_chat_pin(
+            chat_id=chat_id,
+            user_id=request.state.user.id,
+            is_pinned=is_pinned 
+        )
+
+        return {
+            "chat": {
+                "id": updated_chat[0]["id"],
+                "title": updated_chat[0]["title"],
+                "created_at": updated_chat[0]["created_at"],
+                "is_pinned": updated_chat[0]["is_pinned"]
+            },
+            "message": "Chat pin toggled successfully"
+        }
+    except Exception as err:
+        error_msg = str(err).lower()
+        print("ERROR: Failed to rename chat:", str(err))
+
+        if "not found" in error_msg:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "CHAT_NOT_FOUND",
+                    "message": "Chat not found"
+                }
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "RENAME_FAILED", "message": str(err)}
+        )
+    

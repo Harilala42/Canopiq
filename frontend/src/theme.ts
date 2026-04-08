@@ -28,7 +28,8 @@ const customConfig = defineConfig({
 				margin 0.3s ease,
 				width 0.3s ease,
 				color 0.3s ease
-			`
+			`,
+			overflow:"hidden"
 		},
 		".title-styles": {
 			fontFamily: "Sansation",
