@@ -15,8 +15,7 @@ export const Header = (): JSX.Element => {
             justify="space-between" 
             bg={ theme === "dark" ? "secondary" : "text" }
             borderBottom="1px solid" borderColor={ theme === "dark" ? "variantDark" : "variantLight" }
-            w="100%" h="100%"
-            p={4}
+            w="100%" h="100%" p={4}
         >
             <Box display="flex" alignItems="center" gap={2}>
                 <Text 

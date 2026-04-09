@@ -1,5 +1,6 @@
+import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
-import { ChatData } from '@/types/chat';
+import useChatStore from '@/stores/useChatStore';
 import { useState, useEffect, useContext, useCallback, useMemo, memo, JSX } from 'react';
 import { VStack, HStack, Box, Image, Text, Menu, Portal, Dialog, Input, Spinner } from '@chakra-ui/react';
 import { LuPanelLeft, LuPanelRight, LuCirclePlus, LuEllipsisVertical, LuSearch, LuTrash, LuPin, LuPinOff, LuPencil, LuX } from 'react-icons/lu';
@@ -7,10 +8,10 @@ import { AlertContext } from '@/contexts/alertContext';
 import { ThemeContext } from '@/contexts/themeContext';
 import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
+import { ChatData } from '@/types/chat';
 import { IconType } from 'react-icons';
-import useApi from '@/hooks/useAPI';
 
-interface SlideBarProps
+interface SideBarProps
 {
     isExpanded: boolean;
     onToggle: () => void;
@@ -20,40 +21,18 @@ interface MenuItemProps
 {
     name: string;
     icon: IconType;
-    onClick?: () => void;
+    onClick: () => void;
 }
 
 interface ChatDialogProps
 {
     query: ChatData,
     isOpen: boolean,
-    setQuery: React.Dispatch<React.SetStateAction<ChatData[]>>,
     onClose: () => void
 }
 
-const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Element => {
-    const { theme } = useContext(ThemeContext);
-
-    return (
-        <Menu.Item
-            value={name} onClick={onClick}
-            _hover={{ 
-                bg: theme === "dark" ? "variantDark" : "variantLight",
-                cursor: "pointer"
-            }}
-        >
-            <HStack color={theme === "dark" ? "text" : "secondary"}>
-                <Icon />
-
-                <Text className="text-styles" color={theme === "dark" ? "text" : "secondary"} textAlign="left">
-                    { name }
-                </Text>
-            </HStack>
-        </Menu.Item>
-    )
-});
-
-const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps): JSX.Element => {
+const ChatDialog = memo(({ query, isOpen, onClose }: ChatDialogProps): JSX.Element => {
+    const updateQueryStore = useChatStore((state) => state.updateQuery);
     const [newTitle, setNewTitle] = useState<string>(query.title);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const { showAlert } = useContext(AlertContext);
@@ -66,14 +45,12 @@ const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps):
 
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_UPDATE_CHAT.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", query.id),
                 method: "PATCH",
                 body: { new_title: newTitle }
             });
 
-            setQuery(prev => prev.map(q => 
-                q.id === query.id ? { ...q, title: newTitle } : q
-            ));
+            updateQueryStore(query.id, { title: newTitle });
             showAlert(true, "Query renamed successfully.");
             onClose();
         } catch(err: any) {
@@ -82,7 +59,7 @@ const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps):
         } finally {
             setIsSaving(false);
         }
-    }, [query, newTitle]);
+    }, [query.id, newTitle]);
 
     return (
         <Dialog.Root open={isOpen} onOpenChange={(details) => !details.open && onClose()}>
@@ -107,6 +84,12 @@ const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps):
                                 value={newTitle} 
                                 placeholder="Enter new title..."
                                 onChange={(e) => setNewTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        renameQuery();
+                                    }
+                                }}
 
                                 className="text-styles"
                                 borderRadius="xl" h="50px"
@@ -154,14 +137,41 @@ const ChatDialog = memo(({ query, setQuery, isOpen, onClose }: ChatDialogProps):
     );
 });
 
-const MenuOptions = memo((
-    { query, setQuery }
-    : { query: ChatData, setQuery: React.Dispatch<React.SetStateAction<ChatData[]>> }
-): JSX.Element => {
-    const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
-    const [isUpdating, setIsUpdating] = useState<boolean>(false);
+const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Element => {
     const [isHovered, setIsHovered] = useState<boolean>(false);
+    const { theme } = useContext(ThemeContext);
+
+    return (
+        <Menu.Item
+            value={name} onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            _hover={{ 
+                bg: theme === "dark" ? "variantDark" : "variantLight",
+                cursor: "pointer"
+            }}
+        >
+            <HStack color={theme === "dark" ? "text" : isHovered ? "secondary" : "text"}>
+                <Icon />
+
+                <Text 
+                    className="text-styles" textAlign="left"
+                    color={theme === "dark" ? "text" : isHovered ? "secondary" : "text"}
+                >
+                    { name }
+                </Text>
+            </HStack>
+        </Menu.Item>
+    )
+});
+
+const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
+    const [menuOpen, setMenuOpen] = useState<boolean>(false);
+    const [isHovered, setIsHovered] = useState<boolean>(false);
+    const [isUpdating, setIsUpdating] = useState<boolean>(false);
+    const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
+    const deleleQueryStore = useChatStore((state) => state.deleteQuery);
+    const updateQueryStore = useChatStore((state) => state.updateQuery);
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
     const { execute } = useApi();
@@ -169,11 +179,11 @@ const MenuOptions = memo((
     const deleteQuery = useCallback(async () => {
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_DELETE_CHAT.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", query.id),
                 method: "DELETE"
             });
 
-            setQuery(prev => prev.filter(q => q.id !== query.id));
+            deleleQueryStore(query.id);
             showAlert(true, "Query deleted successfully.");
         } catch (err: any) {
             console.error("Failed to delete query:", err.message);
@@ -186,16 +196,12 @@ const MenuOptions = memo((
 
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_CHAT_TOGGLE_PIN.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_LLM_TOGGLE_PIN_CHAT.replace("{chat_id}", query.id),
                 method: "PATCH",
                 body: { is_pinned: !isPinned }
             });
 
-            setQuery(prev => {
-                return prev.map(q => {
-                    return q.id === query.id ? { ...q, is_pinned: !q.is_pinned } : q
-                });
-            });
+            updateQueryStore(query.id, { is_pinned: !isPinned });
         } catch (err: any) {
             setIsPinned(query.is_pinned);
             console.error("Failed to toggle the query pin:", err.message);
@@ -221,7 +227,7 @@ const MenuOptions = memo((
                 </Menu.Trigger>
                 <Portal>
                     <Menu.Positioner>
-                        <Menu.Content bg={ theme === "dark" ? "primary" : "text" }>
+                        <Menu.Content bg={ theme === "dark" ? "primary" : "secondary" }>
                             <MenuItem 
                                 icon={!isPinned ? LuPin : LuPinOff} 
                                 name={!isPinned ? "Pin" : "Pin-off"} 
@@ -236,19 +242,13 @@ const MenuOptions = memo((
                 </Portal>
             </Menu.Root>
 
-            <ChatDialog 
-                isOpen={isUpdating}
-                query={query} setQuery={setQuery} 
-                onClose={() => setIsUpdating(false)} 
-            />
+            <ChatDialog query={query} isOpen={isUpdating} onClose={() => setIsUpdating(false)} />
         </>
     );
 });
 
-export const SlideBar = (
-    { isExpanded, onToggle }: SlideBarProps
-): JSX.Element => {
-    const [queries, setQueries] = useState<ChatData[]>([]);
+export const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
+    const { queries, setQueries, setCurrentQuery, addQuery } = useChatStore();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
     const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -287,16 +287,15 @@ export const SlideBar = (
         setIsCreating(true);
 
         try {
-            const response: any = await execute({
+            const newQuery: any = await execute({
                 url: import.meta.env.VITE_API_LLM_CREATE_CHAT,
                 method: "POST"
             });
 
-            if (!response || !response.chat) throw new Error("Missing Chats List");
-            const newQuery: ChatData = response.chat;
-
-            setQueries(prev => [newQuery, ...prev]);
-            showAlert(true, "New query created successfully.");
+            if (newQuery && newQuery.chat) {
+                addQuery(newQuery.chat);
+                showAlert(true, "New query created successfully.");
+            }
         } catch (err: any) {
             console.error("Failed to create new query:", err.message);
             showAlert(false, "Failed to create a new query. Please try again later.");
@@ -319,7 +318,7 @@ export const SlideBar = (
             borderRight="1px solid" borderColor={ theme === "dark" ? "variantDark" : "variantLight" }
             minW="50px" w={isExpanded ? "250px" : "50px"}
             onClick={() => !isExpanded && onToggle()}
-            h="100%" px={2} gap={5}
+            h="100%" px={isExpanded ? 2 : 1} gap={5}
         >
             <HStack align="center" justify={ isExpanded ? "space-between" : "center" } h="60px" w="100%">
                 {
@@ -390,6 +389,7 @@ export const SlideBar = (
                                 role="button" aria-label={query.title}
                                 align="center" justify="space-between"
                                 display={isExpanded ? "flex" : "none"} 
+                                onClick={() => setCurrentQuery(query)}
                                 borderRadius={15} pl={2}
                                 _hover={{ 
                                     bg: theme === "dark" ? "variantDark" : "variantLight", 
@@ -402,11 +402,11 @@ export const SlideBar = (
                                     color={ theme === "dark" ? "text" : "secondary" } 
                                     fontSize="sm" flex="1"
                                 >
-                                    {query.title.length > 25 ? query.title.slice(0, 25) + "..." : query.title}
+                                    {query.title.length > 30 ? query.title.slice(0, 30) + "..." : query.title}
                                 </Text>
 
                                 <Box onClick={(e) => e.stopPropagation()}> 
-                                    <MenuOptions query={query} setQuery={setQueries} />
+                                    <MenuOptions query={query} />
                                 </Box>
                             </HStack>
                         )
@@ -414,7 +414,7 @@ export const SlideBar = (
                 }
 
                 {
-                    !isLoading && queries.length == 0 && (
+                    !isLoading && isExpanded && queries.length == 0 && (
                         <Box w="100%" p={4}>
                             <Text className="text-styles" color={ theme === "dark" ? "text" : "primary" } textAlign="center">
                                 No queries yet
