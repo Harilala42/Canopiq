@@ -1,5 +1,7 @@
 import app.llm.models as llm_models
-from fastapi import APIRouter, HTTPException, Request, Depends, Body
+from app.worker.tasks import generate_geospatial_report
+from app.llm.schemas import MessageCreate, ChatRename, ChatPinToggle
+from fastapi import APIRouter, HTTPException, Request, Depends
 from app.dependencies import check_auth
 
 router = APIRouter(dependencies=[Depends(check_auth)])
@@ -58,25 +60,28 @@ async def create_new_chat(request: Request):
 # Endpoint to handle chat message
 @router.post("/llm/chat/{chat_id}", tags=["llm"])
 async def send_message_to_llm(
-    chat_id: str, 
-    request: Request,
-    message: str = Body(..., embed=True)
+    chat_id: str,
+    payload: MessageCreate,
+    request: Request
 ):
     try:
         user_id = request.state.user.id
         if not llm_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
-
-        llm_models.send_chat_message(
-            chat_id=chat_id,
-            user_id=user_id,
-            message=message
+        
+        user_message = llm_models.save_chat_message(
+            chat_id=chat_id, 
+            user_id=user_id, 
+            role="user",
+            content=payload.message
         )
+
+        generate_geospatial_report.delay(chat_id, user_id, payload.message)
     
-        return { "message": "Message sent successfully" }
+        return { "message": user_message[0] }
     except Exception as err:
         error_msg = str(err).lower()
-        print("ERROR: Failed to process chat message:", str(err))
+        print("ERROR: Failed to send chat message:", str(err))
 
         if "not found" in error_msg:
             raise HTTPException(
@@ -168,9 +173,9 @@ async def delete_chat(chat_id: str, request: Request):
 # Endpoint to update chat's title
 @router.patch("/llm/chat/{chat_id}", tags=["llm"])
 async def rename_user_chat(
-    chat_id: str, 
-    request: Request,
-    new_title: str = Body(..., embed=True)
+    chat_id: str,
+    payload: ChatRename, 
+    request: Request
 ):
     try:
         user_id = request.state.user.id
@@ -180,7 +185,7 @@ async def rename_user_chat(
         updated_chat = llm_models.rename_chat(
             chat_id=chat_id,
             user_id=user_id,
-            new_title=new_title
+            new_title=payload.new_title
         )
 
         return {
@@ -214,7 +219,7 @@ async def rename_user_chat(
 async def toggle_chat_pin(
     chat_id: str, 
     request: Request,
-    is_pinned: bool = Body(..., embed=True)
+    payload: ChatPinToggle
 ):
     try:
         user_id = request.state.user.id
@@ -224,7 +229,7 @@ async def toggle_chat_pin(
         updated_chat = llm_models.toggle_chat_pin(
             chat_id=chat_id,
             user_id=request.state.user.id,
-            is_pinned=is_pinned 
+            is_pinned=payload.is_pinned 
         )
 
         return {

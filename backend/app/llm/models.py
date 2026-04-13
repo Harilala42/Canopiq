@@ -1,30 +1,4 @@
-import os
-from google import genai
 from app.dependencies import get_supabase as supabase
-
-genai_cli = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
-def send_chat_message(chat_id: str, user_id: str, message: str):
-    try:
-        messages_list = get_chat_message(chat_id, user_id)
-        messages_list.append({ "role": "user", "content": message })
-
-        response = genai_cli.interactions.create(
-            model=os.environ.get("GEMINI_MODEL"),
-            input=messages_list
-        )
-
-        if not response or not response.outputs:
-            raise Exception("Invalid response from LLM service")
-
-        ai_response = response.outputs[-1].text
-
-        save_chat_message(chat_id, user_id, "user", message)
-        save_chat_message(chat_id, user_id, "model", ai_response)
-
-        return { "message": ai_response }
-    except Exception as err:
-        raise Exception(err)
 
 def get_chat_message(chat_id: str, user_id: str):
     client = supabase()

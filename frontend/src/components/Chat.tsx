@@ -6,14 +6,16 @@ import { ThemeContext } from '@/contexts/themeContext';
 import { AlertContext } from '@/contexts/alertContext';
 import { IconButton } from "@/components/IconButton";
 import { LuBot, LuSend } from 'react-icons/lu';
+import { supabase } from '@/utils/supabase';
 import { MessageData } from '@/types/chat';
 
 export const Chat = (): JSX.Element => {
     const { currentQuery } = useChatStore();
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [newMessage, setnewMessage] = useState<string>('');
+    const [inputValue, setInputValue] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSending, setIsSending] = useState<boolean>(false);
+    const [isThinking, setIsThinking] = useState<boolean>(false);
     const [messages, setMessages] = useState<MessageData[]>([]);
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
@@ -39,25 +41,63 @@ export const Chat = (): JSX.Element => {
     }, [currentQuery?.id]);
 
     const handleSendMessage = useCallback(async () => {
-        if (!newMessage.trim()) return;
+        if (!inputValue.trim()) return;
         setIsSending(true);
 
         try {
-            await execute({
+            const newMessage = await execute({
                 url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", currentQuery.id),
                 method: "POST",
-                body: { message: newMessage }
+                body: { message: inputValue }
             });
+
+            if (newMessage && newMessage?.message) {
+                setMessages((prev) => [...prev, newMessage?.message]);
+                setIsThinking(true);
+                setInputValue('');
+            }
         } catch(err: any) {
             console.error("Failed to send message:", err.message);
             showAlert(false, "Failed to send message. Try again later!");
         } finally {
             setIsSending(false);
         }
-    }, [currentQuery?.id, newMessage]);
+    }, [currentQuery?.id, inputValue]);
 
     useEffect(() => {
-        currentQuery && retrieceChatMessage();
+        if (!currentQuery?.id) return;
+
+        const channel = supabase
+            .channel(`messages-${currentQuery.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'messages',
+                    filter: `chat_id=eq.${currentQuery.id}`
+                },
+                (payload: any) => {
+                    const { id, role, content, created_at } = payload.new;
+                    const newMessage: MessageData = { id, role, content, created_at };
+
+                    if (role === 'model') setIsThinking(false);
+    
+                    setMessages((prev) => {
+                        const isDuplicate: boolean = prev.some((msg) => msg.id === id);
+                        if (isDuplicate) { return prev };
+                        
+                        return [...prev, newMessage];
+                    });
+                }
+            )
+            .subscribe();
+
+        retrieceChatMessage();
+
+        return () => { 
+            supabase.removeChannel(channel);
+        }
     }, [currentQuery?.id]);
 
     useEffect(() => {
@@ -156,6 +196,35 @@ export const Chat = (): JSX.Element => {
                         </VStack>
                     )}
 
+                    {isThinking && (
+                        <HStack 
+                            alignSelf="flex-start"
+                            bg={theme === "dark" ? "variantDark" : "variantLight"}
+                            borderRadius="2xl" borderBottomLeftRadius="sm"
+                            p={4} gap={1}
+                        >
+                            <Text className='text-styles' color={theme === "dark" ? "text" : "secondary"} fontSize="md" fontWeight="bold">
+                                <style>
+                                    {`
+                                        @keyframes bounce {
+                                            0%, 80%, 100% { transform: translateY(0); }
+                                            40% { transform: translateY(-10px); }
+                                        }
+                                        .dot {
+                                            display: inline-block;
+                                            animation: bounce 1.5s infinite ease-in-out;
+                                        }
+                                        .dot:nth-child(1) { animation-delay: -0.2s; }
+                                        .dot:nth-child(2) { animation-delay: -0.4s; }
+                                    `}
+                                </style>
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                            </Text>
+                        </HStack>
+                    )}
+
                     <Box ref={messagesEndRef} />
                 </VStack>
 
@@ -171,8 +240,8 @@ export const Chat = (): JSX.Element => {
                     >
                         <Input
                             className="text-styles"
-                            value={newMessage} placeholder="Write your message..." 
-                            onChange={(e) => setnewMessage(e.target.value)}
+                            value={inputValue} placeholder="Write your message..." 
+                            onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -194,7 +263,7 @@ export const Chat = (): JSX.Element => {
                         <IconButton 
                             aria-label="Send Message" 
                             onClick={handleSendMessage}
-                            disabled={!newMessage.trim() || isLoading || isSending}
+                            disabled={!inputValue.trim() || isLoading || isSending}
                             borderRadius="full"
                         >
                             { !isSending ? <LuSend /> : <Spinner color={theme === "dark" ? "text" : "secondary"} /> }
