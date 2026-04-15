@@ -3,7 +3,8 @@ import { Grid, GridItem } from '@chakra-ui/react';
 import { FullScreen } from '@/components/FullScreen';
 import { SideBar } from '@/components/SideBar';
 import { Header } from '@/components/Header';
-import { Chat } from '@/components/Chat'
+import { Chat } from '@/components/Chat';
+import { Map } from '@/components/Map';
 
 function Layout(): JSX.Element {
 	const [isSidebarOpened, setIsSidebarOpened] = useState<boolean>(false);
@@ -36,11 +37,10 @@ function Layout(): JSX.Element {
 					as="main" 
 					rowSpan={1} colSpan={4}
 					ml={!isSidebarOpened ? "-200px" : "none"}
-					maxH="calc(100vh - 60px)"
 				>
 					<Grid templateColumns="1fr 300px" h="100%">
 						<GridItem as="section" colSpan={1}>
-							{/* Map Session */}
+							<Map />
 						</GridItem>
 
 						<GridItem as="section" colSpan={1}>

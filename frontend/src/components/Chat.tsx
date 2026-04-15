@@ -1,13 +1,14 @@
 import useApi from '@/hooks/useAPI';
 import useChatStore from '@/stores/useChatStore';
+import { LuBot, LuSend, LuChartColumnBig } from 'react-icons/lu';
 import { useState, useEffect, useContext, useCallback, useRef, JSX } from 'react';
 import { VStack, HStack, Box, Text, Input, Spinner } from '@chakra-ui/react';
 import { ThemeContext } from '@/contexts/themeContext';
 import { AlertContext } from '@/contexts/alertContext';
 import { IconButton } from "@/components/IconButton";
-import { LuBot, LuSend } from 'react-icons/lu';
 import { supabase } from '@/utils/supabase';
 import { MessageData } from '@/types/chat';
+import { motion } from 'framer-motion';
 
 export const Chat = (): JSX.Element => {
     const { currentQuery } = useChatStore();
@@ -85,9 +86,9 @@ export const Chat = (): JSX.Element => {
     
                     setMessages((prev) => {
                         const isDuplicate: boolean = prev.some((msg) => msg.id === id);
-                        if (isDuplicate) { return prev };
+                        if (isDuplicate) { return (prev); }
                         
-                        return [...prev, newMessage];
+                        return ([...prev, newMessage]);
                     });
                 }
             )
@@ -200,28 +201,39 @@ export const Chat = (): JSX.Element => {
                         <HStack 
                             alignSelf="flex-start"
                             bg={theme === "dark" ? "variantDark" : "variantLight"}
-                            borderRadius="2xl" borderBottomLeftRadius="sm"
-                            p={4} gap={1}
+                            borderRadius="2xl"
+                            borderBottomLeftRadius="sm"
+                            p={5} gap={1}
                         >
-                            <Text className='text-styles' color={theme === "dark" ? "text" : "secondary"} fontSize="md" fontWeight="bold">
-                                <style>
-                                    {`
-                                        @keyframes bounce {
-                                            0%, 80%, 100% { transform: translateY(0); }
-                                            40% { transform: translateY(-10px); }
-                                        }
-                                        .dot {
-                                            display: inline-block;
-                                            animation: bounce 1.5s infinite ease-in-out;
-                                        }
-                                        .dot:nth-child(1) { animation-delay: -0.2s; }
-                                        .dot:nth-child(2) { animation-delay: -0.4s; }
-                                    `}
-                                </style>
-                                <span className="dot">.</span>
-                                <span className="dot">.</span>
-                                <span className="dot">.</span>
-                            </Text>
+                            <motion.div
+                                style={{ display: 'flex', gap: '5px', alignItems: 'center' }}
+                                initial="initial"
+                                animate="animate"
+                            >
+                                {[0, 1, 2].map((index) => (
+                                    <motion.span
+                                        key={index}
+                                        variants={{
+                                            initial: { y: 0 },
+                                            animate: { y: -8 }
+                                        }}
+                                        transition={{
+                                            duration: 0.8,
+                                            repeat: Infinity,
+                                            repeatType: "reverse",
+                                            ease: "easeInOut",
+                                            delay: index * 0.25 
+                                        }}
+                                        style={{
+                                            width: '5px',
+                                            height: '5px',
+                                            display: 'inline-block',
+                                            backgroundColor: theme === "dark" ? "#cecbf6" : "#1a1535",
+                                            borderRadius: '50%',
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
                         </HStack>
                     )}
 

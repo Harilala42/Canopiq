@@ -3,4 +3,7 @@ package-lock.json
 node_modules/
 __pycache__/
 dist/
+
+# critical API keys
 .env
+canopiq-*.json

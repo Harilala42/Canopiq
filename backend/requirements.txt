@@ -10,3 +10,5 @@ supabase>=2.28.3
 python-dotenv>=1.2.2
 sqlalchemy>=2.0.48
 google-genai>=1.69.0
+earthengine-api>=1.7.22
+google-auth>=2.49.2
