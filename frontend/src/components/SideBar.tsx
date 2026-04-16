@@ -166,12 +166,13 @@ const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Elemen
 });
 
 const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
+    const deleleQueryStore = useChatStore((state) => state.deleteQuery);
+    const updateQueryStore = useChatStore((state) => state.updateQuery);
+
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const [isHovered, setIsHovered] = useState<boolean>(false);
     const [isUpdating, setIsUpdating] = useState<boolean>(false);
     const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
-    const deleleQueryStore = useChatStore((state) => state.deleteQuery);
-    const updateQueryStore = useChatStore((state) => state.updateQuery);
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
     const { execute } = useApi();
@@ -247,8 +248,12 @@ const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
     );
 });
 
-export const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
-    const { queries, setQueries, setCurrentQuery, addQuery } = useChatStore();
+const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
+    const queries = useChatStore((state) => state.queries);
+    const setQueries = useChatStore((state) => state.setQueries);
+    const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
+    const addQuery = useChatStore((state) => state.addQuery);
+
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
     const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -439,3 +444,5 @@ export const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => 
         </VStack>
     )
 };
+
+export default SideBar;

@@ -3,7 +3,7 @@ import { Box } from '@chakra-ui/react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-export const Map = (): JSX.Element => {
+const Map = (): JSX.Element => {
     const position: [number, number] = [0, 0];
 
     return (
@@ -22,3 +22,5 @@ export const Map = (): JSX.Element => {
         </Box>
     );
 }
+
+export default Map;

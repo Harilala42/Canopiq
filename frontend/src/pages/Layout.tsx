@@ -1,13 +1,16 @@
-import { useState, JSX } from 'react';
-import { Grid, GridItem } from '@chakra-ui/react';
+import { useState, useContext, lazy, Suspense, JSX } from 'react';
+import { Grid, GridItem, Spinner, VStack } from '@chakra-ui/react';
+import { ThemeContext } from '@/contexts/themeContext';
 import { FullScreen } from '@/components/FullScreen';
-import { SideBar } from '@/components/SideBar';
 import { Header } from '@/components/Header';
-import { Chat } from '@/components/Chat';
-import { Map } from '@/components/Map';
+import SideBar from '@/components/SideBar';
+import Chat from '@/components/Chat';
+
+const Map = lazy(() => import('@/components/Map'));
 
 function Layout(): JSX.Element {
 	const [isSidebarOpened, setIsSidebarOpened] = useState<boolean>(false);
+	const { theme } = useContext(ThemeContext);
 
 	return (
 		<FullScreen>
@@ -38,9 +41,15 @@ function Layout(): JSX.Element {
 					rowSpan={1} colSpan={4}
 					ml={!isSidebarOpened ? "-200px" : "none"}
 				>
-					<Grid templateColumns="1fr 300px" h="100%">
+					<Grid templateColumns="1fr 350px" h="100%">
 						<GridItem as="section" colSpan={1}>
-							<Map />
+							<Suspense fallback={
+								<VStack h="100%" justify="center">
+									<Spinner color={theme === "dark" ? "text" : "secondary"} size="lg" />
+								</VStack>
+							}>
+								<Map />
+							</Suspense>
 						</GridItem>
 
 						<GridItem as="section" colSpan={1}>
