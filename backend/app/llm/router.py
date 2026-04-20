@@ -2,9 +2,12 @@ import app.llm.models as llm_models
 from app.worker.tasks import generate_geospatial_report
 from app.llm.schemas import MessageCreate, ChatRename, ChatPinToggle
 from fastapi import APIRouter, HTTPException, Request, Depends
-from app.dependencies import check_auth
+from app.dependencies import check_auth, rate_limiter
 
-router = APIRouter(dependencies=[Depends(check_auth)])
+router = APIRouter(dependencies=[
+    Depends(check_auth),
+    Depends(rate_limiter)
+])
 
 # Endpoint to retrieve user's chats
 @router.get("/llm/chat", tags=["llm"])

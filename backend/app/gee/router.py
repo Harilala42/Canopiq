@@ -1,9 +1,12 @@
 import app.gee.models as gee_models
 from app.gee.schemas import MapRequest
 from fastapi import APIRouter, HTTPException, Depends
-from app.dependencies import check_auth
+from app.dependencies import check_auth, rate_limiter
 
-router = APIRouter(dependencies=[Depends(check_auth)])
+router = APIRouter(dependencies=[
+    Depends(check_auth),
+    Depends(rate_limiter)
+])
 
 # Endpoint to generate tile layer for tree cover
 @router.post("/gee/tree-cover/tile", tags=["gee"])

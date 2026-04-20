@@ -9,7 +9,7 @@ const Map = (): JSX.Element => {
 
     useEffect(() => {
         setCoordinates([1.35, 103.81]);
-        setTileLayer("https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/d09e35c8d703c664791304347dd44ec8-eda600ee2210c3abdaa6426a4a0768dc/tiles/{z}/{x}/{y}");
+        setTileLayer("https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/c02d201106374172b5aa30a1cb31cab6-fc5734ebb64abcb3f411810822eb657b/tiles/{z}/{x}/{y}");
     }, []);
 
     return (
@@ -20,7 +20,7 @@ const Map = (): JSX.Element => {
                 zoom={10} zoomControl={false}
                 style={{ height: "100%", width: "100%" }}
             >
-                { tileLayer && <TileLayer url={tileLayer} /> }
+                {tileLayer && <TileLayer url={tileLayer} />}
 
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

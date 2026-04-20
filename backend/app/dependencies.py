@@ -1,14 +1,19 @@
 import os
+import time
 from typing import Annotated
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from fastapi import HTTPException, Cookie, Request
+from fastapi import HTTPException, Cookie, Request, Depends
+from redis.asyncio import Redis
 
 load_dotenv()
 
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
+
+redis_url = os.environ.get("UPSTASH_REDIS_URL")
+redis_client = Redis.from_url(redis_url, decode_responses=True)
 
 def get_supabase():
     return supabase
@@ -43,3 +48,28 @@ async def check_auth(
                 "message": "Session expired or invalid"
             }
         )
+
+async def rate_limiter(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"rate_limit:{client_ip}"
+    
+    rate_limit = 10
+    window = 60 # rate limit: 10 req/min
+
+    async with redis_client.pipeline(transaction=True) as pipe:
+        pipe.incr(key)
+        pipe.expire(key, window)
+        results = await pipe.execute()
+
+    current_count = results[0]
+
+    if current_count > rate_limit:
+        raise HTTPException(
+            status_code=429, 
+            detail={
+                "code": "TOO_MANY_REQUESTS",
+                "message": "Rate limit exceeded. Please try again later."
+            }
+        )
+
+    return rate_limit - current_count
