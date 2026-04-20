@@ -13,9 +13,13 @@ app = Celery(
 app.conf.update(
     broker_use_ssl={'ssl_cert_reqs': 'none'},
     worker_prefetch_multiplier=1,
-    worker_concurrency = 2,
+    worker_concurrency = 1,
     task_acks_late=True,
-    result_backend=None
+    result_backend=None,
+    broker_pool_limit=1,
+    broker_transport_options={
+        'polling_interval': 10.0
+    }
 )
 
 @app.task(bind=True, rate_limit="10/m", max_retries=3)
