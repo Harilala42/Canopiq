@@ -4,6 +4,7 @@ from datetime import datetime
 class MapRequest(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    bbox: list[float]
     start_time: datetime
     end_time: datetime
 

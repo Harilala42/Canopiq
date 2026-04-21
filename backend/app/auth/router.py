@@ -1,12 +1,12 @@
 import os
 from typing import Annotated
 import app.auth.models as auth_models
-from app.dependencies import check_auth, rate_limiter
+from app.dependencies import check_auth, gl_rate_limit
 from app.auth.schemas import RegisterForm, LoginForm, UserProfile
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, Cookie
 from fastapi.responses import RedirectResponse
 
-public_router = APIRouter(dependencies=[Depends(rate_limiter)])
+public_router = APIRouter(dependencies=[Depends(gl_rate_limit)])
 
 # Endpoint to allow user to register
 @public_router.post("/auth/register", tags=["auth"])
@@ -276,7 +276,7 @@ async def google_callback(code: str):
 	
 router = APIRouter(dependencies=[
 	Depends(check_auth),
-	Depends(rate_limiter)
+	Depends(gl_rate_limit)
 ])
 	
 # Endpoint to retrieve user's data

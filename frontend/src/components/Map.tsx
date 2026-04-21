@@ -1,15 +1,17 @@
 import { useState, useEffect, JSX } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Box } from '@chakra-ui/react';
 import 'leaflet/dist/leaflet.css';
 
 const Map = (): JSX.Element => {
     const [tileLayer, setTileLayer] = useState<string>('');
-    const [coordinates, setCoordinates] = useState<[number, number]>([1.35, 103.81]);
+    const [coordinates, setCoordinates] = useState<[number, number]>([1.3540779, 103.7794401]);
+    const [description, setDescription] = useState<string>('');
 
     useEffect(() => {
-        setCoordinates([1.35, 103.81]);
-        setTileLayer("https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/c02d201106374172b5aa30a1cb31cab6-fc5734ebb64abcb3f411810822eb657b/tiles/{z}/{x}/{y}");
+        // setCoordinates([1.35, 103.81]);
+        setTileLayer("https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/9ed4b696859920764a821cb7549a4574-bfac25856f651233df9066f2ab850821/tiles/{z}/{x}/{y}");
+        setDescription("Bukit Timah Nature Reserve, West Region, Singapore")
     }, []);
 
     return (
@@ -27,6 +29,14 @@ const Map = (): JSX.Element => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     opacity={0.5}
                 />
+
+                <Marker position={coordinates}>
+                    <Popup>
+                        Analysis Point: <br /> 
+                        Lat: {coordinates[0].toFixed(2)}, Lon: {coordinates[1].toFixed(2)} <br /> 
+                        Details: {description}
+                    </Popup>
+                </Marker>
             </MapContainer>
         </Box>
     );
