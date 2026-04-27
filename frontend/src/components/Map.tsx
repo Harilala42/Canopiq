@@ -1,43 +1,60 @@
 import { useState, useEffect, JSX } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Box } from '@chakra-ui/react';
+import { MapData } from '@/types/map';
 import 'leaflet/dist/leaflet.css';
 
+const RecenterMap = ({ coords }: { coords: [number, number] }) => {
+    const map = useMap();
+    
+    useEffect(() => {
+        map.flyTo(coords, 14);
+    }, [coords, map]);
+
+    return null;
+};
+
 const Map = (): JSX.Element => {
-    const [tileLayer, setTileLayer] = useState<string>('');
-    const [coordinates, setCoordinates] = useState<[number, number]>([1.3540779, 103.7794401]);
-    const [description, setDescription] = useState<string>('');
+    const [map, setMap] = useState<MapData | null>(null);
 
     useEffect(() => {
-        // setCoordinates([1.35, 103.81]);
-        setTileLayer("https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/9ed4b696859920764a821cb7549a4574-bfac25856f651233df9066f2ab850821/tiles/{z}/{x}/{y}");
-        setDescription("Bukit Timah Nature Reserve, West Region, Singapore")
+        const newMap: MapData = {
+            tileLayer: "https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/9409d16f35baeb36260c8792ccd15939-21760411c697e144c2d87f4f29e6e147/tiles/{z}/{x}/{y}",
+            description: "Taman Nasional Kerinci Seblat, Jambi, Sumatera, Indonesia",
+            coords: [-2.26, 101.35]
+        };
+
+        setMap(newMap);
     }, []);
 
     return (
         <Box w="100%" h="100%" maxH="calc(100vh - 60px)" position="relative" overflow="hidden">
-            <MapContainer 
-                center={coordinates} 
-                scrollWheelZoom={true}
-                zoom={10} zoomControl={false}
-                style={{ height: "100%", width: "100%" }}
-            >
-                {tileLayer && <TileLayer url={tileLayer} />}
+            {map && (
+                <MapContainer 
+                    center={map.coords} 
+                    scrollWheelZoom={true}
+                    zoom={10} zoomControl={false}
+                    style={{ height: "100%", width: "100%" }}
+                >
+                    {map.tileLayer && <TileLayer url={map.tileLayer} />}
 
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    opacity={0.5}
-                />
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        opacity={0.5}
+                    />
 
-                <Marker position={coordinates}>
-                    <Popup>
-                        Analysis Point: <br /> 
-                        Lat: {coordinates[0].toFixed(2)}, Lon: {coordinates[1].toFixed(2)} <br /> 
-                        Details: {description}
-                    </Popup>
-                </Marker>
-            </MapContainer>
+                    <RecenterMap coords={map.coords} />
+
+                    <Marker position={map.coords}>
+                        <Popup>
+                            Analysis Point: <br /> 
+                            Lat: {map.coords[0].toFixed(2)}, Lon: {map.coords[1].toFixed(2)} <br /> 
+                            Details: {map.description}
+                        </Popup>
+                    </Marker>
+                </MapContainer>
+            )}
         </Box>
     );
 };

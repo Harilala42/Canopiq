@@ -191,7 +191,7 @@ const ChatInputBar = memo(({ chat_id }: { chat_id: string }): JSX.Element => {
 
         try {
             const newMessage = await execute({
-                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", chat_id),
+                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", chat_id),
                 method: "POST",
                 body: { message: inputValue }
             });
@@ -271,7 +271,7 @@ const Chat = (): JSX.Element => {
 
         try {
             const messageList = await execute({
-                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", currentQuery.id)
+                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", currentQuery.id)
             });
 
             if (messageList && messageList?.messages)

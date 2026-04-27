@@ -45,7 +45,7 @@ const ChatDialog = memo(({ query, isOpen, onClose }: ChatDialogProps): JSX.Eleme
 
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", query.id),
                 method: "PATCH",
                 body: { new_title: newTitle }
             });
@@ -180,7 +180,7 @@ const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
     const deleteQuery = useCallback(async () => {
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_MESSAGE_CHAT.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", query.id),
                 method: "DELETE"
             });
 
@@ -197,7 +197,7 @@ const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
 
         try {
             await execute({
-                url: import.meta.env.VITE_API_LLM_TOGGLE_PIN_CHAT.replace("{chat_id}", query.id),
+                url: import.meta.env.VITE_API_CHAT_TOGGLE_PIN.replace("{chat_id}", query.id),
                 method: "PATCH",
                 body: { is_pinned: !isPinned }
             });
@@ -275,7 +275,7 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
 
         try {
             const myQueries = await execute({
-                url: import.meta.env.VITE_API_LLM_CHAT
+                url: import.meta.env.VITE_API_CHAT
             });
 
             if (myQueries && myQueries?.chats)
@@ -293,7 +293,7 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
 
         try {
             const newQuery: any = await execute({
-                url: import.meta.env.VITE_API_LLM_CREATE_CHAT,
+                url: import.meta.env.VITE_API_CHAT_NEW,
                 method: "POST"
             });
 
@@ -416,16 +416,6 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
                             </HStack>
                         )
                     }))
-                }
-
-                {
-                    !isLoading && isExpanded && queries.length == 0 && (
-                        <Box w="100%" p={4}>
-                            <Text className="text-styles" color={ theme === "dark" ? "text" : "primary" } textAlign="center">
-                                No queries yet
-                            </Text>
-                        </Box>
-                    )
                 }
 
                 {

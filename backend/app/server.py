@@ -1,8 +1,8 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router, public_router
-from app.llm.router import router as llm_router
-from app.gee.router import router as gee_router
+from app.chat.router import router as chat_router
 
 app = FastAPI(
     title="Canopiq",
@@ -23,14 +23,6 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"]
 )
 
-PUBLIC_ROUTES=[
-    "/docs",
-    "/openapi.json",
-    "/api/v1/auth/register",
-    "/api/v1/auth/login",
-]
-
 app.include_router(public_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
-app.include_router(llm_router, prefix="/api/v1", tags=["llm"])
-app.include_router(gee_router, prefix="/api/v1", tags=["gee"])
+app.include_router(chat_router, prefix="/api/v1", tags=["chat"])

@@ -49,36 +49,27 @@ async def check_auth(
             }
         )
     
-class RateLimiter:
-    def __init__(self, key: str, requests: int, window: int):
-        self.key = key
-        self.requests = requests
-        self.window = window
+async def rate_limiter(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"rate_limit:{client_ip}"
+    
+    rate_limit = 30
+    window = 60
 
-    async def __call__(self, request: Request):
-        client_ip = request.client.host if request.client else "unknown"
-        key = f"{self.key}_rate_limit:{client_ip}"
-        
-        rate_limit = self.requests
-        window = self.window
+    async with redis_client.pipeline(transaction=True) as pipe:
+        pipe.incr(key)
+        pipe.expire(key, window)
+        results = await pipe.execute()
 
-        async with redis_client.pipeline(transaction=True) as pipe:
-            pipe.incr(key)
-            pipe.expire(key, window)
-            results = await pipe.execute()
+    current_count = results[0]
 
-        current_count = results[0]
+    if current_count > rate_limit:
+        raise HTTPException(
+            status_code=429, 
+            detail={
+                "code": "TOO_MANY_REQUESTS",
+                "message": "Rate limit exceeded. Please try again later."
+            }
+        )
 
-        if current_count > rate_limit:
-            raise HTTPException(
-                status_code=429, 
-                detail={
-                    "code": "TOO_MANY_REQUESTS",
-                    "message": "Rate limit exceeded. Please try again later."
-                }
-            )
-
-        return rate_limit - current_count
-
-gee_rate_limit = RateLimiter(key="gee", requests=5, window=60)  # 5 req/min
-gl_rate_limit = RateLimiter(key="gl", requests=30, window=60)   # 30 req/min
+    return rate_limit - current_count

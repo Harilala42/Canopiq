@@ -1,6 +1,5 @@
 import os
 import ee
-import httpx
 from google.oauth2 import service_account
 
 service_account = os.environ.get("SERVICE_ACCOUNT")
@@ -17,22 +16,6 @@ def authenticate_gee():
 		print("GEE initialization failed:", str(err))
 
 authenticate_gee()
-
-async def fetch_coordinates(location: str):
-	url = "https://nominatim.openstreetmap.org/search"
-	params = { 
-		"q": location, 
-		"format": "geojson",
-		"limit": 1
-	}
-
-	headers = {'User-Agent': 'Canopiq/1.0 (https://github.com/Harilala42/Canopiq)'}
-
-	async with httpx.AsyncClient() as client:
-		response = await client.get(url, params=params, headers=headers, timeout=10.0)
-		response.raise_for_status()
-
-	return response.json()
 
 # Estimate tree cover from Sentinel-2
 async def get_high_res_tree_cover(bbox: list[float], startTime: str, endTime: str):
@@ -83,6 +66,7 @@ async def get_high_res_tree_cover(bbox: list[float], startTime: str, endTime: st
 		return map_id['tile_fetcher'].url_format
 	except Exception as err:
 		raise err
+
 
 # Estimate carbon stock from Sentinel-2
 async def get_high_res_carbon_stock(bbox: list[float], startTime: str, endTime: str):

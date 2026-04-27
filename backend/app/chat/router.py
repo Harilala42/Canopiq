@@ -1,19 +1,19 @@
-import app.llm.models as llm_models
-from app.worker.tasks import generate_geospatial_report
-from app.llm.schemas import MessageCreate, ChatRename, ChatPinToggle
+import app.chat.models as chat_models
+from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from fastapi import APIRouter, HTTPException, Request, Depends
-from app.dependencies import check_auth, gl_rate_limit
+from app.dependencies import check_auth, rate_limiter
+from app.llm.tasks import trigger_geospatial_ai_analysis
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
-    Depends(gl_rate_limit)
+    Depends(rate_limiter)
 ])
 
 # Endpoint to retrieve user's chats
-@router.get("/llm/chat", tags=["llm"])
+@router.get("/chat", tags=["chat"])
 async def get_user_chats(request: Request):
     try:
-        chats = llm_models.get_user_chats(
+        chats = chat_models.get_user_chats(
             user_id=request.state.user.id
         )
 
@@ -30,10 +30,10 @@ async def get_user_chats(request: Request):
         )
     
 # Endpoint to create a new chat
-@router.post("/llm/chat/new", tags=["llm"])
+@router.post("/chat/new", tags=["chat"])
 async def create_new_chat(request: Request):
     try:
-        chat = llm_models.create_new_chat(
+        chat = chat_models.create_new_chat(
             user_id=request.state.user.id
         )
 
@@ -61,7 +61,7 @@ async def create_new_chat(request: Request):
         )
 
 # Endpoint to handle chat message
-@router.post("/llm/chat/{chat_id}", tags=["llm"])
+@router.post("/chat/{chat_id}", tags=["chat"])
 async def send_message_to_llm(
     chat_id: str,
     payload: MessageCreate,
@@ -69,17 +69,17 @@ async def send_message_to_llm(
 ):
     try:
         user_id = request.state.user.id
-        if not llm_models.chat_exists(chat_id, user_id):
+        if not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
         
-        user_message = llm_models.save_chat_message(
+        user_message = chat_models.save_chat_message(
             chat_id=chat_id, 
             user_id=user_id, 
             role="user",
             content=payload.message
         )
 
-        generate_geospatial_report.delay(chat_id, user_id, payload.message)
+        trigger_geospatial_ai_analysis.delay(chat_id, payload.message)
     
         return { "message": user_message[0] }
     except Exception as err:
@@ -104,14 +104,14 @@ async def send_message_to_llm(
         )
 
 # Endpoint to retrieve chat history
-@router.get("/llm/chat/{chat_id}", tags=["llm"])
+@router.get("/chat/{chat_id}", tags=["chat"])
 async def get_chat_conversation(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
-        if not llm_models.chat_exists(chat_id, user_id):
+        if not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
-        messages = llm_models.get_chat_message(
+        messages = chat_models.get_chat_message(
             chat_id=chat_id,
             user_id=user_id
         )
@@ -142,14 +142,14 @@ async def get_chat_conversation(chat_id: str, request: Request):
         )
 
 # Endpoint to delete a chat
-@router.delete("/llm/chat/{chat_id}", tags=["llm"])
+@router.delete("/chat/{chat_id}", tags=["chat"])
 async def delete_chat(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
-        if not llm_models.chat_exists(chat_id, user_id):
+        if not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
-        llm_models.delete_chat(chat_id, user_id)
+        chat_models.delete_chat(chat_id, user_id)
 
         return { "message": "Chat deleted successfully" }
     except Exception as err:
@@ -174,7 +174,7 @@ async def delete_chat(chat_id: str, request: Request):
         )
 
 # Endpoint to update chat's title
-@router.patch("/llm/chat/{chat_id}", tags=["llm"])
+@router.patch("/chat/{chat_id}", tags=["chat"])
 async def rename_user_chat(
     chat_id: str,
     payload: ChatRename, 
@@ -182,10 +182,10 @@ async def rename_user_chat(
 ):
     try:
         user_id = request.state.user.id
-        if not llm_models.chat_exists(chat_id, user_id):
+        if not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
         
-        updated_chat = llm_models.rename_chat(
+        updated_chat = chat_models.rename_chat(
             chat_id=chat_id,
             user_id=user_id,
             new_title=payload.new_title
@@ -218,7 +218,7 @@ async def rename_user_chat(
             detail={"code": "RENAME_FAILED", "message": str(err)}
         )
 
-@router.patch("/llm/chat/{chat_id}/pin", tags=["llm"])
+@router.patch("/chat/{chat_id}/pin", tags=["chat"])
 async def toggle_chat_pin(
     chat_id: str, 
     request: Request,
@@ -226,10 +226,10 @@ async def toggle_chat_pin(
 ):
     try:
         user_id = request.state.user.id
-        if not llm_models.chat_exists(chat_id, user_id):
+        if not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
-        updated_chat = llm_models.toggle_chat_pin(
+        updated_chat = chat_models.toggle_chat_pin(
             chat_id=chat_id,
             user_id=request.state.user.id,
             is_pinned=payload.is_pinned 
