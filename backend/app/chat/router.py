@@ -69,7 +69,7 @@ async def send_message_to_llm(
 ):
     try:
         user_id = request.state.user.id
-        if not chat_models.chat_exists(chat_id, user_id):
+        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
         
         user_message = chat_models.save_chat_message(
@@ -79,7 +79,7 @@ async def send_message_to_llm(
             content=payload.message
         )
 
-        trigger_geospatial_ai_analysis.delay(chat_id, payload.message)
+        trigger_geospatial_ai_analysis.delay(chat_id, user_id, payload.message)
     
         return { "message": user_message[0] }
     except Exception as err:
@@ -108,7 +108,7 @@ async def send_message_to_llm(
 async def get_chat_conversation(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
-        if not chat_models.chat_exists(chat_id, user_id):
+        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
         messages = chat_models.get_chat_message(
@@ -146,7 +146,7 @@ async def get_chat_conversation(chat_id: str, request: Request):
 async def delete_chat(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
-        if not chat_models.chat_exists(chat_id, user_id):
+        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
         chat_models.delete_chat(chat_id, user_id)
@@ -182,7 +182,7 @@ async def rename_user_chat(
 ):
     try:
         user_id = request.state.user.id
-        if not chat_models.chat_exists(chat_id, user_id):
+        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
         
         updated_chat = chat_models.rename_chat(
@@ -226,7 +226,7 @@ async def toggle_chat_pin(
 ):
     try:
         user_id = request.state.user.id
-        if not chat_models.chat_exists(chat_id, user_id):
+        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
             raise Exception("Chat history not found")
 
         updated_chat = chat_models.toggle_chat_pin(

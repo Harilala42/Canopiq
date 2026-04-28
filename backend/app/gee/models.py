@@ -1,6 +1,7 @@
 import os
 import ee
 from google.oauth2 import service_account
+from app.dependencies import get_supabase as supabase
 
 service_account = os.environ.get("SERVICE_ACCOUNT")
 private_key = os.environ.get("SERVICE_ACCOUNT_FILE")
@@ -17,8 +18,36 @@ def authenticate_gee():
 
 authenticate_gee()
 
+# Store query details to Supabase
+def save_query_to_db(query: dict, chat_id: str, user_id: str, tile_url: str):
+	client = supabase()
+
+	start_time = str(query["start_time"])
+	end_time = str(query["end_time"])
+	
+	b = query['bbox']
+	wkt_boundary = f"POLYGON(({b[0]} {b[1]}, {b[2]} {b[1]}, {b[2]} {b[3]}, {b[0]} {b[3]}, {b[0]} {b[1]}))"
+	wkt_center = f"POINT({query['longitude']} {query['latitude']})"
+	
+	response = client.table("geo_analysis") \
+		.insert({
+			"chat_id": chat_id,
+			"user_id": user_id,
+			"location": query['location'],
+			"dataset": query['data_set'],
+			"boundary": wkt_boundary,
+			"center_point": wkt_center,
+			"gee_tile_url": tile_url,
+			"metadata": {
+				"start_time": start_time,
+				"end_time": end_time
+			}
+		}).execute()
+
+	return response.data if response and response.data else None
+
 # Estimate tree cover from Sentinel-2
-async def get_high_res_tree_cover(bbox: list[float], startTime: str, endTime: str):
+def get_high_res_tree_cover(bbox: list[float], startTime: str, endTime: str):
 	try:
 		roi = ee.Geometry.Rectangle(bbox)
 
@@ -67,9 +96,8 @@ async def get_high_res_tree_cover(bbox: list[float], startTime: str, endTime: st
 	except Exception as err:
 		raise err
 
-
 # Estimate carbon stock from Sentinel-2
-async def get_high_res_carbon_stock(bbox: list[float], startTime: str, endTime: str):
+def get_high_res_carbon_stock(bbox: list[float], startTime: str, endTime: str):
 	try:
 		roi = ee.Geometry.Rectangle(bbox)
 

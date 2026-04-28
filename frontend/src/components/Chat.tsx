@@ -108,15 +108,6 @@ const ChatMessages = memo((): JSX.Element => {
                         >
                             {msg.content}
                         </Text>
-
-                        <Text 
-                            className="text-styles"
-                            fontSize="2xs" opacity={0.6}
-                            alignSelf={msg.role === "user" ? "flex-end" : "flex-start"}
-                            color={msg.role !== "user" ? (theme === "dark" ? "text" : "secondary") : "text"}
-                        >
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
                     </VStack>
                 ))
             )}

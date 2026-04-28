@@ -1,5 +1,6 @@
 import os
 from langchain.agents import create_agent
+from langchain.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.llm.schemas import GeoSpatialQuery
 from app.llm.tools import search_location
@@ -9,13 +10,7 @@ model = ChatGoogleGenerativeAI(
     api_key=os.environ.get("GEMINI_API_KEY")
 )
 
-agent = create_agent(
-    model, 
-    tools=[search_location],
-    response_format=GeoSpatialQuery
-)
-
-prompt = """
+prompt = SystemMessage("""
     You are a geospatial AI planner for an environmental analysis platform.
     Your role is to extract structured information from a natural language request related to geographic environmental analysis.
     You MUST return a valid JSON object and nothing else.
@@ -68,16 +63,20 @@ prompt = """
     - Do NOT add text outside JSON
     - Do NOT define coordinates
     - If uncertain, set fields to null
-"""
+""")
 
-def analyse_user_request(prompt: str):
+agent = create_agent(
+    model, 
+    tools=[search_location],
+    response_format=GeoSpatialQuery
+)
+
+def analyse_user_request(user_prompt: str):
     try:
         ai_response = agent.invoke({
             "messages": [
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
+                prompt,
+                HumanMessage(user_prompt)
             ]
         })
 

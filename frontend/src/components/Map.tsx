@@ -1,5 +1,7 @@
-import { useState, useEffect, JSX } from 'react';
+import useChatStore from '@/stores/useChatStore';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useState, useEffect, JSX } from 'react';
+import { supabase } from '@/utils/supabase';
 import { Box } from '@chakra-ui/react';
 import { MapData } from '@/types/map';
 import 'leaflet/dist/leaflet.css';
@@ -8,42 +10,63 @@ const RecenterMap = ({ coords }: { coords: [number, number] }) => {
     const map = useMap();
     
     useEffect(() => {
-        map.flyTo(coords, 14);
+        map.flyTo(coords, 10);
     }, [coords, map]);
 
     return null;
 };
 
 const Map = (): JSX.Element => {
+    const currentQuery = useChatStore((state) => state.currentQuery);
     const [map, setMap] = useState<MapData | null>(null);
 
     useEffect(() => {
-        const newMap: MapData = {
-            tileLayer: "https://earthengine.googleapis.com/v1/projects/earthengine-legacy/maps/9409d16f35baeb36260c8792ccd15939-21760411c697e144c2d87f4f29e6e147/tiles/{z}/{x}/{y}",
-            description: "Taman Nasional Kerinci Seblat, Jambi, Sumatera, Indonesia",
-            coords: [-2.26, 101.35]
-        };
+        if (!currentQuery?.id) return;
 
-        setMap(newMap);
-    }, []);
+        const channel = supabase
+            .channel(`geo_analysis-${currentQuery.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'geo_analysis',
+                    filter: `chat_id=eq.${currentQuery.id}`
+                },
+                (payload: any) => {
+                    const { gee_tile_url, location, center_point } = payload.new;
+                    const newMap: MapData = {
+                        tileLayer: gee_tile_url,
+                        description: location,
+                        coords: [center_point.coordinates[1], center_point.coordinates[0]]
+                    };
+                    
+                    setMap(newMap);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentQuery?.id]);
 
     return (
         <Box w="100%" h="100%" maxH="calc(100vh - 60px)" position="relative" overflow="hidden">
-            {map && (
-                <MapContainer 
-                    center={map.coords} 
-                    scrollWheelZoom={true}
-                    zoom={10} zoomControl={false}
-                    style={{ height: "100%", width: "100%" }}
-                >
-                    {map.tileLayer && <TileLayer url={map.tileLayer} />}
+            <MapContainer 
+                center={map?.coords || [0, 0]} 
+                scrollWheelZoom={true}
+                zoom={5} zoomControl={false}
+                style={{ height: "100%", width: "100%" }}
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
 
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        opacity={0.5}
-                    />
+                {map?.tileLayer && <TileLayer url={map.tileLayer} opacity={0.5} />}
 
+                {map && (<>
                     <RecenterMap coords={map.coords} />
 
                     <Marker position={map.coords}>
@@ -53,8 +76,8 @@ const Map = (): JSX.Element => {
                             Details: {map.description}
                         </Popup>
                     </Marker>
-                </MapContainer>
-            )}
+                </>)}
+            </MapContainer>
         </Box>
     );
 };
