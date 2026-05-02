@@ -1,9 +1,10 @@
-import useChatStore from '@/stores/useChatStore';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useState, useEffect, JSX } from 'react';
-import { supabase } from '@/utils/supabase';
-import { Box } from '@chakra-ui/react';
 import { MapData } from '@/types/map';
+import { Box } from '@chakra-ui/react';
+import { supabase } from '@/utils/supabase';
+import { useState, useEffect, JSX } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import useChatStore from '@/stores/useChatStore';
+import Chat from '@/components/Chat';
 import 'leaflet/dist/leaflet.css';
 
 const RecenterMap = ({ coords }: { coords: [number, number] }) => {
@@ -64,9 +65,9 @@ const Map = (): JSX.Element => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {map?.tileLayer && <TileLayer url={map.tileLayer} opacity={0.5} />}
-
                 {map && (<>
+                    <TileLayer url={map.tileLayer} opacity={0.5} />
+
                     <RecenterMap coords={map.coords} />
 
                     <Marker position={map.coords}>
@@ -78,6 +79,8 @@ const Map = (): JSX.Element => {
                     </Marker>
                 </>)}
             </MapContainer>
+
+            <Chat />
         </Box>
     );
 };

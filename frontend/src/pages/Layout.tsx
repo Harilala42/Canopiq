@@ -4,7 +4,7 @@ import { ThemeContext } from '@/contexts/themeContext';
 import { FullScreen } from '@/components/FullScreen';
 import { Header } from '@/components/Header';
 import SideBar from '@/components/SideBar';
-import Chat from '@/components/Chat';
+import Chart from '@/components/Chart';
 
 const Map = lazy(() => import('@/components/Map'));
 
@@ -41,8 +41,8 @@ function Layout(): JSX.Element {
 					rowSpan={1} colSpan={4}
 					ml={!isSidebarOpened ? "-200px" : "none"}
 				>
-					<Grid templateColumns="1fr 350px" h="100%">
-						<GridItem as="section" colSpan={1}>
+					<Grid templateColumns="repeat(4, 1fr)" h="100%">
+						<GridItem as="section" colSpan={3}>
 							<Suspense fallback={
 								<VStack h="100%" justify="center">
 									<Spinner color={theme === "dark" ? "text" : "secondary"} size="lg" />
@@ -52,8 +52,8 @@ function Layout(): JSX.Element {
 							</Suspense>
 						</GridItem>
 
-						<GridItem as="section" colSpan={1}>
-							<Chat />
+						<GridItem as="section" minW="300px" colSpan={1}>
+							<Chart />
 						</GridItem>
 					</Grid>
 				</GridItem>

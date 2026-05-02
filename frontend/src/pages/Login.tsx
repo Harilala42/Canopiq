@@ -126,7 +126,7 @@ function Login(): JSX.Element {
 								{/* Submit Button */}
 								<Button 
 									loading={isLoading && !isGoogleAuth} 
-									disabled={isLoading && !isGoogleAuth} 
+									disabled={isLoading || isGoogleAuth} 
 									aria-label="Login" h="50px"
 								>
 									Login
