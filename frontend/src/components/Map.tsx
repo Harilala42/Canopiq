@@ -1,13 +1,14 @@
 import { MapData } from '@/types/map';
 import { Box } from '@chakra-ui/react';
+import { useEffect, JSX } from 'react';
 import { supabase } from '@/utils/supabase';
-import { useState, useEffect, JSX } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
+import useAnalyticsStore from '@/stores/useAnalyticsStore';
 import useChatStore from '@/stores/useChatStore';
 import Chat from '@/components/Chat';
 import 'leaflet/dist/leaflet.css';
 
-const RecenterMap = ({ coords }: { coords: [number, number] }) => {
+const MapEffects = ({ coords }: { coords: [number, number] }) => {
     const map = useMap();
     
     useEffect(() => {
@@ -18,8 +19,9 @@ const RecenterMap = ({ coords }: { coords: [number, number] }) => {
 };
 
 const Map = (): JSX.Element => {
+    const currentMap = useAnalyticsStore((state) => state.location);
     const currentQuery = useChatStore((state) => state.currentQuery);
-    const [map, setMap] = useState<MapData | null>(null);
+    const setAnalyticsData = useAnalyticsStore((state) => state.setAnalyticsData);
 
     useEffect(() => {
         if (!currentQuery?.id) return;
@@ -35,14 +37,39 @@ const Map = (): JSX.Element => {
                     filter: `chat_id=eq.${currentQuery.id}`
                 },
                 (payload: any) => {
-                    const { gee_tile_url, location, center_point } = payload.new;
-                    const newMap: MapData = {
-                        tileLayer: gee_tile_url,
-                        description: location,
-                        coords: [center_point.coordinates[1], center_point.coordinates[0]]
-                    };
-                    
-                    setMap(newMap);
+                    // const { 
+                    //     location,
+                    //     gee_tile_url,  
+                    //     center_point,
+                    //     start_year, end_year,
+                    //     dataset,
+                    //     analytics
+                    // } = payload.new;
+
+                    // const newMap: MapData = {
+                    //     description: location,
+                    //     tileLayer: gee_tile_url,
+                    //     coords: [
+                    //         center_point.coordinates[1],
+                    //         center_point.coordinates[0]
+                    //     ]
+                    // };
+
+                    // setAnalyticsData({
+                    //     location: newMap,
+                    //     dataset,
+                    //     range_times: {
+                    //         start: new Date(start_year).getFullYear(),
+                    //         end: new Date(end_year).getFullYear()
+                    //     },
+                    //     area_coverage: analytics.stats.area_coverage_ha,
+                    //     global_average: analytics.stats.global_average,
+                    //     total_change: analytics.stats.total_change_percent,
+                    //     dataset_time_series: analytics.insights.yearly_dataset_bars,
+                    //     ndvi_time_series: analytics.insights.monthly_health_line
+                    // });
+
+                    console.log(payload.mew)
                 }
             )
             .subscribe();
@@ -55,26 +82,28 @@ const Map = (): JSX.Element => {
     return (
         <Box w="100%" h="100%" maxH="calc(100vh - 60px)" position="relative" overflow="hidden">
             <MapContainer 
-                center={map?.coords || [0, 0]} 
+                center={currentMap?.coords || [0, 0]} 
                 scrollWheelZoom={true}
                 zoom={5} zoomControl={false}
                 style={{ height: "100%", width: "100%" }}
             >
+                <ZoomControl position="topright" />
+
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {map && (<>
-                    <TileLayer url={map.tileLayer} opacity={0.5} />
+                {currentMap && (<>
+                    <TileLayer url={currentMap.tileLayer} opacity={0.5} />
 
-                    <RecenterMap coords={map.coords} />
+                    <MapEffects coords={currentMap.coords} />
 
-                    <Marker position={map.coords}>
+                    <Marker position={currentMap.coords}>
                         <Popup>
                             Analysis Point: <br /> 
-                            Lat: {map.coords[0].toFixed(2)}, Lon: {map.coords[1].toFixed(2)} <br /> 
-                            Details: {map.description}
+                            Lat: {currentMap.coords[0].toFixed(2)}, Lon: {currentMap.coords[1].toFixed(2)} <br /> 
+                            Details: {currentMap.description}
                         </Popup>
                     </Marker>
                 </>)}

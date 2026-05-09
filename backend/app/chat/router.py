@@ -2,7 +2,7 @@ import app.chat.models as chat_models
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from fastapi import APIRouter, HTTPException, Request, Depends
 from app.dependencies import check_auth, rate_limiter
-from app.llm.tasks import trigger_geospatial_ai_analysis
+from app.llm.tasks import trigger_geospatial_request_analysis
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
@@ -79,7 +79,7 @@ async def send_message_to_llm(
             content=payload.message
         )
 
-        trigger_geospatial_ai_analysis.delay(chat_id, user_id, payload.message)
+        trigger_geospatial_request_analysis.delay(chat_id, user_id, payload.message)
     
         return { "message": user_message[0] }
     except Exception as err:

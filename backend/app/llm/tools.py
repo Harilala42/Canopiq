@@ -1,7 +1,9 @@
 import httpx
 from typing import List
-from langchain.tools import tool
+from datetime import datetime
+from collections import defaultdict
 from app.llm.schemas import GeoSpatialQuery
+from langchain.tools import tool
 
 @tool
 def search_location(location: str) -> GeoSpatialQuery:
@@ -31,10 +33,10 @@ def search_location(location: str) -> GeoSpatialQuery:
 
 	return GeoSpatialQuery(
 		location=name,
-        latitude=lat,
-        longitude=lon,
-        bbox=bbox,
-        start_time=None,
-        end_time=None,
+		latitude=lat,
+		longitude=lon,
+		bbox=bbox,
+		start_time=None,
+		end_time=None,
 		data_set = None
-    )
+	)

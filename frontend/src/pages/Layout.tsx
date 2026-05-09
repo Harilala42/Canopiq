@@ -9,7 +9,8 @@ import Chart from '@/components/Chart';
 const Map = lazy(() => import('@/components/Map'));
 
 function Layout(): JSX.Element {
-	const [isSidebarOpened, setIsSidebarOpened] = useState<boolean>(false);
+	const [isChartOpen, setIsChartOpen] = useState<boolean>(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 	const { theme } = useContext(ThemeContext);
 
 	return (
@@ -22,15 +23,15 @@ function Layout(): JSX.Element {
 			>
 				<GridItem as="aside" rowSpan={2} colSpan={1}>
 					<SideBar 
-						isExpanded={isSidebarOpened}
-            			onToggle={() => setIsSidebarOpened(prev => !prev)}
+						isExpanded={isSidebarOpen}
+            			onToggle={() => setIsSidebarOpen(prev => !prev)}
 					/>
 				</GridItem>
 
 				<GridItem 
 					as="header" 
 					rowSpan={1} colSpan={4} 
-					ml={!isSidebarOpened ? "-200px" : "none"} 
+					ml={!isSidebarOpen ? "-200px" : "none"} 
 					h="60px"
 				>
 					<Header />
@@ -39,9 +40,17 @@ function Layout(): JSX.Element {
 				<GridItem 
 					as="main" 
 					rowSpan={1} colSpan={4}
-					ml={!isSidebarOpened ? "-200px" : "none"}
+					ml={!isSidebarOpen ? "-200px" : "none"}
 				>
-					<Grid templateColumns="repeat(4, 1fr)" h="100%">
+					<Grid 
+						templateColumns={
+							isChartOpen 
+							? "repeat(3, 1fr) 400px" 
+							: "repeat(3, 1fr) 50px"
+						} 
+						transition="grid-template-columns 0.3s ease-in-out"
+						h="100%"
+					>
 						<GridItem as="section" colSpan={3}>
 							<Suspense fallback={
 								<VStack h="100%" justify="center">
@@ -52,8 +61,11 @@ function Layout(): JSX.Element {
 							</Suspense>
 						</GridItem>
 
-						<GridItem as="section" minW="300px" colSpan={1}>
-							<Chart />
+						<GridItem as="section" colSpan={1}>
+							<Chart 
+								isOpen={isChartOpen} 
+								onToggle={() => setIsChartOpen(prev => !prev)}
+							/>
 						</GridItem>
 					</Grid>
 				</GridItem>

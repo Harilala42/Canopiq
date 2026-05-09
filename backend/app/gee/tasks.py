@@ -1,80 +1,23 @@
-import app.gee.models as gee
 from app.worker import app
+from app.gee.utils import save_analysis_to_db
+import app.gee.models as gee
 
-@app.task(bind=True, name="generate_tree_cover_tile_layer", max_retries=3)
-def task_generate_tree_cover_tile_layer(self, chat_id: str, user_id: str, query: dict):
+@app.task(bind=True, name="trigger_geospatial_computation", max_retries=2)
+def trigger_geospatial_computation(self, chat_id: str, user_id: str, query: dict):
     try:
-        bbox = query["bbox"]
-        startTime = str(query["start_time"])
-        endTime = str(query["end_time"])
+        gis_analysis = gee.compute_gee_analysis(
+            bbox=query["bbox"],
+            start_time=str(query["start_time"]),
+            end_time=str(query["end_time"]),
+            dataset_type=query["data_set"]
+        )
 
-        tile_url = gee.compute_tree_cover_tl(bbox, startTime, endTime)
-        result = gee.save_query_to_db(query, chat_id, user_id, tile_url)
+        result = save_analysis_to_db(chat_id, user_id, query, gis_analysis)
 
         return { 
             "status": "completed", 
-            "data": { 
-                "id": f"tree_cover_tl_{chat_id}",
-                "data": result
-            }
+            "task": self.name,
+            "id": result[0]["id"]
         }
     except Exception as e:
-        raise self.retry(exc=e, countdown=60)
-    
-@app.task(bind=True, name="generate_tree_cover_time_series", max_retries=3)
-def task_generate_tree_cover_time_series(self, chat_id: str, user_id: str, query: dict):
-    try:
-        bbox = query["bbox"]
-        startTime = str(query["start_time"])
-        endTime = str(query["end_time"])
-
-        result = gee.compute_tree_cover_ts(bbox, startTime, endTime)
-
-        return { 
-            "status": "completed", 
-            "data": { 
-                "id": f"tree_cover_ts_{chat_id}",
-                "data": result
-            }
-        }
-    except Exception as e:
-        raise self.retry(exc=e, countdown=60)
-    
-@app.task(bind=True, name="generate_carbon_stock_tile_layer", max_retries=3)
-def task_generate_carbon_stock_tile_layer(self, chat_id: str, user_id: str, query: dict):
-    try:
-        bbox = query["bbox"]
-        startTime = str(query["start_time"])
-        endTime = str(query["end_time"])
-
-        tile_url = gee.compute_carbon_stock_tl(bbox, startTime, endTime)
-        result = gee.save_query_to_db(query, chat_id, user_id, tile_url)
-
-        return { 
-            "status": "completed", 
-            "data": { 
-                "id": f"carbon_stock_tl_{chat_id}",
-                "data": result
-            }
-        }
-    except Exception as e:
-        raise self.retry(exc=e, countdown=60)
-    
-@app.task(bind=True, name="generate_carbon_stock_time_series", max_retries=3)
-def task_generate_carbon_stock_time_series(self, chat_id: str, user_id: str, query: dict):
-    try:
-        bbox = query["bbox"]
-        startTime = str(query["start_time"])
-        endTime = str(query["end_time"])
-
-        result = gee.compute_carbon_stock_ts(bbox, startTime, endTime)
-
-        return { 
-            "status": "completed", 
-            "data": { 
-                "id": f"carbon_stock_ts_{chat_id}",
-                "data": result
-            }
-        }
-    except Exception as e:
-        raise self.retry(exc=e, countdown=60)
+        raise self.retry(exc=e, countdown=2 ** self.request.retries)

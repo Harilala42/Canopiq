@@ -243,7 +243,7 @@ const ChatInputBar = memo(({ chat_id }: { chat_id: string }): JSX.Element => {
         >
             <HStack 
                 bg={theme === "dark" ? "variantDark" : "variantLight"} 
-                borderRadius="full" overflow="hidden"
+                borderRadius={15} overflow="hidden"
                 w="100%" p={1}
             >
                 <Textarea
@@ -387,7 +387,7 @@ const Chat = (): JSX.Element => {
                                     <VStack
                                         align="stretch"
                                         bg={theme === "dark" ? "secondary" : "text"}
-                                        w="25vw" minW="300px" h="75vh" gap={0}
+                                        w="400px" h="75vh" gap={0}
                                     >
                                         <ChatHeader onClose={handleClose} />
 
