@@ -8,17 +8,16 @@ import {
 	Legend,
 	LineElement
 } from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
-import { useContext, useState, useMemo, memo, JSX } from "react";
-import { LuChartColumnBig, LuHeartPulse, LuMap, LuPanelLeft, LuArrowDown, LuArrowUp, LuTreePine, LuCloud } from "react-icons/lu";
-import { VStack, HStack, Text, Icon, Select, Stat, Badge, Portal, createListCollection } from '@chakra-ui/react';
+import { Bar } from "react-chartjs-2";
+import { useContext, memo, JSX } from "react";
+import { VStack, HStack, Text, Icon, Stat, Badge, Span } from '@chakra-ui/react';
+import { LuChartColumnBig, LuMap, LuPanelLeft, LuArrowDown, LuArrowUp, LuTreePine, LuCloud, LuInfo, LuAlignEndHorizontal } from "react-icons/lu";
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
 import { ThemeContext } from "@/contexts/themeContext";
 import { IconButton } from "@/components/IconButton";
 
 ChartJS.register(
 	BarElement,
-	LineElement,
 	PointElement,
 	LinearScale,
 	CategoryScale,
@@ -76,12 +75,11 @@ const ChartHeader = memo(({ isOpen, onToggle }: ChartProps): JSX.Element => {
 });
 
 const ChartStats = memo((): JSX.Element => {
-	const datasetType = useAnalyticsStore((state) => state.dataset);
+	const datasetMetaData = useAnalyticsStore((state) => state.dataset);
 	const datasetValue = useAnalyticsStore((state) => state.global_average);
 	const areaCoverage = useAnalyticsStore((state) => state.area_coverage);
 	const totalChange = useAnalyticsStore((state) => state.total_change);
 	const rangeTimes = useAnalyticsStore((state) => state.range_times);
-
 	const { theme } = useContext(ThemeContext);
 
 	return (<>
@@ -92,16 +90,17 @@ const ChartStats = memo((): JSX.Element => {
 		>
 			<HStack gap={4}>
 				<Icon color={theme === "dark" ? "text" : "secondary"} size="2xl">
-					{datasetType != "tree_cover" ? <LuCloud /> : <LuTreePine /> }
+					{datasetMetaData.type != "tree_cover" ? <LuCloud /> : <LuTreePine /> }
 				</Icon>
 
 				<VStack flex={1} align="flex-start" gap={1}>
 					<Stat.Label>
 						<Text 
-							className="text-style" fontSize="md" 
+							className="text-style"
 							color={theme === "dark" ? "text" : "secondary"}
+							fontSize="md" fontWeight="bold"
 						>
-							{datasetType != "tree_cover" ? "Biomass Carbon Density" : "Percent Tree Cover"}
+							{datasetMetaData.legend}
 						</Text>
 					</Stat.Label>
 
@@ -111,7 +110,7 @@ const ChartStats = memo((): JSX.Element => {
 								className="title-style" fontSize="2xl"
 								color={theme === "dark" ? "text" : "secondary"}
 							>
-								{datasetValue} {datasetType != "tree_cover" ? "tC/ha" : "%" }
+								{datasetValue} {datasetMetaData.unit}
 							</Text>
 						</Stat.ValueText>
 						<Badge colorPalette={totalChange > 0 ? "green" : "red"}>
@@ -125,7 +124,7 @@ const ChartStats = memo((): JSX.Element => {
 							className="text-style" fontSize="sm" 
 							color={theme === "dark" ? "text" : "secondary"}
 						>
-							Since {Math.abs(rangeTimes.start - rangeTimes.end)} years ago
+							Between {rangeTimes.start} - {rangeTimes.end}
 						</Text>
 					</Stat.HelpText>
 				</VStack>
@@ -145,10 +144,11 @@ const ChartStats = memo((): JSX.Element => {
 				<VStack flex={1} align="flex-start" gap={1}>
 					<Stat.Label>
 						<Text 
-							className="text-style" fontSize="md"
+							className="text-style"
 							color={theme === "dark" ? "text" : "secondary"}
+							fontSize="md" fontWeight="bold"
 						>
-							Study Area
+							Area Coverage
 						</Text>
 					</Stat.Label>
 
@@ -166,109 +166,106 @@ const ChartStats = memo((): JSX.Element => {
 	</>);
 });
 
-const Chart = ({ isOpen, onToggle }: ChartProps): JSX.Element => {
+const ChartBar = memo((): JSX.Element => {
+	const datasetMetaData = useAnalyticsStore((state) => state.dataset);
+	const datasetTimeSeries = useAnalyticsStore((state) => state.dataset_time_series);
 	const { theme } = useContext(ThemeContext);
 
-	// const groupedByYear = useMemo(() => {
-	// 	const grouped: Record<string, any[]> = {};
+	const barData = {
+		labels: datasetTimeSeries.map((item) => item.year),
 
-	// 	monthlyHealth.forEach(item => {
-	// 		const year = item.date.split(" ")[1];
+		datasets: [
+			{
+				label: "",
+				data: datasetTimeSeries.map((item) => item.value),
 
-	// 		if (!grouped[year]) grouped[year] = [];
+				borderRadius: 5,
+				backgroundColor: datasetTimeSeries.map((item) => item.color)
+			}
+		]
+	};
 
-	// 		grouped[year].push(item);
-	// 	});
+	const chartOptions = {
+		responsive: true,
 
-	// 	return grouped;
-	// }, []);
+		plugins: {
+			legend: {
+				display: false
+			},
+		},
 
-	// const years = Object.keys(groupedByYear);
-	// const [selectedYear, setSelectedYear] = useState<string>(years[9]);
+		scales: {
+			x: {
+				ticks: {
+					color: theme === "dark" ? "#cecbf6" : "#1a1535",
+				},
 
-	// const yearCollection = createListCollection({
-	// 	items: years.map(year => ({
-	// 		label: year,
-	// 		value: year,
-	// 	})),
-	// });
+				grid: {
+					color: theme === "dark" ? "#cecbf6" : "#1a1535",
+				},
+			},
 
-	// const barData = {
-	// 	labels: yearlyBars.map(item => item.year),
+			y: {
+				ticks: {
+					color: theme === "dark" ? "#cecbf6" : "#1a1535",
+				},
 
-	// 	datasets: [
-	// 		{
-	// 			label: "Carbon Stock",
+				grid: {
+					color: theme === "dark" ? "#cecbf6" : "#1a1535",
+				},
+			},
+		},
+	};
 
-	// 			data: yearlyBars.map(item => item.value),
+	return (
+		<VStack
+			w="100%" h="fit-content" 
+			gap={5} align="flex-start"
+			bg={theme === "dark" ? "variantDark" : "variantLight"}
+			p={5} borderRadius="xl"
+		>
+			<HStack gap={2}>
+				<Icon color={theme === "dark" ? "text" : "secondary"} size="lg">
+					<LuAlignEndHorizontal />
+				</Icon>
 
-	// 			backgroundColor: [
-	// 				"#38A169",
-	// 				"#48BB78",
-	// 				"#68D391",
-	// 				"#9AE6B4",
-	// 				"#276749",
-	// 				"#2F855A",
-	// 				"#38A169",
-	// 				"#48BB78",
-	// 			],
+				<Text 
+					className="title-style" 
+					color={theme === "dark" ? "text" : "secondary"}
+					fontSize="md" fontWeight="bold"
+				>
+					{`Yearly ${
+						datasetMetaData.type
+							.split("_")
+							.map(w => w.charAt(0).toUpperCase() + w.slice(1))
+							.join(" ")}
+						(${datasetMetaData.unit})`
+					}
+				</Text>
+			</HStack>
 
-	// 			borderRadius: 8,
-	// 			borderSkipped: false,
-	// 		},
-	// 	],
-	// };
+			<VStack align="flex-start" gap={2}>
+				<Bar data={barData} options={chartOptions} />
 
-	// const chartOptions = {
-	// 	responsive: true,
+				<HStack gap={2}>
+					<Icon color={theme === "dark" ? "text" : "secondary"} size="sm">
+						<LuInfo />
+					</Icon>
 
-	// 	plugins: {
-	// 		legend: {
-	// 			labels: {
-	// 				color: theme === "dark" ? "#cecbf6" : "#1a1535",
-	// 			},
-	// 		},
-	// 	},
+					<Text 
+						className="text-style" fontSize="sm" 
+						color={theme === "dark" ? "text" : "secondary"}
+					>
+						<Span fontWeight="semibold" textDecoration="underline">Source:</Span> {datasetMetaData.source}
+					</Text>
+				</HStack>
+			</VStack>
+		</VStack>
+	);
+});
 
-	// 	scales: {
-	// 		x: {
-	// 			ticks: {
-	// 				color: theme === "dark" ? "#cecbf6" : "#1a1535",
-	// 			},
-
-	// 			grid: {
-	// 				color: theme === "dark" ? "#cecbf6" : "#1a1535",
-	// 			},
-	// 		},
-
-	// 		y: {
-	// 			ticks: {
-	// 				color: theme === "dark" ? "#cecbf6" : "#1a1535",
-	// 			},
-
-	// 			grid: {
-	// 				color: theme === "dark" ? "#cecbf6" : "#1a1535",
-	// 			},
-	// 		},
-	// 	},
-	// };
-
-	// const lineData = {
-	// 	labels: groupedByYear[selectedYear].map(item =>
-	// 		item.date.split(" ")[0]
-	// 	),
-
-	// 	datasets: [
-	// 		{
-	// 			label: `NDVI ${selectedYear}`,
-	// 			data: groupedByYear[selectedYear].map(item => item.value),
-	// 			borderColor: "#38A169",
-	// 			backgroundColor: "rgba(56, 161, 105, 0.2)",
-	// 			tension: 0.4,
-	// 			fill: true,
-	// 		},
-	// 	],
-	// };
+const Chart = ({ isOpen, onToggle }: ChartProps): JSX.Element => {
+	const { theme } = useContext(ThemeContext);
 
 	return (
 		<VStack 
@@ -285,56 +282,7 @@ const Chart = ({ isOpen, onToggle }: ChartProps): JSX.Element => {
 				<VStack flex={1} justify="stretch" w="100%" p={5}>
 					<ChartStats />
 
-					{/* <VStack
-						w="100%" h="fit-content" gap={2} align="flex-start"
-						bg={theme === "dark" ? "variantDark" : "variantLight"}
-						p={5} borderRadius="xl"
-					>
-						<Text 
-							className="text-style" fontSize="sm" 
-							color={theme === "dark" ? "text" : "secondary"}
-						>
-							Yearly Carbon Stock
-						</Text>
-
-						<Bar data={barData} options={chartOptions} />
-					</VStack> */}
-
-					{/* <VStack
-						w="100%" h="fit-content" gap={2} align="flex-start"
-						bg={theme === "dark" ? "variantDark" : "variantLight"}
-						p={5} borderRadius="xl"
-					>
-						<HStack justify="space-between" mb={4}>
-							<Text 
-								className="text-style" fontSize="sm" 
-								color={theme === "dark" ? "text" : "secondary"}
-							>
-								<LuHeartPulse /> Monthly NDVI
-							</Text>
-
-							<Select.Root collection={yearCollection} size="sm" width="320px">
-								<Select.Control>
-									<Select.Trigger>
-										<Select.ValueText placeholder={years[1]} />
-									</Select.Trigger>
-								</Select.Control>
-								<Portal>
-									<Select.Positioner>
-									<Select.Content>
-										{years.map(year => (
-											<Select.Item key={year} item={year}>
-												{year}
-											</Select.Item>
-										))}
-									</Select.Content>
-									</Select.Positioner>
-								</Portal>
-							</Select.Root>
-						</HStack>
-
-						<Line data={lineData} options={chartOptions} />
-					</VStack> */}
+					<ChartBar />
 				</VStack>
 			)}
 		</VStack>

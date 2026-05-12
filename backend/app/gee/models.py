@@ -71,14 +71,15 @@ def get_dataset_col(dataset_type, start_time, end_time, roi):
 	Returns the reference image and specific visualization parameters.
 	"""
 
-	if dataset_type == "carbon_stock":
+	if dataset_type == "carbon_density":
 		ref_col = ee.ImageCollection("WCMC/biomass_carbon_density/v1_0")
+		reference_img = ref_col.first().clip(roi)
 		vis = {'min': 0, 'max': 100, 'palette': ['#a34b3c', '#b37a3f', '#4b907f', '#287662']}
 	else:
 		ref_col = ee.ImageCollection("MODIS/006/MOD44B").select('Percent_Tree_Cover')
+		reference_img = ref_col.filterDate(start_time, end_time).mean().clip(roi)
 		vis = {'min': 0, 'max': 100, 'palette': ['#ffffff', '#afce56', '#196e0c']}
 
-	reference_img = ref_col.filterDate(start_time, end_time).mean().clip(roi)
 	return reference_img, vis
 
 def generate_tile_layer(ndvi_img, scale, offset, vis_params):

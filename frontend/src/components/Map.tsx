@@ -2,6 +2,7 @@ import { MapData } from '@/types/map';
 import { Box } from '@chakra-ui/react';
 import { useEffect, JSX } from 'react';
 import { supabase } from '@/utils/supabase';
+import { DatasetMetaData } from "@/types/analysis";
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
 import useChatStore from '@/stores/useChatStore';
@@ -37,39 +38,44 @@ const Map = (): JSX.Element => {
                     filter: `chat_id=eq.${currentQuery.id}`
                 },
                 (payload: any) => {
-                    // const { 
-                    //     location,
-                    //     gee_tile_url,  
-                    //     center_point,
-                    //     start_year, end_year,
-                    //     dataset,
-                    //     analytics
-                    // } = payload.new;
+                    const { 
+                        location,
+                        dataset,
+                        tile_layer_url,  
+                        center_point,
+                        start_year, end_year,
+                        analytics
+                    } = payload.new;
 
-                    // const newMap: MapData = {
-                    //     description: location,
-                    //     tileLayer: gee_tile_url,
-                    //     coords: [
-                    //         center_point.coordinates[1],
-                    //         center_point.coordinates[0]
-                    //     ]
-                    // };
+                    const newMap: MapData = {
+                        description: location,
+                        tileLayer: tile_layer_url,
+                        coords: [
+                            center_point.coordinates[1],
+                            center_point.coordinates[0]
+                        ]
+                    };
 
-                    // setAnalyticsData({
-                    //     location: newMap,
-                    //     dataset,
-                    //     range_times: {
-                    //         start: new Date(start_year).getFullYear(),
-                    //         end: new Date(end_year).getFullYear()
-                    //     },
-                    //     area_coverage: analytics.stats.area_coverage_ha,
-                    //     global_average: analytics.stats.global_average,
-                    //     total_change: analytics.stats.total_change_percent,
-                    //     dataset_time_series: analytics.insights.yearly_dataset_bars,
-                    //     ndvi_time_series: analytics.insights.monthly_health_line
-                    // });
+                    const newDataset: DatasetMetaData = {
+                        type: dataset,
+                        legend: analytics.insights.metadata.legend,
+                        description: analytics.insights.metadata.description,
+                        source: analytics.insights.metadata.source,
+                        unit: analytics.insights.metadata.unit
+                    }
 
-                    console.log(payload.mew)
+                    setAnalyticsData({
+                        location: newMap,
+                        dataset: newDataset,
+                        range_times: {
+                            start: new Date(start_year).getFullYear(),
+                            end: new Date(end_year).getFullYear()
+                        },
+                        area_coverage: analytics.stats.area_coverage_ha,
+                        global_average: analytics.stats.global_average,
+                        total_change: analytics.stats.total_change_percent,
+                        dataset_time_series: analytics.insights.time_series
+                    });
                 }
             )
             .subscribe();
@@ -95,7 +101,11 @@ const Map = (): JSX.Element => {
                 />
 
                 {currentMap && (<>
-                    <TileLayer url={currentMap.tileLayer} opacity={0.5} />
+                    <TileLayer 
+                        url={currentMap.tileLayer}
+                        key={currentMap.tileLayer} 
+                        opacity={0.5}
+                    />
 
                     <MapEffects coords={currentMap.coords} />
 

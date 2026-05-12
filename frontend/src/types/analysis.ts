@@ -1,7 +1,9 @@
 export interface TimeSeriesData
 {
-	date: string;
+	year: string;
 	value: number;
+	color: string;
+	normalized: number;
 }
 
 export interface RangeTimesData
@@ -10,4 +12,13 @@ export interface RangeTimesData
 	end: number;
 }
 
-export type DatasetType = "tree_cover" | "carbon_stock";
+type datasetType = "carbon_density" | "tree_cover";
+
+export interface DatasetMetaData
+{
+	legend: string;
+	description: string;
+	type: datasetType;
+	source: string;
+	unit: string;
+}

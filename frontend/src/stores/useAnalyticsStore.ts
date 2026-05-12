@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { MapData } from '@/types/map';
-import { TimeSeriesData, RangeTimesData, DatasetType } from '@/types/analysis';
+import { TimeSeriesData, RangeTimesData, DatasetMetaData } from '@/types/analysis';
 
 interface AnalyticsState
 {
 	location: MapData | null;
-	dataset: DatasetType | null;
+	dataset: DatasetMetaData | null;
 	range_times: RangeTimesData | null;
 
 	area_coverage: number;
@@ -13,11 +13,10 @@ interface AnalyticsState
 	total_change: number;
 
 	dataset_time_series: TimeSeriesData[];
-	ndvi_time_series: TimeSeriesData[];
 
 	setLocation: (location: MapData) => void;
 
-	setDataset: (dataset: DatasetType) => void;
+	setDataset: (dataset: DatasetMetaData) => void;
 
 	setRangeTimes: (start: number, end: number) => void;
 
@@ -28,10 +27,6 @@ interface AnalyticsState
 	setTotalChange: (value: number) => void;
 
 	setDatasetTimeSeries: (
-		data: TimeSeriesData[]
-	) => void;
-
-	setNDVITimeSeries: (
 		data: TimeSeriesData[]
 	) => void;
 
@@ -50,7 +45,6 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	total_change: 0,
 
 	dataset_time_series: [],
-	ndvi_time_series: [],
 
     setLocation: (location) => set({ location }),
 
@@ -67,8 +61,6 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
     setTotalChange: (value) => set({ total_change: value }),
 
     setDatasetTimeSeries: (data) => set({ dataset_time_series: data }),
-
-    setNDVITimeSeries: (data) => set({ ndvi_time_series: data }),
 
     setAnalyticsData: (data) => set((state) => ({
         ...state, ...data

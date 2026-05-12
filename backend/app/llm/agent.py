@@ -59,7 +59,7 @@ def analyse_user_request(user_prompt: str):
         🧠 ANALYSIS INTENT
 
         Map user request to one of:
-        - "carbon_stock"
+        - "carbon_density"
         - "tree_cover"
 
         ---

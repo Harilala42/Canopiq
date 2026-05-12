@@ -6,7 +6,7 @@ class GeoSpatialQuery(BaseModel):
 	"""Query for GIS data of a location."""
 
 	location: str = Field(description="Short description for the location.")
-	data_set: Literal["carbon_stock", "tree_cover"] | None = Field(description="Dataset to query for the analysis intent ('carbon_stock' or 'tree_cover').")
+	data_set: Literal["carbon_density", "tree_cover"] | None = Field(description="Dataset to query for the analysis intent ('carbon_density' or 'tree_cover').")
 	latitude: float = Field(ge=-90, le=90, description="Latitude of the target location in decimal degrees (WGS84). Must be between -90 (south) and 90 (north).") 
 	longitude: float = Field(ge=-180, le=180, description="Longitude of the target location in decimal degrees (WGS84). Must be between -180 (west) and 180 (east).") 
 	bbox: list[float] = Field(description="Bounding box coordinates [min_lon, min_lat, max_lon, max_lat].")

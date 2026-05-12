@@ -1,7 +1,5 @@
 import httpx
 from typing import List
-from datetime import datetime
-from collections import defaultdict
 from app.llm.schemas import GeoSpatialQuery
 from langchain.tools import tool
 

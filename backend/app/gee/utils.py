@@ -11,9 +11,8 @@ def save_analysis_to_db(chat_id: str, user_id: str, query: dict, gis_analysis: d
 	global_average = compute_global_average(gis_analysis["time_series"])
 	yearly_average = compute_yearly_average(gis_analysis["time_series"])
 	total_change_percent = compute_total_change_percent(yearly_average)
-	monthly_ndvi = isolate_monthly_ndvi(gis_analysis["time_series"])
 
-	carbon_stock_metadata = {
+	carbon_density_metadata = {
 		"legend": "Biomass Carbon Density",
 		"description": "Estimated above-ground carbon biomass",
 		"source": "WCMC/biomass_carbon_density/v1_0",
@@ -25,13 +24,6 @@ def save_analysis_to_db(chat_id: str, user_id: str, query: dict, gis_analysis: d
 		"description": "Fraction of land covered by tree canopy",
 		"source": "MODIS/006/MOD44B",
 		"unit": "%"
-	}
-
-	ndvi_metadata = {
-		"legend": "Normalized Difference Vegetation Index (NDVI)",
-		"description": "Vegetation health and density indicator derived from red and near-infrared reflectance",
-		"source": "COPERNICUS/S2_SR_HARMONIZED",
-		"unit": "unitless index (-1 to 1)",
 	}
 	
 	response = client.table("geo_analysis") \
@@ -52,18 +44,12 @@ def save_analysis_to_db(chat_id: str, user_id: str, query: dict, gis_analysis: d
 					"total_change_percent": total_change_percent
 				},
 				"insights": {
-					"monthly_health_line": {
-						"time_series": monthly_ndvi,
-						"medatata": ndvi_metadata
-					},
-					"yearly_dataset_bars": {
-						"time_series": yearly_average,
-						"metadata": (
-							carbon_stock_metadata 
-							if query['data_set'] == "carbon_stock" 
-							else tree_cover_metadata
-						)
-					}
+					"time_series": yearly_average,
+					"metadata": (
+						carbon_density_metadata 
+						if query['data_set'] == "carbon_density" 
+						else tree_cover_metadata
+					)
 				}
 			}
 		}).execute()
@@ -80,22 +66,41 @@ def compute_global_average(time_series: list[dict]) -> float:
 
 def compute_yearly_average(time_series: list[dict]) -> list[dict]:
 	yearly_bundles = defaultdict(list)
-	
+
 	for item in time_series:
 		year = item['date'].split('-')[0]
 		yearly_bundles[year].append(item['pred'])
-		
-	bar_chart_data = []
+
+	yearly_avg = []
 	for year in sorted(yearly_bundles.keys()):
 		values = yearly_bundles[year]
 		avg_val = sum(values) / len(values)
-		
-		bar_chart_data.append({
+
+		yearly_avg.append({
 			"year": year,
 			"value": round(avg_val, 2)
 		})
-		
-	return bar_chart_data
+
+	values_only = [x["value"] for x in yearly_avg]
+	vmin = min(values_only)
+	vmax = max(values_only)
+
+	if vmax == vmin: vmax += 1
+
+	for item in yearly_avg:
+		norm = (item["value"] - vmin) / (vmax - vmin) * 100
+		item["normalized"] = round(norm, 2)
+
+		if norm >= 75:
+			item["color"] = "#287662"
+		elif norm >= 50:
+			item["color"] = "#4b907f"
+		elif norm >= 25:
+			item["color"] = "#b37a3f"
+		else:
+			item["color"] = "#a34b3c"
+
+	return yearly_avg
 
 def compute_total_change_percent(yearly_data: list[dict]) -> float:
 	if len(yearly_data) < 2: return 0.0
@@ -108,12 +113,3 @@ def compute_total_change_percent(yearly_data: list[dict]) -> float:
 	change_percent = ((last_year_val - first_year_val) / first_year_val) * 100
 	
 	return round(change_percent, 2)
-
-def isolate_monthly_ndvi(time_series: list[dict]) -> list[dict]:
-	return [
-		{
-			"date": item['date'], 
-			"value": round(item['ndvi'], 2)
-		} 
-		for item in time_series
-	]
