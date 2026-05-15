@@ -22,3 +22,19 @@ export interface DatasetMetaData
 	source: string;
 	unit: string;
 }
+
+export interface BiomeData
+{
+	category: string;
+	percent: number;
+	color: string;
+}
+
+export interface LandCoverData
+{
+	legend: string;
+	description: string;
+	categories: BiomeData[];
+	source: string;
+	unit: string;
+}

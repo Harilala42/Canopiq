@@ -2,7 +2,7 @@ import { MapData } from '@/types/map';
 import { Box } from '@chakra-ui/react';
 import { useEffect, JSX } from 'react';
 import { supabase } from '@/utils/supabase';
-import { DatasetMetaData } from "@/types/analysis";
+import { DatasetMetaData, LandCoverData, BiomeData } from "@/types/analysis";
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
 import useChatStore from '@/stores/useChatStore';
@@ -64,6 +64,22 @@ const Map = (): JSX.Element => {
                         unit: analytics.insights.metadata.unit
                     }
 
+                    const newLandCover: LandCoverData = {
+                        legend: analytics.land_cover.metadata.legend,
+                        description: analytics.land_cover.metadata.description,
+                        categories: (() => {
+                            const biomeCategories: BiomeData[] = [];
+                            for (const item in analytics.land_cover.distribution) {
+                                const { color, percent } = analytics.land_cover.distribution[item];
+                                biomeCategories.push({ category: item, color, percent });
+                            }
+
+                            return biomeCategories;
+                        })(),
+                        source: analytics.land_cover.metadata.source,
+                        unit: analytics.land_cover.metadata.unit
+                    }
+
                     setAnalyticsData({
                         location: newMap,
                         dataset: newDataset,
@@ -74,7 +90,8 @@ const Map = (): JSX.Element => {
                         area_coverage: analytics.stats.area_coverage_ha,
                         global_average: analytics.stats.global_average,
                         total_change: analytics.stats.total_change_percent,
-                        dataset_time_series: analytics.insights.time_series
+                        dataset_time_series: analytics.insights.time_series,
+                        land_cover: newLandCover
                     });
                 }
             )

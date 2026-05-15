@@ -25,6 +25,13 @@ def save_analysis_to_db(chat_id: str, user_id: str, query: dict, gis_analysis: d
 		"source": "MODIS/006/MOD44B",
 		"unit": "%"
 	}
+
+	land_cover_metadata = {
+		"legend": "Land Cover Distribution",
+		"description": "Global land cover map representing surface cover categories such as forest, shrubland, cropland, urban areas, water bodies, and bare land",
+		"source": "ESA/WorldCover/v200",
+		"unit": "%"
+	}
 	
 	response = client.table("geo_analysis") \
 		.insert({
@@ -50,6 +57,10 @@ def save_analysis_to_db(chat_id: str, user_id: str, query: dict, gis_analysis: d
 						if query['data_set'] == "carbon_density" 
 						else tree_cover_metadata
 					)
+				},
+				"land_cover": {
+					"distribution": gis_analysis["land_cover"],
+					"metadata": land_cover_metadata
 				}
 			}
 		}).execute()

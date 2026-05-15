@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { MapData } from '@/types/map';
-import { TimeSeriesData, RangeTimesData, DatasetMetaData } from '@/types/analysis';
+import { TimeSeriesData, RangeTimesData, DatasetMetaData, LandCoverData } from '@/types/analysis';
 
 interface AnalyticsState
 {
@@ -13,6 +13,7 @@ interface AnalyticsState
 	total_change: number;
 
 	dataset_time_series: TimeSeriesData[];
+	land_cover: LandCoverData | null;
 
 	setLocation: (location: MapData) => void;
 
@@ -30,6 +31,10 @@ interface AnalyticsState
 		data: TimeSeriesData[]
 	) => void;
 
+	setLandCover: (
+		data: LandCoverData
+	) => void;
+
 	setAnalyticsData: (
 		data: Partial<AnalyticsState>
 	) => void;
@@ -45,6 +50,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	total_change: 0,
 
 	dataset_time_series: [],
+	land_cover: null,
 
     setLocation: (location) => set({ location }),
 
@@ -61,6 +67,8 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
     setTotalChange: (value) => set({ total_change: value }),
 
     setDatasetTimeSeries: (data) => set({ dataset_time_series: data }),
+
+	setLandCover: (data) => set({ land_cover: data }),
 
     setAnalyticsData: (data) => set((state) => ({
         ...state, ...data

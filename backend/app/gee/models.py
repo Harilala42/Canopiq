@@ -33,12 +33,14 @@ def compute_gee_analysis(bbox, start_time, end_time, dataset_type="tree_cover"):
 
 	tile_url = generate_tile_layer(median_ndvi, scale, offset, vis_params)
 	processed_ts = compute_time_series(sen2_col, roi, scale, offset, start_time, end_time)
+	land_cover_percent = compute_landcover_composition(roi)
 	
 	area_ha = roi.area().divide(10000).getInfo()
 
 	return {
 		"tile_url": tile_url,
 		"time_series": processed_ts,
+		"land_cover": land_cover_percent,
 		"area_ha": round(area_ha, 2),
 		"model_params": {
 			"scale": scale.getInfo(), 
@@ -131,3 +133,83 @@ def compute_time_series(collection, roi, scale, offset, start_date, end_date):
 	fc = fc.filter(ee.Filter.notNull(['ndvi', 'pred']))
 
 	return [f['properties'] for f in fc.getInfo()['features']]
+
+def compute_landcover_composition(roi):
+	"""
+	Aggregates ESA WorldCover v200 land cover classes over a ROI
+	and computes normalized class distribution based on pixel frequency.
+	"""
+
+	ref_col = ee.ImageCollection("ESA/WorldCover/v200")
+	reference_img = ref_col.first().clip(roi)
+
+	class_info = {
+		10: {
+			"label": "Tree cover",
+			"color": "#287662"
+		},
+		20: {
+			"label": "Shrubland",
+			"color": "#afce56"
+		},
+		30: {
+			"label": "Grassland",
+			"color": "#4c8f7f"
+		},
+		40: {
+			"label": "Cropland",
+			"color": "#534ab7"
+		},
+		50: {
+			"label": "Built-up",
+			"color": "#a34b3c"
+		},
+		60: {
+			"label": "Bare/sparse vegetation",
+			"color": "#7A728F"
+		},
+		70: {
+			"label": "Snow and ice",
+			"color": "#cbdff6"
+		},
+		80: {
+			"label": "Permanent water",
+			"color": "#4a82b7"
+		},
+		90: {
+			"label": "Herbaceous wetland",
+			"color": "#2C7A7B"
+		},
+		95: {
+			"label": "Mangroves",
+			"color": "#2FBF9B"
+		},
+		100: {
+			"label": "Moss and lichen",
+			"color": "#8F87D6"
+		}
+	}
+
+	histogram = reference_img.reduceRegion(
+		reducer=ee.Reducer.frequencyHistogram(),
+		geometry=roi,
+		scale=10,
+		bestEffort=True
+	).getInfo()
+
+	pixel_counts = histogram.get('Map', {})
+	total_pixels = sum(pixel_counts.values())
+	if total_pixels == 0: return {}
+	
+	results = {}
+	for k, v in pixel_counts.items():
+		class_id = int(k)
+		if class_id not in class_info:
+			continue
+
+		results[class_info[class_id]["label"]] = {
+			"percent": round(v / total_pixels * 100, 2),
+			"color": class_info[class_id]["color"]
+		}
+
+	return results

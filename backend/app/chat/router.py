@@ -1,8 +1,8 @@
 import app.chat.models as chat_models
-from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from fastapi import APIRouter, HTTPException, Request, Depends
-from app.dependencies import check_auth, rate_limiter
+from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from app.llm.tasks import trigger_geospatial_request_analysis
+from app.dependencies import check_auth, rate_limiter
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
