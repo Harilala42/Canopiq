@@ -250,9 +250,10 @@ const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
 
 const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
     const queries = useChatStore((state) => state.queries);
+    const addQuery = useChatStore((state) => state.addQuery);
     const setQueries = useChatStore((state) => state.setQueries);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
-    const addQuery = useChatStore((state) => state.addQuery);
+    const openChat = useChatStore((state) => state.openChat);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -394,7 +395,10 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
                                 role="button" aria-label={query.title}
                                 align="center" justify="space-between"
                                 display={isExpanded ? "flex" : "none"} 
-                                onClick={() => setCurrentQuery(query)}
+                                onClick={() => { 
+                                    setCurrentQuery(query);
+                                    openChat();
+                                }}
                                 borderRadius={15} pl={2}
                                 _hover={{ 
                                     bg: theme === "dark" ? "variantDark" : "variantLight", 

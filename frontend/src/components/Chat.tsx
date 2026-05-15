@@ -3,7 +3,7 @@ import dark from '@/assets/earthDark.svg';
 import light from '@/assets/earthLight.svg';
 import useChatStore from '@/stores/useChatStore';
 import useMessageStore from '@/stores/useMessageStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, steps } from 'framer-motion';
 import { useState, useEffect, useContext, useCallback, useRef, memo, JSX } from 'react';
 import { VStack, HStack, Box, Popover, Portal, Text, Textarea, Image, Spinner, Icon } from '@chakra-ui/react';
 import { LuBot, LuSend, LuX, LuBotMessageSquare } from 'react-icons/lu';
@@ -285,27 +285,19 @@ const ChatInputBar = memo(({ chat_id }: { chat_id: string }): JSX.Element => {
 });
 
 const Chat = (): JSX.Element => {
+    const isOpen = useChatStore((state) => state.isOpen);
+    const isVisible = useChatStore((state) => state.isVisible);
     const currentQuery = useChatStore((state) => state.currentQuery);
     const setMessages = useMessageStore((state) => state.setMessages);
     const setIsLoading = useMessageStore((state) => state.setIsLoading);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
     const addMessage = useMessageStore((state) => state.addMessage);
+    const toggleChat = useChatStore((state) => state.toggleChat);
+    const closeChat = useChatStore((state) => state.closeChat);
 
-    const [isOpen, setIsOpen] = useState<boolean>(true);
-    const [isVisible, setIsVisible] = useState<boolean>(true);
     const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
     const { execute } = useApi();
-
-    const handleOpen = () => {
-        setIsOpen(true);
-        setIsVisible(true);
-    };
-
-    const handleClose = () => {
-        setIsVisible(false);
-        setTimeout(() => setIsOpen(false), 300);
-    };
 
     const retrieceChatMessage = useCallback(async () => {
         setMessages([]);
@@ -364,9 +356,9 @@ const Chat = (): JSX.Element => {
                     position="absolute"
                     bottom="20px" left="20px"
                     zIndex={1000} borderRadius="full"
-                    onClick={() => isOpen ? handleClose() : handleOpen()}
                     bg={theme === "dark" ? "secondary" : "text"}
                     aria-label='Bot Message Button'
+                    onClick={toggleChat}
                 >
                     {!isOpen ? <LuBotMessageSquare /> : <LuX />}
                 </IconButton>
@@ -389,7 +381,7 @@ const Chat = (): JSX.Element => {
                                         bg={theme === "dark" ? "secondary" : "text"}
                                         w="400px" h="75vh" gap={0}
                                     >
-                                        <ChatHeader onClose={handleClose} />
+                                        <ChatHeader onClose={closeChat} />
 
                                         <ChatMessages />
 

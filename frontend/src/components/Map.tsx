@@ -1,7 +1,7 @@
 import { MapData } from '@/types/map';
 import { Box } from '@chakra-ui/react';
-import { useEffect, JSX } from 'react';
 import { supabase } from '@/utils/supabase';
+import { useEffect, useRef, JSX } from 'react';
 import { DatasetMetaData, LandCoverData, BiomeData } from "@/types/analysis";
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
@@ -10,10 +10,19 @@ import Chat from '@/components/Chat';
 import 'leaflet/dist/leaflet.css';
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => {
+    const prevCoords = useRef<[number, number] | null>(null);
     const map = useMap();
-    
+
     useEffect(() => {
-        map.flyTo(coords, 10);
+        if (!coords) return;
+
+        if (prevCoords.current &&
+            prevCoords.current[0] === coords[0] &&
+            prevCoords.current[1] === coords[1])
+            return;
+
+        prevCoords.current = coords;
+        map.flyTo(coords, 10, { animate: true });
     }, [coords, map]);
 
     return null;
@@ -118,11 +127,7 @@ const Map = (): JSX.Element => {
                 />
 
                 {currentMap && (<>
-                    <TileLayer 
-                        url={currentMap.tileLayer}
-                        key={currentMap.tileLayer} 
-                        opacity={0.5}
-                    />
+                    <TileLayer url={currentMap.tileLayer} opacity={0.5} />
 
                     <MapEffects coords={currentMap.coords} />
 
