@@ -1,18 +1,16 @@
-import useApi from '@/hooks/useAPI';
-import dark from '@/assets/earthDark.svg';
-import light from '@/assets/earthLight.svg';
+import dark from '@/assets/darkEarth.svg';
+import light from '@/assets/lightEarth.svg';
 import useChatStore from '@/stores/useChatStore';
 import useMessageStore from '@/stores/useMessageStore';
-import { motion, AnimatePresence, steps } from 'framer-motion';
-import { useState, useEffect, useContext, useCallback, useRef, memo, JSX } from 'react';
+import { useChatController } from '@/hooks/useChatController';
+import { useChatInputController } from '@/hooks/useChatInputController';
 import { VStack, HStack, Box, Popover, Portal, Text, Textarea, Image, Spinner, Icon } from '@chakra-ui/react';
 import { LuBot, LuSend, LuX, LuBotMessageSquare } from 'react-icons/lu';
+import { useEffect, useContext, useRef, memo, JSX } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '@/contexts/themeContext';
-import { AlertContext } from '@/contexts/alertContext';
 import { AuthContext } from '@/contexts/authContext';
 import { IconButton } from "@/components/IconButton";
-import { supabase } from '@/utils/supabase';
-import { MessageData } from '@/types/chat';
 
 const ChatHeader = memo(({ onClose }: { onClose: () => void }): JSX.Element => {
     const currentQuery = useChatStore((state) => state.currentQuery);
@@ -192,48 +190,16 @@ const ChatMessages = memo((): JSX.Element => {
 });
 
 const ChatInputBar = memo(({ chat_id }: { chat_id: string }): JSX.Element => {
-    const isLoading = useMessageStore((state) => state.isLoading);
-    const setIsThinking = useMessageStore((state) => state.setIsThinking);
-    const addMessage = useMessageStore((state) => state.addMessage);
-
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [isSending, setIsSending] = useState<boolean>(false);
-    const [inputValue, setInputValue] = useState<string>('');
-    const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
-    const { execute } = useApi();
 
-    useEffect(() => {
-        const el = textareaRef.current;
-        if (el) {
-            el.style.height = "auto";
-            el.style.height = el.scrollHeight + "px";
-        }
-    }, [inputValue]);
-
-    const handleSendMessage = useCallback(async () => {
-        if (!inputValue.trim()) return;
-        setIsSending(true);
-
-        try {
-            const newMessage = await execute({
-                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", chat_id),
-                method: "POST",
-                body: { message: inputValue }
-            });
-
-            if (newMessage && newMessage?.message) {
-                addMessage(newMessage.message);
-                setIsThinking(true);
-                setInputValue('');
-            }
-        } catch(err: any) {
-            console.error("Failed to send message:", err.message);
-            showAlert(false, "Failed to send message. Try again later!");
-        } finally {
-            setIsSending(false);
-        }
-    }, [chat_id, inputValue]);
+    const {
+        textareaRef,
+        inputValue,
+        setInputValue,
+        isSending,
+        isLoading,
+        handleSendMessage
+    } = useChatInputController(chat_id);
 
     return (
         <Popover.Footer  
@@ -285,68 +251,15 @@ const ChatInputBar = memo(({ chat_id }: { chat_id: string }): JSX.Element => {
 });
 
 const Chat = (): JSX.Element => {
-    const isOpen = useChatStore((state) => state.isOpen);
-    const isVisible = useChatStore((state) => state.isVisible);
-    const currentQuery = useChatStore((state) => state.currentQuery);
-    const setMessages = useMessageStore((state) => state.setMessages);
-    const setIsLoading = useMessageStore((state) => state.setIsLoading);
-    const setIsThinking = useMessageStore((state) => state.setIsThinking);
-    const addMessage = useMessageStore((state) => state.addMessage);
-    const toggleChat = useChatStore((state) => state.toggleChat);
-    const closeChat = useChatStore((state) => state.closeChat);
-
-    const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
-    const { execute } = useApi();
 
-    const retrieceChatMessage = useCallback(async () => {
-        setMessages([]);
-        setIsLoading(true);
-
-        try {
-            const messageList = await execute({
-                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", currentQuery.id)
-            });
-
-            if (messageList && messageList?.messages)
-                setMessages(messageList.messages);
-        } catch(err: any) {
-            console.error("Failed to load chat message:", err.message);
-            showAlert(false, "Failed to load chat message. Try again later!");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [currentQuery?.id]);
-
-    useEffect(() => {
-        if (!currentQuery?.id) return;
-
-        const channel = supabase
-            .channel(`messages-${currentQuery.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `chat_id=eq.${currentQuery.id}`
-                },
-                (payload: any) => {
-                    const { id, role, content, created_at } = payload.new;
-                    const newMessage: MessageData = { id, role, content, created_at };
-
-                    if (role === 'model') setIsThinking(false);
-                    addMessage(newMessage);
-                }
-            )
-            .subscribe();
-
-        retrieceChatMessage();
-
-        return () => { 
-            supabase.removeChannel(channel);
-        }
-    }, [currentQuery?.id]);
+    const { 
+        isOpen, 
+        isVisible, 
+        currentQuery, 
+        toggleChat, 
+        closeChat
+    } = useChatController();
 
     return (
         <Popover.Root open={isOpen} positioning={{ placement: "top-start" }}>

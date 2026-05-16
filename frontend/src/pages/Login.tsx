@@ -1,12 +1,6 @@
-import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
-import googleLogo from '@/assets/googleLogo.svg';
+import googleIcon from '@/assets/googleIcon.svg';
 import { useState, useContext, useCallback, JSX } from 'react';
-import { AuthContext } from '@/contexts/authContext';
-import { AlertContext } from "@/contexts/alertContext";
-import { ThemeContext } from '@/contexts/themeContext';
-import { FullScreen } from '@/components/FullScreen';
-import { Button } from '@/components/Button';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { 
 	Box,
@@ -21,15 +15,16 @@ import {
 	Link,
 	Spinner
 } from "@chakra-ui/react";
+import { AuthContext } from '@/contexts/authContext';
+import { AlertContext } from "@/contexts/alertContext";
+import { ThemeContext } from '@/contexts/themeContext';
+import { FullScreen } from '@/components/FullScreen';
 import { LoginInput } from '@/components/LoginInput';
+import { Button } from '@/components/Button';
+import { LoginFormData } from '@/types/auth';
+import { AuthAPI } from '@/api/auth.api';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
-
-interface LoginFormData
-{
-	email: string;
-	password: string;
-}
 
 const LoginSchema: Yup.ObjectSchema<LoginFormData> = Yup.object().shape({
 	email: Yup.string()
@@ -40,19 +35,17 @@ const LoginSchema: Yup.ObjectSchema<LoginFormData> = Yup.object().shape({
 
 function Login(): JSX.Element {
 	const navigate = useNavigate();
-	const { isLoading, execute } = useApi();
+	const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 	const [isGoogleAuth, setIsGoogleAuth] = useState<boolean>(false);
 	const { showAlert } = useContext(AlertContext);
 	const { theme } = useContext(ThemeContext);
 	const { login } = useContext(AuthContext);
 
 	const handleLoginSubmit = useCallback(async (formData: LoginFormData) => {
+		setIsLoggingIn(true);
+
 		try {
-			await execute({
-				url: import.meta.env.VITE_API_AUTH_LOGIN_WITH_PASSWORD,
-				method: "POST",
-				body: formData
-			});
+			await AuthAPI.loginWithPassword(formData);
 
 			login();
 			showAlert(true, "Welcome back! You’re now logged in.");
@@ -61,7 +54,9 @@ function Login(): JSX.Element {
 			const msgErr = err.message || "Login failed! Please try Again.";
 			console.error("Failed to login:", err.message);
 			showAlert(false, msgErr);
-		}
+		} finally {
+            setIsLoggingIn(false);
+        }
 	}, []);
 
 	const handleGoogleAuth = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -70,7 +65,7 @@ function Login(): JSX.Element {
 		setIsGoogleAuth(true);
 
 		try {
-			window.location.href = import.meta.env.VITE_API_URL + import.meta.env.VITE_API_AUTH_LOGIN_WITH_GOOGLE;
+			window.location.href = AuthAPI.getGoogleAuthUrl();
 		} catch(err: any) {
 			showAlert(false, "Google sign-in failed! Please try again.");
 			console.error("Failed to login with Google:", err.message);
@@ -125,8 +120,8 @@ function Login(): JSX.Element {
 
 								{/* Submit Button */}
 								<Button 
-									loading={isLoading && !isGoogleAuth} 
-									disabled={isLoading || isGoogleAuth} 
+									loading={isLoggingIn && !isGoogleAuth} 
+									disabled={isLoggingIn || isGoogleAuth} 
 									aria-label="Login" h="50px"
 								>
 									Login
@@ -144,7 +139,7 @@ function Login(): JSX.Element {
 										aria-label="Authenticate via Google account"
 										_hover={{ bg: theme === "dark" ? "text" : "primary" }}
 									>
-										{ !isGoogleAuth ? <Image src={googleLogo} alt="Image, Google Logo" w="24px" /> : <Spinner color={theme === "dark" ? "primary" : "secondary"} size="sm" /> }
+										{ !isGoogleAuth ? <Image src={googleIcon} alt="Image, Google Logo" w="24px" /> : <Spinner color={theme === "dark" ? "primary" : "secondary"} size="sm" /> }
 									</IconButton>
 									<Separator flex={1} borderColor={ theme === "dark" ? "text" : "primary" } />
 								</Flex>

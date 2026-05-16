@@ -1,4 +1,6 @@
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
+import { useChartBarController } from "@/hooks/useChartBarController";
+import { useChartDonutController } from "@/hooks/useChartDonutController";
 import {
 	Chart as ChartJS,
 	BarElement,
@@ -21,13 +23,11 @@ import {
 	LuLandPlot,
 	LuChartNoAxesColumn
 } from "react-icons/lu";
+import { useContext, memo, JSX } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
-import { ChartOptions, ChartData } from "chart.js";
-import { useContext, useMemo, memo, JSX } from "react";
 import { VStack, HStack, Text, Icon, Stat, Badge, Span } from '@chakra-ui/react';
 import { ThemeContext } from "@/contexts/themeContext";
 import { IconButton } from "@/components/IconButton";
-import { BiomeData } from '@/types/analysis';
 
 ChartJS.register(
 	BarElement,
@@ -181,42 +181,14 @@ const ChartStats = memo((): JSX.Element => {
 });
 
 const ChartBar = memo((): JSX.Element => {
-	const datasetMetaData = useAnalyticsStore((state) => state.dataset);
-	const datasetTimeSeries = useAnalyticsStore((state) => state.dataset_time_series);
 	const { theme } = useContext(ThemeContext);
 
-	const barData = useMemo<ChartData<"bar", number[], string>>(() => {
-		return {
-			labels: datasetTimeSeries.map((item) => item.year),
-			datasets: [
-				{
-					label: "",
-					data: datasetTimeSeries.map((item) => item.value),
-					backgroundColor: datasetTimeSeries.map((item) => item.color),
-					borderRadius: 5,
-				}
-			]
-		}
-	}, [datasetTimeSeries]);
-
-	const chartOptions = useMemo<ChartOptions<"bar">>(() => {
-		return {
-			responsive: true,
-			plugins: {
-				legend: { display: false }
-			},
-			scales: {
-				x: {
-					ticks: { color: theme === "dark" ? "#cecbf6" : "#1a1535" },
-					grid: { color: theme === "dark" ? "#cecbf6" : "#1a1535" }
-				},
-				y: {
-					ticks: { color: theme === "dark" ? "#cecbf6" : "#1a1535" },
-					grid: { color: theme === "dark" ? "#cecbf6" : "#1a1535" }
-				}
-			}
-		}
-	}, [theme]);
+	const { 
+		barData,
+		chartOptions,
+		source,
+		title
+	} = useChartBarController(theme);
 
 	return (
 		<VStack
@@ -235,13 +207,7 @@ const ChartBar = memo((): JSX.Element => {
 					color={theme === "dark" ? "text" : "secondary"}
 					fontSize="md" fontWeight="bold"
 				>
-					{`Yearly ${
-						datasetMetaData.type
-							.split("_")
-							.map(w => w.charAt(0).toUpperCase() + w.slice(1))
-							.join(" ")}
-						(${datasetMetaData.unit})`
-					}
+					{title}
 				</Text>
 			</HStack>
 
@@ -257,7 +223,7 @@ const ChartBar = memo((): JSX.Element => {
 						className="text-style" fontSize="sm" 
 						color={theme === "dark" ? "text" : "secondary"}
 					>
-						<Span fontWeight="semibold" textDecoration="underline">Source:</Span> {datasetMetaData.source}
+						<Span fontWeight="semibold" textDecoration="underline">Source:</Span> {source}
 					</Text>
 				</HStack>
 			</VStack>
@@ -266,61 +232,15 @@ const ChartBar = memo((): JSX.Element => {
 });
 
 const ChartDonut = memo((): JSX.Element => {
-	const landCover = useAnalyticsStore((state) => state.land_cover);
 	const { theme } = useContext(ThemeContext);
 
-	const donutData = useMemo<ChartData<"doughnut", number[], string>>(() => {
-		const processedData: BiomeData[] = (() => {
-			const threshold = 3;
-			const main = landCover.categories.filter((item) => item.percent >= threshold);
-			const small = landCover.categories.filter((item) => item.percent < threshold);
-			const otherPercent = small.reduce((sum, item) => sum + item.percent, 0);
-
-			if (otherPercent > 0) {
-				main.push({ 
-					category: "Others",
-					percent: Math.round(otherPercent),
-					color: "#7A728F" 
-				});
-			}
-
-			return main;
-		})();
-
-		return {
-			labels: processedData.map((item) => item.category),
-			datasets: [
-				{
-					data: processedData.map((item) => item.percent),
-					backgroundColor: processedData.map((item) => item.color),
-					borderWidth: 0
-				}
-			]
-		};
-	}, [landCover]);
-
-	const options = useMemo<ChartOptions<"doughnut">>(() => {
-		return {
-			responsive: true,
-			plugins: {
-				legend: {
-					position: 'bottom',
-					labels: {
-						usePointStyle: true,
-						pointStyle: "circle",
-						color: theme === "dark" ? "#cecbf6" : "#1a1535",
-						font: { size: 12, weight: "bold" },
-						padding: 12
-					}
-				},
-				tooltip: {
-					callbacks: {
-						label: (ctx) => `${ctx.label}: ${ctx.raw}%`
-					}
-				}
-			}
-		};
-	}, [theme]);
+	const { 
+		donutData, 
+		options, 
+		legend, 
+		unit, 
+		source
+	} = useChartDonutController(theme);
 
 	return (
 		<VStack
@@ -339,7 +259,7 @@ const ChartDonut = memo((): JSX.Element => {
 					color={theme === "dark" ? "text" : "secondary"}
 					fontSize="md" fontWeight="bold"
 				>
-					{`${landCover.legend} (${landCover.unit})`}
+					{`${legend} (${unit})`}
 				</Text>
 			</HStack>
 
@@ -355,7 +275,7 @@ const ChartDonut = memo((): JSX.Element => {
 						className="text-style" fontSize="sm" 
 						color={theme === "dark" ? "text" : "secondary"}
 					>
-						<Span fontWeight="semibold" textDecoration="underline">Source:</Span> {landCover.source}
+						<Span fontWeight="semibold" textDecoration="underline">Source:</Span> {source}
 					</Text>
 				</HStack>
 			</VStack>

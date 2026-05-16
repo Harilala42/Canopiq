@@ -1,5 +1,5 @@
-import useApi from '@/hooks/useAPI';
 import { UserData } from "@/types/user";
+import { AuthAPI } from '@/api/auth.api';
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { AlertContext } from "@/contexts/alertContext";
 
@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const { showAlert } = useContext(AlertContext);
-	const { execute } = useApi();
 
 	useEffect(() => {
 		checkSession();
@@ -18,10 +17,7 @@ export const AuthProvider = ({ children }) => {
 
 	const checkSession = useCallback(async () => {
 		try {
-			const userData: UserData = await execute({ 
-                url: import.meta.env.VITE_API_AUTH_GET_ME
-            });
-
+			const userData: UserData = await AuthAPI.getMe();
 			if (!userData) throw Error("User's data is missing");
 
 			setIsAuthenticated(true);
@@ -38,10 +34,7 @@ export const AuthProvider = ({ children }) => {
 	
 	const logout = async () => {
 		try {
-			await execute({
-				url: import.meta.env.VITE_API_AUTH_LOGOUT,
-				method: "POST"
-			});
+			await AuthAPI.logout();
 
 			sessionStorage.clear();
 

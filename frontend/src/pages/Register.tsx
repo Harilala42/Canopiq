@@ -1,13 +1,14 @@
-import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
-import { useContext, useCallback, JSX } from 'react';
+import { RegisterFormData } from '@/types/auth';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from "@/contexts/themeContext";
-import { RegisterInput } from '@/components/RegisterInput';
-import { Button } from '@/components/Button';
-import { FullScreen } from '@/components/FullScreen';
+import { useContext, useState, useCallback, JSX } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Formik, Form, Field as FormikField } from 'formik';
+import { RegisterInput } from '@/components/RegisterInput';
+import { FullScreen } from '@/components/FullScreen';
+import { Button } from '@/components/Button';
+import { AuthAPI } from '@/api/auth.api';
 import * as Yup from 'yup';
 import {
 	Box,
@@ -21,15 +22,6 @@ import {
 	Link,
 	VStack
 } from '@chakra-ui/react';
-
-interface RegisterFormData
-{
-    email: string;
-	username: string;
-    password: string;
-    confirmPassword?: string;
-    consent?: boolean;
-}
 
 const RegisterSchema: Yup.ObjectSchema<RegisterFormData> = Yup.object().shape({
 	username: Yup.string()
@@ -54,17 +46,15 @@ const RegisterSchema: Yup.ObjectSchema<RegisterFormData> = Yup.object().shape({
 
 function Register(): JSX.Element {
 	const navigate = useNavigate();
-	const { isLoading, execute } = useApi<RegisterFormData>();
+	const [isRegistering, setIsRegistering] = useState<boolean>(false);
 	const { showAlert } = useContext(AlertContext);
 	const { theme } = useContext(ThemeContext);
 
 	const handleRegister = useCallback(async (formData: RegisterFormData) => {
+		setIsRegistering(true);
+
 		try {
-			await execute({
-				url: import.meta.env.VITE_API_AUTH_REGISTER,
-				method: "POST",
-				body: formData
-			});
+			await AuthAPI.register(formData);
 
 			showAlert(true, `Register successful! Welcome ${formData.username}.`);
 			setTimeout(() => navigate('/login'), 2000);
@@ -72,7 +62,9 @@ function Register(): JSX.Element {
 			const msgErr = err.message || "Registration failed! Please try again.";
 			console.error("Failed to register:", err.message);
 			showAlert(false, msgErr);
-		}
+		} finally {
+            setIsRegistering(false);
+        }
 	}, []);
 
 	return (
@@ -193,7 +185,7 @@ function Register(): JSX.Element {
 								</FormikField>
 
 								{/* Submit Button */}
-								<Button loading={isLoading} disabled={isLoading} aria-label="Register" h="50px">
+								<Button loading={isRegistering} disabled={isRegistering} aria-label="Register" h="50px">
 									Register
 								</Button>
 

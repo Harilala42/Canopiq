@@ -1,7 +1,7 @@
 import { MapData } from '@/types/map';
 import { Box } from '@chakra-ui/react';
-import { supabase } from '@/utils/supabase';
 import { useEffect, useRef, JSX } from 'react';
+import { supabase } from '@/utils/supabase.utils';
 import { DatasetMetaData, LandCoverData, BiomeData } from "@/types/analysis";
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';

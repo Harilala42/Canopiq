@@ -1,28 +1,15 @@
-import useApi from '@/hooks/useAPI';
 import logo from '@/assets/logo.svg';
-import useChatStore from '@/stores/useChatStore';
-import { useState, useEffect, useContext, useCallback, useMemo, memo, JSX } from 'react';
+import { useState, useContext, memo, JSX } from 'react';
+import { useSideBarController } from '@/hooks/useSideBarController';
+import { useChatDialogController } from '@/hooks/useChatDialogController';
+import { useMenuOptionsController } from '@/hooks/useMenuOptionsController';
 import { VStack, HStack, Box, Image, Text, Menu, Portal, Dialog, Input, Spinner } from '@chakra-ui/react';
 import { LuPanelLeft, LuPanelRight, LuCirclePlus, LuEllipsisVertical, LuSearch, LuTrash, LuPin, LuPinOff, LuPencil, LuX } from 'react-icons/lu';
-import { AlertContext } from '@/contexts/alertContext';
 import { ThemeContext } from '@/contexts/themeContext';
 import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
 import { ChatData } from '@/types/chat';
 import { IconType } from 'react-icons';
-
-interface SideBarProps
-{
-    isExpanded: boolean;
-    onToggle: () => void;
-}
-
-interface MenuItemProps
-{
-    name: string;
-    icon: IconType;
-    onClick: () => void;
-}
 
 interface ChatDialogProps
 {
@@ -32,34 +19,15 @@ interface ChatDialogProps
 }
 
 const ChatDialog = memo(({ query, isOpen, onClose }: ChatDialogProps): JSX.Element => {
-    const updateQueryStore = useChatStore((state) => state.updateQuery);
-    const [newTitle, setNewTitle] = useState<string>(query.title);
-    const [isSaving, setIsSaving] = useState<boolean>(false);
-    const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
-    const { execute } = useApi();
 
-    const renameQuery = useCallback(async () => {
-        if (!newTitle.trim()) return;
-        setIsSaving(true);
-
-        try {
-            await execute({
-                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", query.id),
-                method: "PATCH",
-                body: { new_title: newTitle }
-            });
-
-            updateQueryStore(query.id, { title: newTitle });
-            showAlert(true, "Query renamed successfully.");
-            onClose();
-        } catch(err: any) {
-            console.error("Failed to update query:", err.message);
-            showAlert(false, "Failed to rename the query. Please try again later.");
-        } finally {
-            setIsSaving(false);
-        }
-    }, [query.id, newTitle]);
+    const {
+        newTitle,
+        setNewTitle,
+        renameQuery,
+        handleCancel,
+        isSaveDisabled
+    } = useChatDialogController(query, onClose);
 
     return (
         <Dialog.Root open={isOpen} onOpenChange={(details) => !details.open && onClose()}>
@@ -116,17 +84,11 @@ const ChatDialog = memo(({ query, isOpen, onClose }: ChatDialogProps): JSX.Eleme
                                 color={ theme === "dark" ? "text" : "secondary" }
                                 borderColor={ theme === "dark" ? "text" : "secondary" }
                                 _hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }} 
-                                onClick={() => { 
-                                    setNewTitle(query.title); 
-                                    onClose(); 
-                                }}
+                                onClick={handleCancel}
                             >
                                 Cancel
                             </Button>
-                            <Button 
-                                w="40%" onClick={renameQuery} 
-                                disabled={ !newTitle.length || isSaving || newTitle === query.title }
-                            >
+                            <Button w="40%" onClick={renameQuery} disabled={isSaveDisabled}>
                                 Save
                             </Button>
                         </Dialog.Footer>
@@ -136,6 +98,13 @@ const ChatDialog = memo(({ query, isOpen, onClose }: ChatDialogProps): JSX.Eleme
         </Dialog.Root>
     );
 });
+
+interface MenuItemProps
+{
+    name: string;
+    icon: IconType;
+    onClick: () => void;
+}
 
 const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Element => {
     const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -166,49 +135,19 @@ const MenuItem = memo(({ icon: Icon, name, onClick }: MenuItemProps): JSX.Elemen
 });
 
 const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
-    const deleleQueryStore = useChatStore((state) => state.deleteQuery);
-    const updateQueryStore = useChatStore((state) => state.updateQuery);
-
-    const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [isHovered, setIsHovered] = useState<boolean>(false);
-    const [isUpdating, setIsUpdating] = useState<boolean>(false);
-    const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
-    const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
-    const { execute } = useApi();
 
-    const deleteQuery = useCallback(async () => {
-        try {
-            await execute({
-                url: import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", query.id),
-                method: "DELETE"
-            });
-
-            deleleQueryStore(query.id);
-            showAlert(true, "Query deleted successfully.");
-        } catch (err: any) {
-            console.error("Failed to delete query:", err.message);
-            showAlert(false, "Failed to delete the query. Please try again later.");
-        }
-    }, [query.id]);
-
-    const togglePin = useCallback(async () => {
-        setIsPinned(prev => !prev);
-
-        try {
-            await execute({
-                url: import.meta.env.VITE_API_CHAT_TOGGLE_PIN.replace("{chat_id}", query.id),
-                method: "PATCH",
-                body: { is_pinned: !isPinned }
-            });
-
-            updateQueryStore(query.id, { is_pinned: !isPinned });
-        } catch (err: any) {
-            setIsPinned(query.is_pinned);
-            console.error("Failed to toggle the query pin:", err.message);
-            showAlert(false, "Failed to toggle the query pin. Please try again later.");
-        }
-    }, [query.id]);
+    const {
+        menuOpen,
+        setMenuOpen,
+        isHovered,
+        setIsHovered,
+        isUpdating,
+        setIsUpdating,
+        isPinned,
+        deleteQuery,
+        togglePin
+    } = useMenuOptionsController(query);
 
     return (
         <>
@@ -248,71 +187,26 @@ const MenuOptions = memo(({ query }: { query: ChatData } ): JSX.Element => {
     );
 });
 
+interface SideBarProps
+{
+    isExpanded: boolean;
+    onToggle: () => void;
+}
+
+
 const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
-    const queries = useChatStore((state) => state.queries);
-    const addQuery = useChatStore((state) => state.addQuery);
-    const setQueries = useChatStore((state) => state.setQueries);
-    const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
-    const openChat = useChatStore((state) => state.openChat);
-
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [isCreating, setIsCreating] = useState<boolean>(false);
-    const [isHovered, setIsHovered] = useState<boolean>(false);
-    const { showAlert } = useContext(AlertContext);
     const { theme } = useContext(ThemeContext);
-    const { execute } = useApi();
 
-    const sortedChats = useMemo(() => {
-        return [...queries].sort((a, b) => {
-            const timeA = Date.parse(a.created_at) || 0;
-            const timeB = Date.parse(b.created_at) || 0;
-
-            return Number(b.is_pinned) - Number(a.is_pinned) || timeB - timeA;
-        });
-    }, [queries]);
-
-    const fetchQueries = useCallback(async () => {
-        setIsLoading(true);
-
-        try {
-            const myQueries = await execute({
-                url: import.meta.env.VITE_API_CHAT
-            });
-
-            if (myQueries && myQueries?.chats)
-                setQueries(myQueries.chats);
-        } catch (err: any) {
-            console.error("Failed to fetch queries:", err.message);
-            showAlert(false, "Failed to load your queries. Please try again later.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [execute]);
-
-    const createNewQuery = useCallback(async () => {
-        setIsCreating(true);
-
-        try {
-            const newQuery: any = await execute({
-                url: import.meta.env.VITE_API_CHAT_NEW,
-                method: "POST"
-            });
-
-            if (newQuery && newQuery.chat) {
-                addQuery(newQuery.chat);
-                showAlert(true, "New query created successfully.");
-            }
-        } catch (err: any) {
-            console.error("Failed to create new query:", err.message);
-            showAlert(false, "Failed to create a new query. Please try again later.");
-        } finally {
-            setIsCreating(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchQueries();
-    }, [execute]);
+    const {
+        queries,
+        sortedChats,
+        isLoading,
+        isCreating,
+        isHovered,
+        setIsHovered,
+        createNewQuery,
+        handleSelectQuery
+    } = useSideBarController();
 
     return (
         <VStack 
@@ -395,10 +289,7 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps): JSX.Element => {
                                 role="button" aria-label={query.title}
                                 align="center" justify="space-between"
                                 display={isExpanded ? "flex" : "none"} 
-                                onClick={() => { 
-                                    setCurrentQuery(query);
-                                    openChat();
-                                }}
+                                onClick={() => handleSelectQuery(query)}
                                 borderRadius={15} pl={2}
                                 _hover={{ 
                                     bg: theme === "dark" ? "variantDark" : "variantLight", 
