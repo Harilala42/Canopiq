@@ -71,7 +71,6 @@ export const useChatController = () => {
     return {
         isOpen,
         isVisible,
-        currentQuery,
         toggleChat,
         closeChat
     };

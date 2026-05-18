@@ -24,10 +24,11 @@ export const LoginInput = ({ name, label, error, type="text", isInvalid=false, c
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const currentType = (type != "password") ? "text" : (showPassword ? "text" : "password");
     const { theme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     return (
         <Field.Root invalid={isInvalid} w="full">
-            <Field.Label className="text-styles" color={theme === "dark" ? "text" : "primary"} htmlFor={ name } fontWeight="bold">
+            <Field.Label className="text-styles" color={isDark ? "text" : "primary"} htmlFor={ name } fontWeight="bold">
                 { label }
             </Field.Label>
             
@@ -35,16 +36,16 @@ export const LoginInput = ({ name, label, error, type="text", isInvalid=false, c
                 <FormikField 
                     as={Input} className="text-styles"
                     borderRadius="xl" h="50px"
-                    color={theme === "dark" ? "text" : "primary"}
+                    color={isDark ? "text" : "primary"}
                     name={name} id={name} type={currentType}
-                    bg={theme === "dark" ? "secondary" : "text" } 
-                    borderColor={theme === "dark" ? "text" : "primary"}
+                    bg={isDark ? "secondary" : "text" } 
+                    borderColor={isDark ? "text" : "primary"}
                     _placeholder={{ 
                         fontFamily: "FiraCode", 
-                        color: theme === "dark" ? "text" : "primary", 
+                        color: isDark ? "text" : "primary", 
                         opacity: 0.8
                     }}
-                    _hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
+                    _hover={{ borderColor: isDark ? "primary" : "secondary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
                     {...props}
@@ -54,7 +55,7 @@ export const LoginInput = ({ name, label, error, type="text", isInvalid=false, c
                 {(type == "password") && (
                     <IconButton position="absolute" right="2" top="50%" transform="translateY(-50%)"
                         bgColor="transparent"
-                        color={theme === "dark" ? "text" : "primary"}
+                        color={isDark ? "text" : "primary"}
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         aria-controls={name} 

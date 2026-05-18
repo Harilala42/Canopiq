@@ -8,36 +8,37 @@ import { IconButton } from '@/components/IconButton';
 export const Header = (): JSX.Element => {
     const { user } = useContext(AuthContext);
     const { theme, toggleTheme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     return (
         <HStack 
             align="center" 
             justify="space-between" 
-            bg={ theme === "dark" ? "secondary" : "text" }
-            borderBottom="1px solid" borderColor={ theme === "dark" ? "variantDark" : "variantLight" }
+            bg={ isDark ? "secondary" : "text" }
+            borderBottom="1px solid" borderColor={ isDark ? "variantDark" : "variantLight" }
             w="100%" h="100%" p={4}
         >
             <Box display="flex" alignItems="center" gap={2}>
                 <Text 
                     className="title-styles" 
                     fontSize="xl" fontWeight="bold"
-                    color={ theme === "dark" ? "text" : "primary" }
+                    color={ isDark ? "text" : "primary" }
                 >
-                    Canopi<Span color={ theme === "dark" ? "primary" : "secondary" }>q</Span>
+                    Canopi<Span color={ isDark ? "primary" : "secondary" }>q</Span>
                 </Text>
             </Box>
 
             <Box display="flex" alignItems="center" gap={5}>
                 <IconButton
-                    aria-label={ theme === "dark" ? "Switch to light mode" : "Switch to dark mode" }
+                    aria-label={ isDark ? "Switch to light mode" : "Switch to dark mode" }
                     onClick={toggleTheme}
                 > 
-                    { theme === "dark" ? <LuSun /> : <LuMoon /> }
+                    { isDark ? <LuSun /> : <LuMoon /> }
                 </IconButton>
 
                 <Avatar.Root 
                     as="button" aria-label="My profile"
-                    bg={theme === "dark" ? "primary" : "secondary"}
+                    bg={isDark ? "primary" : "secondary"}
                 >
                     <Avatar.Fallback name={user?.username} className="title-styles" fontWeight="semibold" />
                     <Avatar.Image src={user?.avatar_url || undefined} />

@@ -4,6 +4,7 @@ import { ThemeContext } from "@/contexts/themeContext";
 
 export const FullScreen = ({ children, ...props }: FlexProps): JSX.Element => {
     const { theme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     return (
         <Flex
@@ -13,7 +14,7 @@ export const FullScreen = ({ children, ...props }: FlexProps): JSX.Element => {
             justifyContent="center"
             alignItems="center"
             overflow="hidden"
-            bg={theme === "dark" ? "secondary" : "text"}
+            bg={isDark ? "secondary" : "text"}
             {...props}
         >
             {children}

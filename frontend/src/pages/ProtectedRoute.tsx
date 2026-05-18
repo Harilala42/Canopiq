@@ -9,6 +9,7 @@ import { FullScreen } from "@/components/FullScreen";
 export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const { isAuthenticated, isLoading } = useContext(AuthContext);
     const { theme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     if (isLoading) {
         return (
@@ -16,13 +17,13 @@ export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
                 <Image src={logo} alt="Canopiq Logo" w="100px" mb={5} />
                 <HStack gap={4}>
                     <Spinner 
-                        color={ theme === "dark" ? "text" : "secondary" } 
+                        color={ isDark ? "text" : "secondary" } 
                         animationDuration="0.5s" 
                         borderWidth="5px"
                         size="md" 
                     />
                     <Text
-                        color={ theme === "dark" ? "text" : "secondary" }  
+                        color={ isDark ? "text" : "secondary" }  
                         className='title-style' fontSize="lg"
                     >
                         Loading...

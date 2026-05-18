@@ -4,11 +4,12 @@ import { ThemeContext } from '@/contexts/themeContext';
 
 export const Button = ({ children, ...props }: ButtonProps):JSX.Element => {
     const { theme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     return (
         <ButtonChakra 
             w="full" minH="40px"
-            bg={theme === "dark" ? "primary" : "secondary"} 
+            bg={isDark ? "primary" : "secondary"} 
             fontSize="md" fontWeight="bold" borderRadius="xl"
             type="submit" className="title-styles" color="text"
             spinner={<Spinner size="sm" />}

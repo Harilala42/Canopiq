@@ -4,6 +4,7 @@ import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 export const useChartDonutController = (theme: string) => {
     const landCover = useAnalyticsStore((state) => state.land_cover);
+    const isDark = theme === "dark";
 
     const donutData = useMemo<ChartData<"doughnut", number[], string>>(() => {
         const threshold = 3;
@@ -40,7 +41,7 @@ export const useChartDonutController = (theme: string) => {
                     labels: {
                         usePointStyle: true,
                         pointStyle: "circle",
-                        color: theme === "dark" ? "#cecbf6" : "#1a1535",
+                        color: isDark ? "#cecbf6" : "#1a1535",
                         font: { size: 12, weight: "bold" },
                         padding: 12
                     }

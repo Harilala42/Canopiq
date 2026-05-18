@@ -4,7 +4,7 @@ import { AlertContext } from '@/contexts/alertContext';
 import { ChatAPI } from '@/api/chat.api';
 import { ChatData } from '@/types/chat';
 
-export const useChatDialogController = (query: ChatData, onClose: () => void) => {
+export const useRenameQueryDialogController = (query: ChatData, onClose: () => void) => {
     const updateQueryStore = useChatStore((state) => state.updateQuery);
     const [newTitle, setNewTitle] = useState<string>(query.title);
     const [isSaving, setIsSaving] = useState<boolean>(false);

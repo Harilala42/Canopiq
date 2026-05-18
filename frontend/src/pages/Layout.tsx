@@ -2,16 +2,17 @@ import { useState, useContext, lazy, Suspense, JSX } from 'react';
 import { Grid, GridItem, Spinner, VStack } from '@chakra-ui/react';
 import { ThemeContext } from '@/contexts/themeContext';
 import { FullScreen } from '@/components/FullScreen';
+import { Chart } from '@/components/analytics/';
+import { SideBar } from '@/components/sidebar';
 import { Header } from '@/components/Header';
-import SideBar from '@/components/SideBar';
-import Chart from '@/components/Chart';
 
-const Map = lazy(() => import('@/components/Map'));
+const Map = lazy(() => import('@/components/map/Map'));
 
 function Layout(): JSX.Element {
 	const [isChartOpen, setIsChartOpen] = useState<boolean>(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 	const { theme } = useContext(ThemeContext);
+	const isDark = theme === "dark";
 
 	return (
 		<FullScreen>
@@ -54,7 +55,7 @@ function Layout(): JSX.Element {
 						<GridItem as="section" colSpan={3}>
 							<Suspense fallback={
 								<VStack h="100%" justify="center">
-									<Spinner color={theme === "dark" ? "text" : "secondary"} size="lg" />
+									<Spinner color={isDark ? "text" : "secondary"} size="lg" />
 								</VStack>
 							}>
 								<Map />

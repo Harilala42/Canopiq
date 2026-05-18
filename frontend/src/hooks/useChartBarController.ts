@@ -5,6 +5,7 @@ import useAnalyticsStore from '@/stores/useAnalyticsStore';
 export const useChartBarController = (theme: string) => {
     const datasetMetaData = useAnalyticsStore((state) => state.dataset);
     const datasetTimeSeries = useAnalyticsStore((state) => state.dataset_time_series);
+    const isDark = theme === "dark";
 
     const barData = useMemo<ChartData<"bar", number[], string>>(() => {
         return {
@@ -21,7 +22,7 @@ export const useChartBarController = (theme: string) => {
     }, [datasetTimeSeries]);
 
     const chartOptions = useMemo<ChartOptions<"bar">>(() => {
-        const tickColor = theme === "dark" ? "#cecbf6" : "#1a1535";
+        const tickColor = isDark ? "#cecbf6" : "#1a1535";
         return {
             responsive: true,
             plugins: {

@@ -5,12 +5,13 @@ import { AlertContext } from '@/contexts/alertContext';
 import { MessageAPI } from '@/api/message.api';
 import { ChatAPI } from '@/api/chat.api';
 
-export const useChatInputController = (chat_id?: string) => {
+export const useChatInputController = () => {
     const isLoading = useMessageStore((state) => state.isLoading);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
     const addMessage = useMessageStore((state) => state.addMessage);
 
     const addQuery = useChatStore((state) => state.addQuery);
+    const currentQuery = useChatStore((state) => state.currentQuery);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -27,20 +28,23 @@ export const useChatInputController = (chat_id?: string) => {
     }, [inputValue]);
 
     const handleSendMessage = useCallback(async () => {
-        if (!inputValue.trim() || !chat_id) return;
+        if (!inputValue.trim()) return;
         setIsSending(true);
 
         try {
-            // if (!chat_id) {
-            //     const newQuery = await ChatAPI.create();
+            let query = currentQuery;
+            if (!query) {
+                const newQuery = await ChatAPI.create();
                 
-            //     if (newQuery && newQuery.chat) {                    
-            //         addQuery(newQuery.chat);
-            //         setCurrentQuery(newQuery.chat);
-            //     }
-            // }
+                if (newQuery && newQuery.chat) {                    
+                    addQuery(newQuery.chat);
+                    setCurrentQuery(newQuery.chat);
+                    query = newQuery.chat;
+                } else
+                    throw new Error("Query creation failed");
+            }
 
-            const newMessage = await MessageAPI.send(chat_id, inputValue);
+            const newMessage = await MessageAPI.send(query.id, inputValue);
             if (newMessage && newMessage?.message) {
                 addMessage(newMessage.message);
                 setIsThinking(true);
@@ -52,7 +56,7 @@ export const useChatInputController = (chat_id?: string) => {
         } finally {
             setIsSending(false);
         }
-    }, [chat_id, inputValue, addMessage, setIsThinking, showAlert]);
+    }, [currentQuery, inputValue, addMessage, setIsThinking, showAlert]);
 
     return {
         textareaRef,

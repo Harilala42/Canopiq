@@ -49,6 +49,7 @@ function Register(): JSX.Element {
 	const [isRegistering, setIsRegistering] = useState<boolean>(false);
 	const { showAlert } = useContext(AlertContext);
 	const { theme } = useContext(ThemeContext);
+	const isDark = theme === "dark";
 
 	const handleRegister = useCallback(async (formData: RegisterFormData) => {
 		setIsRegistering(true);
@@ -87,8 +88,8 @@ function Register(): JSX.Element {
 								<VStack gap={5} align="center">
 									<Image src={logo} alt="Image, logo Canopiq" w="100px" />
 
-									<Heading size="4xl" className="title-styles" color={theme === "dark" ? "text" : "primary"}>Register</Heading>
-									<Text fontSize="lg" fontWeight="bold" className="text-styles" color={theme === "dark" ? "text" : "primary"}>Create your account</Text>
+									<Heading size="4xl" className="title-styles" color={isDark ? "text" : "primary"}>Register</Heading>
+									<Text fontSize="lg" fontWeight="bold" className="text-styles" color={isDark ? "text" : "primary"}>Create your account</Text>
 								</VStack>
 
 								{/* Username Field */}
@@ -118,7 +119,7 @@ function Register(): JSX.Element {
 										<Field.HelperText 
 											className="text-styles" 
 											fontSize="xs" fontWeight="bold" 
-											color={theme === "dark" ? "primary" : "secondary"} 
+											color={isDark ? "primary" : "secondary"} 
 											aria-live="polite"
 										>
 											{values.password.length} character(s)
@@ -152,18 +153,18 @@ function Register(): JSX.Element {
 													<Checkbox.HiddenInput />
 													<Checkbox.Control 
 														_checked={{ 
-															bgColor: theme === "dark" ? "primary" : "secondary",
-															color: theme === "dark" ? "secondary" : "text",
+															bgColor: isDark ? "primary" : "secondary",
+															color: isDark ? "secondary" : "text",
 															border: "none" 
 														}} 
-														borderColor={theme === "dark" ? "text" : "primary"}
+														borderColor={isDark ? "text" : "primary"}
 														_invalid={{ borderColor: "red.500", bgColor: "transparent" }}
-														_hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
+														_hover={{ borderColor: isDark ? "primary" : "secondary" }}
 													/>
-													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500" color={theme === "dark" ? "text" : "primary"}>
+													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500" color={isDark ? "text" : "primary"}>
 														By signing up, you agree to Canopiq's{' '}
 														<Link asChild fontWeight="bold"
-															color={theme === "dark" ? "primary" : "secondary"}
+															color={isDark ? "primary" : "secondary"}
 															_hover={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Terms of Use"
 														>
@@ -171,7 +172,7 @@ function Register(): JSX.Element {
 														</Link>{' '}
 														and{' '}
 														<Link asChild fontWeight="bold"
-															color={theme === "dark" ? "primary" : "secondary"}
+															color={isDark ? "primary" : "secondary"}
 															_hover={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Privacy Policy"
 														>
@@ -189,10 +190,10 @@ function Register(): JSX.Element {
 									Register
 								</Button>
 
-								<Text className="title-styles" fontSize="md" fontWeight="medium" color={theme === "dark" ? "text" : "primary"}>
+								<Text className="title-styles" fontSize="md" fontWeight="medium" color={isDark ? "text" : "primary"}>
 									Already have an account?{" "}
 									<Link asChild 
-										color={theme === "dark" ? "primary" : "secondary"}
+										color={isDark ? "primary" : "secondary"}
 										_hover={{ textDecoration: "underline" }}
 										aria-label="Already have an account?"
 										fontWeight="bold"

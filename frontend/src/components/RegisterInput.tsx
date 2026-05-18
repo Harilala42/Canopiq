@@ -24,6 +24,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const currentType = (type != "password") ? "text" : (showPassword ? "text" : "password");
     const { theme } = useContext(ThemeContext);
+    const isDark = theme === "dark";
 
     return (
         <Field.Root invalid={isInvalid}>
@@ -31,14 +32,14 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 <FormikField as={ Input }
                     className="peer text-styles" 
                     id={ name } name={ name } type={currentType}
-                    bg={theme === "dark" ? "secondary" : "text"} 
-                    borderColor={theme === "dark" ? "text" : "primary"} 
+                    bg={isDark ? "secondary" : "text"} 
+                    borderColor={isDark ? "text" : "primary"} 
                     borderRadius="xl" h="50px" px="1rem" pt="1rem"
-                    color={theme === "dark" ? "text" : "primary"}
+                    color={isDark ? "text" : "primary"}
                     transition="border-color 0.2s"
                     placeholder=" "
                     
-                    _hover={{ borderColor: theme === "dark" ? "primary" : "secondary" }}
+                    _hover={{ borderColor: isDark ? "primary" : "secondary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
                     { ...props }
@@ -47,7 +48,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 <Field.Label
                     className="text-styles" htmlFor={ name }
                     position="absolute" left="1rem" top="50%" 
-                    color={theme === "dark" ? "text" : "primary"}
+                    color={isDark ? "text" : "primary"}
                     transform="translateY(-50%)"
                     transition="all 0.2s ease-out"
                     transformOrigin="left top" 
@@ -56,13 +57,13 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                     _peerFocus={{
                         top: "0.5rem",
                         transform: "translateY(0) scale(0.8)",
-                        color: theme === "dark" ? "primary" : "secondary"
+                        color: isDark ? "primary" : "secondary"
                     }}
                     css={{
                         ".peer:not(:placeholder-shown) ~ &": {
                             top: "0.5rem",
                             transform: "translateY(0) scale(0.8)",
-                            color: theme === "dark" ? "text" : "primary"
+                            color: isDark ? "text" : "primary"
                         }
                     }}
                 >{ label }
@@ -72,7 +73,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                 {(type == "password") && (
                     <IconButton position="absolute" right="2" top="50%" transform="translateY(-50%)"
                         bgColor="transparent"
-                        color={theme === "dark" ? "text" : "primary"}
+                        color={isDark ? "text" : "primary"}
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         aria-controls={name}
