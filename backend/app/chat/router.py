@@ -9,7 +9,6 @@ router = APIRouter(dependencies=[
     Depends(rate_limiter)
 ])
 
-# Endpoint to retrieve user's chats
 @router.get("/chat", tags=["chat"])
 async def get_user_chats(request: Request):
     try:
@@ -29,7 +28,6 @@ async def get_user_chats(request: Request):
             }
         )
     
-# Endpoint to create a new chat
 @router.post("/chat/new", tags=["chat"])
 async def create_new_chat(request: Request):
     try:
@@ -60,7 +58,6 @@ async def create_new_chat(request: Request):
             }
         )
 
-# Endpoint to handle chat message
 @router.post("/chat/{chat_id}", tags=["chat"])
 async def send_message_to_llm(
     chat_id: str,
@@ -70,7 +67,13 @@ async def send_message_to_llm(
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise Exception("Chat history not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "CHAT_NOT_FOUND",
+                    "message": "Chat not found"
+                }
+            )
         
         user_message = chat_models.save_chat_message(
             chat_id=chat_id, 
@@ -82,18 +85,10 @@ async def send_message_to_llm(
         trigger_geospatial_request_analysis.delay(chat_id, user_id, payload.message)
     
         return { "message": user_message[0] }
+    except HTTPException:
+        raise
     except Exception as err:
-        error_msg = str(err).lower()
         print("ERROR: Failed to send chat message:", str(err))
-
-        if "not found" in error_msg:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
 
         raise HTTPException(
             status_code=500,
@@ -103,13 +98,18 @@ async def send_message_to_llm(
             }
         )
 
-# Endpoint to retrieve chat history
 @router.get("/chat/{chat_id}", tags=["chat"])
 async def get_chat_conversation(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise Exception("Chat history not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "CHAT_NOT_FOUND",
+                    "message": "Chat not found"
+                }
+            )
 
         messages = chat_models.get_chat_message(
             chat_id=chat_id,
@@ -120,18 +120,10 @@ async def get_chat_conversation(chat_id: str, request: Request):
             "chat_id": chat_id,
             "messages": messages
         }
+    except HTTPException:
+        raise
     except Exception as err:
-        error_msg = str(err).lower()
         print("ERROR: Failed to retrieve chat history:", str(err))
-
-        if "not found" in error_msg:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
 
         raise HTTPException(
             status_code=500,
@@ -141,22 +133,11 @@ async def get_chat_conversation(chat_id: str, request: Request):
             }
         )
 
-# Endpoint to delete a chat
 @router.delete("/chat/{chat_id}", tags=["chat"])
 async def delete_chat(chat_id: str, request: Request):
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise Exception("Chat history not found")
-
-        chat_models.delete_chat(chat_id, user_id)
-
-        return { "message": "Chat deleted successfully" }
-    except Exception as err:
-        error_msg = str(err).lower()
-        print("ERROR: Failed to delete chat:", str(err))
-
-        if "not found" in error_msg:
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -164,6 +145,14 @@ async def delete_chat(chat_id: str, request: Request):
                     "message": "Chat not found"
                 }
             )
+
+        chat_models.delete_chat(chat_id, user_id)
+
+        return { "message": "Chat deleted successfully" }
+    except HTTPException:
+        raise
+    except Exception as err:
+        print("ERROR: Failed to delete chat:", str(err))
 
         raise HTTPException(
             status_code=500,
@@ -173,7 +162,6 @@ async def delete_chat(chat_id: str, request: Request):
             }
         )
 
-# Endpoint to update chat's title
 @router.patch("/chat/{chat_id}", tags=["chat"])
 async def rename_user_chat(
     chat_id: str,
@@ -183,7 +171,13 @@ async def rename_user_chat(
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise Exception("Chat history not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "CHAT_NOT_FOUND",
+                    "message": "Chat not found"
+                }
+            )
         
         updated_chat = chat_models.rename_chat(
             chat_id=chat_id,
@@ -200,18 +194,10 @@ async def rename_user_chat(
             },
             "message": "Chat renamed successfully"
         }
+    except HTTPException:
+        raise
     except Exception as err:
-        error_msg = str(err).lower()
         print("ERROR: Failed to rename chat:", str(err))
-
-        if "not found" in error_msg:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
 
         raise HTTPException(
             status_code=500,
@@ -227,7 +213,13 @@ async def toggle_chat_pin(
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise Exception("Chat history not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "CHAT_NOT_FOUND",
+                    "message": "Chat not found"
+                }
+            )
 
         updated_chat = chat_models.toggle_chat_pin(
             chat_id=chat_id,
@@ -244,18 +236,10 @@ async def toggle_chat_pin(
             },
             "message": "Chat pin toggled successfully"
         }
+    except HTTPException:
+        raise
     except Exception as err:
-        error_msg = str(err).lower()
         print("ERROR: Failed to rename chat:", str(err))
-
-        if "not found" in error_msg:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
 
         raise HTTPException(
             status_code=500,

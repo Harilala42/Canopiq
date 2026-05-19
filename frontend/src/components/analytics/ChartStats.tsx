@@ -94,7 +94,7 @@ const ChartStats = memo((): JSX.Element => {
 						<LuMap />
 					</Icon>
 
-					<VStack flex={1} align="flex-start" gap={1}>
+					<VStack flex={1} align="flex-start" justify="center" gap={1}>
 						<Stat.Label>
 							<Text
 								fontSize="md"

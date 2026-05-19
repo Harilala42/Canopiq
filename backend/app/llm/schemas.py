@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import List, Literal, Optional
+from typing import List, Literal
 from datetime import date
 
 class GeoSpatialQuery(BaseModel): 
@@ -35,3 +35,12 @@ class GeoSpatialQuery(BaseModel):
 		if self.start_time and self.end_time and self.start_time >= self.end_time: 
 			raise ValueError("startTime must be earlier than endTime") 
 		return self
+
+class EnvironmentalReport(BaseModel):
+	"""AI Environmental Report based on provided data from GEE"""
+
+	title: str = Field(description="Short environmental report title")
+	summary: str = Field(
+		max_length=500,
+		description="Objective environmental analysis summary under 500 characters"
+	)

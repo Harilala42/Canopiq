@@ -18,6 +18,16 @@ import { ThemeContext } from "@/contexts/themeContext";
 import { ChatGreeting } from "@/components/chat";
 import { motion } from "framer-motion";
 
+const formatTime = (isoString: string) => {
+    const date = new Date(isoString);
+
+    return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
+};
+
 const ChatMessages = memo((): JSX.Element => {
 	const messages = useMessageStore((state) => state.messages);
 	const isLoading = useMessageStore((state) => state.isLoading);
@@ -34,7 +44,7 @@ const ChatMessages = memo((): JSX.Element => {
 	}, [messages]);
 
 	return (
-		<Popover.Body p={0}>
+		<Popover.Body overflow="hidden" p={0}>
 			<VStack 
 				w="100%" h="100%"
 				align="center" justify="flex-start"
@@ -46,25 +56,42 @@ const ChatMessages = memo((): JSX.Element => {
 							key={msg.id}
 							align="flex-start"
 							alignSelf={msg.role === "user" ? "flex-end" : "flex-start"}
-							bg={msg.role === "user" 
-								? (isDark ? "primary" : "secondary") 
-								: (isDark ? "variantDark" : "variantLight")}
-							borderRadius="2xl"
-							borderBottomRightRadius={msg.role === "user" ? "sm" : "2xl"}
-							borderBottomLeftRadius={msg.role === "model" ? "sm" : "2xl"}
-							maxW="75%" p={3}
+							maxW="90%" px={1}
 						>
-							<Text 
-								className="text-styles" fontSize="md"
-								wordBreak="break-word" whiteSpace="pre-wrap"
-								color={
-									msg.role !== "user" 
-									? (isDark ? "text" : "secondary")
-									: "text"
-								}
+							<Box
+								bg={msg.role === "user" 
+									? (isDark ? "primary" : "secondary") 
+									: (isDark ? "variantDark" : "variantLight")}
+								borderRadius="2xl"
+								borderBottomRightRadius={msg.role === "user" ? "sm" : "2xl"}
+								borderBottomLeftRadius={msg.role === "model" ? "sm" : "2xl"}
+								p={3}
 							>
-								{msg.content}
-							</Text>
+								<Text 
+									className="text-styles" fontSize="md"
+									wordBreak="break-word" whiteSpace="pre-wrap"
+									color={
+										msg.role !== "user" 
+										? (isDark ? "text" : "secondary")
+										: "text"
+									}
+								>
+									{msg.content}
+								</Text>
+							</Box>
+
+							<Box w="100%">
+								<Text
+									className="text-styles"
+									fontSize="sm" opacity={0.7}
+									color={isDark ? "text" : "secondary"}
+									textAlign={msg.role === "user" ? "right" : "left"}
+								>
+									{msg.role === "user"
+										? formatTime(msg.created_at)
+										: `${formatTime(msg.created_at)} - Gemini 3.1`}
+								</Text>
+							</Box>
 						</VStack>
 					))
 				)}
