@@ -28,8 +28,8 @@ const SideBarActions = memo(({
             <IconButton
                 aria-label="Create new query"
                 onClick={(e) => {
-                e.stopPropagation();
-                createNewQuery();
+                    e.stopPropagation();
+                    createNewQuery();
                 }}
                 disabled={isCreating}
             >

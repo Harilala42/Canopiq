@@ -35,8 +35,8 @@ const SideBarHeader = memo(({
 				<IconButton
 					aria-label="Collapse sidebar"
 					onClick={(e) => {
-					e.stopPropagation();
-					onToggle();
+						e.stopPropagation();
+						onToggle();
 					}}
 				>
 					<LuPanelRight />

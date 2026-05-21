@@ -13,7 +13,6 @@ export const useChatController = () => {
     
     const setMessages = useMessageStore((state) => state.setMessages);
     const setIsLoading = useMessageStore((state) => state.setIsLoading);
-    const setIsThinking = useMessageStore((state) => state.setIsThinking);
     const addMessage = useMessageStore((state) => state.addMessage);
     
     const toggleChat = useChatStore((state) => state.toggleChat);
@@ -54,8 +53,6 @@ export const useChatController = () => {
                 (payload: any) => {
                     const { id, role, content, created_at } = payload.new;
                     const newMessage: MessageData = { id, role, content, created_at };
-
-                    if (role === 'model') setIsThinking(false);
                     addMessage(newMessage);
                 }
             )
@@ -66,7 +63,7 @@ export const useChatController = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentQuery?.id, retrieveChatMessages, addMessage, setIsThinking]);
+    }, [currentQuery?.id, retrieveChatMessages, addMessage]);
 
     return {
         isOpen,

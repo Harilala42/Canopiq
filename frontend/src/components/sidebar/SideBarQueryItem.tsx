@@ -3,6 +3,7 @@ import { memo, useContext } from "react";
 import { HStack, Text, Box } from "@chakra-ui/react";
 import { ThemeContext } from "@/contexts/themeContext";
 import { MenuOptions } from "@/components/menu";
+import useChatStore from "@/stores/useChatStore";
 
 interface SideBarQueryItemProps
 {
@@ -16,6 +17,7 @@ const SideBarQueryItem = memo(({
     isExpanded, 
     onSelect
 }: SideBarQueryItemProps) => {
+    const currentQuery = useChatStore((state) => state.currentQuery);
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
@@ -33,18 +35,26 @@ const SideBarQueryItem = memo(({
                 cursor: "pointer",
             }}
         >
-            <Text
-                className="text-styles"
-                color={isDark ? "text" : "secondary"}
-                fontSize="sm"
-                flex="1"
-            >
-                {
-                    query.title.length > 30
-                    ? query.title.slice(0, 30) + "..."
-                    : query.title
-                }
-            </Text>
+            <HStack gap={2} justify="space-between" flex="1">
+                <Text
+                    className="text-styles"
+                    color={isDark ? "text" : "secondary"}
+                    fontSize="sm"
+                >
+                    {query.title.length > 30
+                        ? query.title.slice(0, 30) + "..."
+                        : query.title}
+                </Text>
+
+                {query.id === currentQuery?.id && (
+                    <Box
+                        w="8px" h="8px"
+                        borderRadius="full"
+                        bg={isDark ? "primary" : "secondary"}
+                        flexShrink={0}
+                    />
+                )}
+            </HStack>
 
             <Box onClick={(e) => e.stopPropagation()}>
                 <MenuOptions query={query} />

@@ -1,6 +1,6 @@
 import app.gee.models as gee
 import app.llm.tasks as llm_task
-from app.gee.utils import save_analysis_to_db
+from app.gee.utils import save_analysis_to_db, update_job_progress
 from app.worker import app
 
 @app.task(
@@ -14,6 +14,9 @@ def trigger_geospatial_computation(
     user_id: str, 
     query: dict
 ):
+    task_id = self.request.id
+    update_job_progress(chat_id, user_id, task_id, "computing_gee")
+
     try:
         gis_analysis = gee.compute_gee_analysis(
             bbox=query["bbox"],
@@ -23,7 +26,6 @@ def trigger_geospatial_computation(
         )
 
         result = save_analysis_to_db(chat_id, user_id, query, gis_analysis)
-        
         llm_task.trigger_environmental_report_generation(
             chat_id=chat_id,
             user_id=user_id,
@@ -36,4 +38,6 @@ def trigger_geospatial_computation(
             "id": result[0]["id"]
         }
     except Exception as e:
+        if self.request.retries >= self.max_retries:
+            update_job_progress(chat_id, user_id, task_id, "failed", error_msg=str(e))
         raise self.retry(exc=e, countdown=2 ** self.request.retries)
