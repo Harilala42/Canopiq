@@ -1,16 +1,23 @@
 import { memo, JSX, useContext } from "react";
-import { HStack, Text, Icon } from "@chakra-ui/react";
+import { HStack, VStack, Text, Icon, Spinner } from "@chakra-ui/react";
 import { LuChartColumnBig, LuPanelLeft } from "react-icons/lu";
 import { ThemeContext } from "@/contexts/themeContext";
 import { IconButton } from "@/components/IconButton";
 
 interface ChartProps
 {
+	tittle?: string;
 	isOpen: boolean;
+	isLoading: boolean;
 	onToggle: () => void;
 }
 
-const ChartHeader = memo(({ isOpen, onToggle }: ChartProps): JSX.Element => {
+const ChartHeader = memo(({ 
+	isOpen, 
+	onToggle,
+	isLoading,
+	tittle
+}: ChartProps): JSX.Element => {
 	const { theme } = useContext(ThemeContext);
 	const isDark = theme === "dark";
 
@@ -27,7 +34,7 @@ const ChartHeader = memo(({ isOpen, onToggle }: ChartProps): JSX.Element => {
 		>
 			{!isOpen && (
 				<IconButton
-					aria-label="Open Insights"
+					aria-label="Open Insights" disabled={!tittle}
 					onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
 						e.stopPropagation();
 						onToggle();
@@ -38,25 +45,41 @@ const ChartHeader = memo(({ isOpen, onToggle }: ChartProps): JSX.Element => {
 			)}
 
 			{isOpen && (
-				<>
-					<HStack gap={2} ml={3}>
-						<Icon size="md">
-							<LuChartColumnBig />
-						</Icon>
+				<VStack w="100%" align="flex-start" p={2} gap={1}>
+					<HStack  
+						align="center" justify="space-between" w="100%"
+						color={isDark ? "text" : "secondary"}
+						gap={2}
+					>
+						<HStack align="center" justify="center" ml={2} gap={2}>
+							<Icon size="md" aria-label='GIS Insights'>
+								<LuChartColumnBig />
+							</Icon>
+		
+							<Text 
+								className="title-styles" 
+								fontWeight="bold" fontSize="md" 
+								color={isDark ? "text" : "secondary"}
+							>
+								Insights
+							</Text>
+						</HStack>
 
-						<Text
-							fontWeight="bold"
-							fontSize="md"
+						<IconButton aria-label="Close Insights" onClick={onToggle}>
+							<LuPanelLeft />
+						</IconButton>
+					</HStack>
+				
+					{tittle && !isLoading && (
+						<Text 
+							className="text-styles" 
+							fontSize="sm" opacity={0.7} ml={2}
 							color={isDark ? "text" : "secondary"}
 						>
-							Insights
+							{tittle}
 						</Text>
-					</HStack>
-
-					<IconButton aria-label="Close Insights" onClick={onToggle}>
-						<LuPanelLeft />
-					</IconButton>
-				</>
+					)}
+				</VStack>
 			)}
 		</HStack>
 	);

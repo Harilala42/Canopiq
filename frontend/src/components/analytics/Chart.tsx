@@ -14,9 +14,10 @@ import {
 	ChartDonut,
 	ChartBar
 } from "@/components/analytics";
-import { JSX, useContext } from "react";
-import { VStack } from "@chakra-ui/react";
+import { useContext, JSX } from "react";
+import { Spinner, VStack } from "@chakra-ui/react";
 import { ThemeContext } from "@/contexts/themeContext";
+import { useChartController } from "@/hooks/useChartController";
 
 ChartJS.register(
 	BarElement,
@@ -28,15 +29,16 @@ ChartJS.register(
 	Legend
 );
 
-interface ChartProps
-{
-	isOpen: boolean;
-	onToggle: () => void;
-}
-
-const Chart = ({ isOpen, onToggle }: ChartProps): JSX.Element => {
+const Chart = (): JSX.Element => {
 	const { theme } = useContext(ThemeContext);
 	const isDark = theme === "dark";
+
+	const { 
+		isOpen,
+        onToggle,
+		isLoading,
+		location
+	} = useChartController();
 
 	return (
 		<VStack
@@ -50,12 +52,20 @@ const Chart = ({ isOpen, onToggle }: ChartProps): JSX.Element => {
 			onClick={() => !isOpen && onToggle()}
 			gap={0}
 		>
-			<ChartHeader
-				isOpen={isOpen}
+			<ChartHeader 
+				isOpen={isOpen} 
 				onToggle={onToggle}
+				isLoading={isLoading}
+				tittle={location ? `In ${location.description}` : undefined}
 			/>
 
-			{isOpen && (
+			{isOpen && isLoading && (
+				<VStack h="100%" justify="center">
+					<Spinner color={isDark ? "text" : "secondary"} />
+				</VStack>
+			)}
+
+			{isOpen && !isLoading && location && (
 				<VStack
 					flex={1}
 					w="100%"

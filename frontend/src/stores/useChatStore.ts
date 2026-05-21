@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { ChatData } from '@/types/chat';
+import useMessageStore from "@/stores/useMessageStore";
+import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 interface ChatState
 {
@@ -46,7 +48,11 @@ const useChatStore = create<ChatState>((set, get) => ({
 
     deleteQuery: (id) => {
         const { closeChat, currentQuery } = get();
-        currentQuery?.id === id && closeChat();
+        if (currentQuery?.id === id) {
+            closeChat();
+            useMessageStore.getState().resetMessages();
+            useAnalyticsStore.getState().resetAnalyticsData();
+        }
 
         set((state) => ({
             queries: state.queries.filter((q) => q.id !== id),

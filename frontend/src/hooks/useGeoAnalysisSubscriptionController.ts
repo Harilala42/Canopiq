@@ -6,6 +6,7 @@ import useAnalyticsStore from "@/stores/useAnalyticsStore";
 
 export const useGeoAnalysisSubscription = (chatId?: string) => {
     const setAnalyticsData = useAnalyticsStore((state) => state.setAnalyticsData);
+    const openChart = useAnalyticsStore((state) => state.openChart);
 
     useEffect(() => {
         if (!chatId) return;
@@ -21,6 +22,8 @@ export const useGeoAnalysisSubscription = (chatId?: string) => {
                     filter: `chat_id=eq.${chatId}`,
                 },
                 (payload: any) => {
+                    openChart();
+
                     const {
                         location,
                         dataset,

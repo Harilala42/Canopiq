@@ -4,6 +4,8 @@ import { TimeSeriesData, RangeTimesData, DatasetMetaData, LandCoverData } from '
 
 interface AnalyticsState
 {
+	isChartOpen: boolean;
+
 	location: MapData | null;
 	dataset: DatasetMetaData | null;
 	range_times: RangeTimesData | null;
@@ -14,6 +16,10 @@ interface AnalyticsState
 
 	dataset_time_series: TimeSeriesData[];
 	land_cover: LandCoverData | null;
+
+	openChart: () => void;
+
+	toggleIsChartOpen: () => void;
 
 	setLocation: (location: MapData) => void;
 
@@ -38,9 +44,13 @@ interface AnalyticsState
 	setAnalyticsData: (
 		data: Partial<AnalyticsState>
 	) => void;
+
+	resetAnalyticsData: () => void;
 }
 
 const useAnalyticsStore = create<AnalyticsState>((set) => ({
+	isChartOpen: false,
+
     location: null,
 	dataset: null,
 	range_times: null,
@@ -52,6 +62,13 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	dataset_time_series: [],
 	land_cover: null,
 
+	openChart: () => set({ isChartOpen: true }),
+
+	toggleIsChartOpen: () =>
+		set((state) => ({
+			isChartOpen: !state.isChartOpen,
+		})),
+
     setLocation: (location) => set({ location }),
 
     setDataset: (dataset) => set({ dataset }),
@@ -62,7 +79,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
     setAreaCoverage: (value) => set({ area_coverage: value }),
 
-	setGlobalAverage: (value) => set({ area_coverage: value }),
+	setGlobalAverage: (value) => set({ global_average: value }),
 
     setTotalChange: (value) => set({ total_change: value }),
 
@@ -72,7 +89,19 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
     setAnalyticsData: (data) => set((state) => ({
         ...state, ...data
-    }))
+    })),
+
+	resetAnalyticsData: () => set({
+		isChartOpen: false,
+		location: null,
+		dataset: null,
+		range_times: null,
+		land_cover: null,
+		area_coverage: 0,
+		global_average: 0,
+		total_change: 0,
+		dataset_time_series: []
+	})
 }));
 
 export default useAnalyticsStore;

@@ -14,7 +14,6 @@ export const useChatMessagesController = () => {
     const setCurrentStatus = useMessageStore((state) => state.setCurrentStatus);
     const setErrorMessage = useMessageStore((state) => state.setErrorMessage);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
-    const resetMessages = useMessageStore((state) => state.resetMessages);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,8 +25,6 @@ export const useChatMessagesController = () => {
 
     useEffect(() => {
         if (!currentQuery?.id) return;
-
-        resetMessages();
 
         const channel = supabase
             .channel(`job-statue-${currentQuery.id}`)
