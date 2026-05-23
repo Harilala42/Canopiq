@@ -19,8 +19,26 @@ def trigger_geospatial_request_analysis(
     update_job_progress(chat_id, user_id, task_id, "analyzing_prompt")
 
     try:
-        analysis = llm.analyse_user_request(prompt)
-        gee_task.trigger_geospatial_computation.delay(chat_id, user_id, analysis)
+        chat_history = chat.get_chat_message(chat_id, user_id)
+        recent_context = chat_history[-3:] if chat_history else []
+
+        route = llm.classify_user_request(prompt, recent_context)
+
+        if route == "geospatial_analysis":
+            query = llm.extract_geospatial_params(prompt, recent_context)
+            gee_task.trigger_geospatial_computation.delay(chat_id, user_id, query)
+        else:
+            is_impossible = (route == "impossible_request")
+            
+            chat_reply = llm.execute_contextual_chat(
+                chat_id, 
+                user_id, 
+                prompt, 
+                is_impossible=is_impossible
+            )
+            
+            chat.save_chat_message(chat_id, user_id, "model", chat_reply)
+            update_job_progress(chat_id, user_id, task_id, "completed")
 
         return { 
             "status": "completed",
@@ -32,7 +50,7 @@ def trigger_geospatial_request_analysis(
             update_job_progress(chat_id, user_id, task_id, "failed", error_msg=str(e))
         raise self.retry(exc=e, countdown=2 ** self.request.retries)
 
-    
+
 @app.task(
     bind=True,
     name="trigger_environmental_report_generation",

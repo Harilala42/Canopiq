@@ -39,7 +39,7 @@ export const useChartController = () => {
 				start_year,
 				end_year,
 				analytics,
-			} = oldAnalysis.data;
+			} = oldAnalysis.data[oldAnalysis.data.length - 1];
 
 			const newMap: MapData = {
 				description: location,

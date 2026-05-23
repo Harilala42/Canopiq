@@ -137,7 +137,7 @@ const ChatMessages = memo((): JSX.Element => {
 								fontWeight="bold" fontSize="sm"
 								color="error"
 							>
-								Analysis Interrupted
+								Analysis Canceled
 							</Text>
 						</HStack>
 
