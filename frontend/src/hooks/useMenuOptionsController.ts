@@ -9,7 +9,7 @@ export const useMenuOptionsController = (query: ChatData) => {
     const updateQueryStore = useChatStore((state) => state.updateQuery);
 
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
-    const [isHovered, setIsHovered] = useState<boolean>(false);
+    const [isCanceleded, setIsCanceleded] = useState<boolean>(false);
     const [isUpdating, setIsUpdating] = useState<boolean>(false);
     const [isPinned, setIsPinned] = useState<boolean>(query.is_pinned);
     
@@ -43,8 +43,8 @@ export const useMenuOptionsController = (query: ChatData) => {
     return {
         menuOpen,
         setMenuOpen,
-        isHovered,
-        setIsHovered,
+        isCanceleded,
+        setIsCanceleded,
         isUpdating,
         setIsUpdating,
         isPinned,

@@ -159,13 +159,13 @@ function Register(): JSX.Element {
 														}} 
 														borderColor={isDark ? "text" : "primary"}
 														_invalid={{ borderColor: "red.500", bgColor: "transparent" }}
-														_hover={{ borderColor: isDark ? "primary" : "secondary" }}
+														_Canceled={{ borderColor: isDark ? "primary" : "secondary" }}
 													/>
 													<Checkbox.Label className="title-styles" fontSize="md" fontWeight="500" color={isDark ? "text" : "primary"}>
 														By signing up, you agree to Canopiq's{' '}
 														<Link asChild fontWeight="bold"
 															color={isDark ? "primary" : "secondary"}
-															_hover={{ textDecoration: "underline" }}
+															_Canceled={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Terms of Use"
 														>
 															<RouterLink to="/terms-of-use">Terms of Use</RouterLink>
@@ -173,7 +173,7 @@ function Register(): JSX.Element {
 														and{' '}
 														<Link asChild fontWeight="bold"
 															color={isDark ? "primary" : "secondary"}
-															_hover={{ textDecoration: "underline" }}
+															_Canceled={{ textDecoration: "underline" }}
 															aria-label="Hyperlink to our Privacy Policy"
 														>
 															<RouterLink to="/privacy-policy">Privacy Policy</RouterLink>
@@ -194,7 +194,7 @@ function Register(): JSX.Element {
 									Already have an account?{" "}
 									<Link asChild 
 										color={isDark ? "primary" : "secondary"}
-										_hover={{ textDecoration: "underline" }}
+										_Canceled={{ textDecoration: "underline" }}
 										aria-label="Already have an account?"
 										fontWeight="bold"
 									>

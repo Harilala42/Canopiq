@@ -1,11 +1,45 @@
+import { 
+    MapContainer, 
+    TileLayer, 
+    Marker, 
+    Popup, 
+    ZoomControl, 
+    GeoJSON, 
+    Tooltip, 
+    useMap 
+} from "react-leaflet";
 import { Box } from "@chakra-ui/react";
 import { Chat } from "@/components/chat/";
-import { useRef, useEffect, useMemo, JSX } from "react";
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from "react-leaflet";
-import { useGeoAnalysisSubscription } from "@/hooks/useGeoAnalysisSubscriptionController";
-import useAnalyticsStore from "@/stores/useAnalyticsStore";
-import useChatStore from "@/stores/useChatStore";
+import { useRef, useEffect, JSX } from "react";
+import { useMapController } from "@/hooks/useMapController";
 import "leaflet/dist/leaflet.css";
+
+const getHexStyle = (feature: any) => {
+    return {
+        fillColor: feature.properties?.color || "#b2773f",
+        weight: 1,
+        opacity: 0.8,
+        color: "#1a202c",
+        fillOpacity: 0.55
+    };
+};
+
+const onEachHexagon = (feature: any, layer: any) => {
+    layer.on({
+        mouseover: (e: any) => {
+            const polygon = e.target;
+            polygon.setStyle({
+                fillOpacity: 0.8,
+                weight: 0,
+                color: "#ffffff"
+            });
+        },
+        mouseout: (e: any) => {
+            const polygon = e.target;
+            polygon.setStyle(getHexStyle(feature));
+        }
+    });
+};
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => { 
     const prevRef = useRef<[number, number] | null>(null);
@@ -31,19 +65,16 @@ const MapEffects = ({ coords }: { coords: [number, number] }) => {
         }
     }, [coords, map]);
 
-    return null
+    return null;
 };
 
 const Map = (): JSX.Element => {
-    const currentMap = useAnalyticsStore((state) => state.location);
-    const currentQuery = useChatStore((state) => state.currentQuery);
-
-    useGeoAnalysisSubscription(currentQuery?.id);
+    const { map, coords, location } = useMapController();
 
     return (
         <Box w="100%" h="100%" maxH="calc(100vh - 60px)" position="relative">
             <MapContainer
-                center={currentMap?.coords || [0, 0]}
+                center={coords || [0, 0]}
                 scrollWheelZoom
                 zoom={5}
                 zoomControl={false}
@@ -56,18 +87,25 @@ const Map = (): JSX.Element => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {currentMap && (
+                {map && map.features && map.features.length > 0 && (
+                    <GeoJSON
+                        key={`h3-grid-${map.features[0]?.id || 'empty'}`}
+                        data={map}
+                        style={getHexStyle}
+                        onEachFeature={onEachHexagon}
+                    />
+                )}
+
+                {coords && (
                     <>
-                        <TileLayer url={currentMap.tileLayer} opacity={0.5} />
+                        <MapEffects coords={coords} />
 
-                        <MapEffects coords={currentMap.coords} />
-
-                        <Marker position={currentMap.coords}>
+                        <Marker position={coords}>
                             <Popup>
                                 Analysis Point: <br />
-                                Lat: {currentMap.coords[0].toFixed(2)}, Lon:{" "}
-                                {currentMap.coords[1].toFixed(2)} <br />
-                                {currentMap.description}
+                                Lat: {coords[0].toFixed(2)}, Lon:{" "}
+                                {coords[1].toFixed(2)} <br />
+                                {location}
                             </Popup>
                         </Marker>
                     </>

@@ -7,7 +7,7 @@ export const useChartDonutController = (theme: string) => {
     const isDark = theme === "dark";
 
     const donutData = useMemo<ChartData<"doughnut", number[], string>>(() => {
-        const threshold = 3;
+        const threshold = 2;
         const main = landCover.categories.filter((item) => item.percent >= threshold);
         const small = landCover.categories.filter((item) => item.percent < threshold);
         const otherPercent = small.reduce((sum, item) => sum + item.percent, 0);

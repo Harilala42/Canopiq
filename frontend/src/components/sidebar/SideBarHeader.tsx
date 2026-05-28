@@ -7,13 +7,13 @@ import { memo } from "react";
 interface SideBarHeaderProps
 {
 	isExpanded: boolean;
-	isHovered: boolean;
+	isCanceleded: boolean;
 	onToggle: () => void;
 }
 
 const SideBarHeader = memo(({ 
 	isExpanded, 
-	isHovered, 
+	isCanceleded, 
 	onToggle
 }: SideBarHeaderProps) => {
     return (
@@ -23,7 +23,7 @@ const SideBarHeader = memo(({
 			h="60px"
 			w="100%"
 		>
-			{isHovered && !isExpanded ? (
+			{isCanceleded && !isExpanded ? (
 				<IconButton aria-label="Expand sidebar">
 					<LuPanelLeft />
 				</IconButton>

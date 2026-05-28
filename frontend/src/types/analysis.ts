@@ -12,7 +12,7 @@ export interface RangeTimesData
 	end: number;
 }
 
-type datasetType = "carbon_density" | "tree_cover";
+export type datasetType = "carbon_density" | "tree_cover";
 
 export interface DatasetMetaData
 {

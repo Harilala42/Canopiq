@@ -13,3 +13,5 @@ python-dotenv>=1.2.2
 sqlalchemy>=2.0.48
 earthengine-api>=1.7.22
 google-auth>=2.49.2
+h3>=4.4.2
+geopandas>=1.1.3

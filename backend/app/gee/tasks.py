@@ -1,6 +1,7 @@
 import app.gee.models as gee
 import app.llm.tasks as llm_task
-from app.gee.utils import save_analysis_to_db, update_job_progress
+from app.geo_analysis.models import save_geo_analysis
+from app.gee.utils import update_job_progress
 from app.worker import app
 
 @app.task(
@@ -25,7 +26,7 @@ def trigger_geospatial_computation(
             dataset_type=query["data_set"]
         )
 
-        result = save_analysis_to_db(chat_id, user_id, query, gis_analysis)
+        result = save_geo_analysis(chat_id, user_id, query, gis_analysis)
         llm_task.trigger_environmental_report_generation(
             chat_id=chat_id,
             user_id=user_id,

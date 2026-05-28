@@ -272,7 +272,6 @@ def execute_contextual_chat(
         - Keep answers concise, scannable, and directly helpful to academic researchers.
         - Do not expose raw technical code, JSON formats, or API endpoints.
         - Always maintain a professional and scientifically accurate tone.
-        - Do not use multi-nested bold list markers like '* **' in your output layout.
     """
 
     try:

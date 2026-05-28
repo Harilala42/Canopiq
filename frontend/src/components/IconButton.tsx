@@ -11,7 +11,7 @@ export const IconButton = (
     return (
         <IconChakra 
             variant="ghost" borderRadius={15}
-            _hover={{ 
+            _Canceled={{ 
                 bg: isDark ? "primary" : "secondary",
                 color: isDark ? "text" : "text"
             }}

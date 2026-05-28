@@ -56,7 +56,7 @@ const Chart = (): JSX.Element => {
 				isOpen={isOpen} 
 				onToggle={onToggle}
 				isLoading={isLoading}
-				tittle={location ? `In ${location.description}` : undefined}
+				tittle={location ? `In ${location}` : undefined}
 			/>
 
 			{isOpen && isLoading && (

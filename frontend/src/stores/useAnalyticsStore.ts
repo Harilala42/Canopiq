@@ -1,12 +1,18 @@
 import { create } from 'zustand';
-import { MapData } from '@/types/map';
-import { TimeSeriesData, RangeTimesData, DatasetMetaData, LandCoverData } from '@/types/analysis';
+import { 
+	TimeSeriesData, 
+	RangeTimesData, 
+	DatasetMetaData, 
+	LandCoverData, 
+	BiomeData, 
+	datasetType
+} from '@/types/analysis';
 
 interface AnalyticsState
 {
 	isChartOpen: boolean;
 
-	location: MapData | null;
+	geo_analysis_id: string;
 	dataset: DatasetMetaData | null;
 	range_times: RangeTimesData | null;
 
@@ -18,12 +24,14 @@ interface AnalyticsState
 	land_cover: LandCoverData | null;
 
 	openChart: () => void;
-
 	toggleIsChartOpen: () => void;
 
-	setLocation: (location: MapData) => void;
+	setGeoAnalysisId: (id: string) => void;
 
-	setDataset: (dataset: DatasetMetaData) => void;
+	setDataset: (
+		type: datasetType, 
+		dataset: Exclude<DatasetMetaData, "type">
+	) => void;
 
 	setRangeTimes: (start: number, end: number) => void;
 
@@ -38,7 +46,8 @@ interface AnalyticsState
 	) => void;
 
 	setLandCover: (
-		data: LandCoverData
+		metadata: Exclude<LandCoverData, "categories">,
+		categories: BiomeData[]
 	) => void;
 
 	setAnalyticsData: (
@@ -51,9 +60,9 @@ interface AnalyticsState
 const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	isChartOpen: false,
 
-    location: null,
 	dataset: null,
 	range_times: null,
+	geo_analysis_id: null,
 
 	area_coverage: 0,
 	global_average: 0,
@@ -69,9 +78,9 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 			isChartOpen: !state.isChartOpen,
 		})),
 
-    setLocation: (location) => set({ location }),
+	setGeoAnalysisId: (id) => set({ geo_analysis_id: id }),
 
-    setDataset: (dataset) => set({ dataset }),
+    setDataset: (type, dataset) => set({ dataset: { ...dataset, type } }),
 
     setRangeTimes: (start, end) => set({
         range_times: { start, end }
@@ -85,7 +94,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
     setDatasetTimeSeries: (data) => set({ dataset_time_series: data }),
 
-	setLandCover: (data) => set({ land_cover: data }),
+	setLandCover: (metadata, categories) => set({ land_cover: { ...metadata, categories } }),
 
     setAnalyticsData: (data) => set((state) => ({
         ...state, ...data
@@ -93,14 +102,14 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
 	resetAnalyticsData: () => set({
 		isChartOpen: false,
-		location: null,
 		dataset: null,
 		range_times: null,
 		land_cover: null,
 		area_coverage: 0,
 		global_average: 0,
 		total_change: 0,
-		dataset_time_series: []
+		dataset_time_series: [],
+		geo_analysis_id: null
 	})
 }));
 

@@ -19,8 +19,8 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps) => {
         sortedChats,
         isLoading,
         isCreating,
-        isHovered,
-        setIsHovered,
+        isCanceleded,
+        setIsCanceleded,
         createNewQuery,
         handleSelectQuery,
     } = useSideBarController();
@@ -29,8 +29,8 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps) => {
         <VStack
             align="center"
             justify="flex-start"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={() => setIsCanceleded(true)}
+            onMouseLeave={() => setIsCanceleded(false)}
             bg={isDark ? "secondary" : "text"}
             borderRight="1px solid"
             borderColor={isDark ? "variantDark" : "variantLight"}
@@ -43,7 +43,7 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps) => {
         >
             <SideBarHeader
                 isExpanded={isExpanded}
-                isHovered={isHovered}
+                isCanceleded={isCanceleded}
                 onToggle={onToggle}
             />
 
