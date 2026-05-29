@@ -4,42 +4,14 @@ import {
     Marker, 
     Popup, 
     ZoomControl, 
-    GeoJSON, 
-    Tooltip, 
-    useMap 
+    useMap
 } from "react-leaflet";
 import { Box } from "@chakra-ui/react";
-import { Chat } from "@/components/chat/";
 import { useRef, useEffect, JSX } from "react";
 import { useMapController } from "@/hooks/useMapController";
+import { MapHexGrid, MapLegend } from "@/components/map/";
+import { Chat } from "@/components/chat/";
 import "leaflet/dist/leaflet.css";
-
-const getHexStyle = (feature: any) => {
-    return {
-        fillColor: feature.properties?.color || "#b2773f",
-        weight: 1,
-        opacity: 0.8,
-        color: "#1a202c",
-        fillOpacity: 0.55
-    };
-};
-
-const onEachHexagon = (feature: any, layer: any) => {
-    layer.on({
-        mouseover: (e: any) => {
-            const polygon = e.target;
-            polygon.setStyle({
-                fillOpacity: 0.8,
-                weight: 0,
-                color: "#ffffff"
-            });
-        },
-        mouseout: (e: any) => {
-            const polygon = e.target;
-            polygon.setStyle(getHexStyle(feature));
-        }
-    });
-};
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => { 
     const prevRef = useRef<[number, number] | null>(null);
@@ -69,7 +41,12 @@ const MapEffects = ({ coords }: { coords: [number, number] }) => {
 };
 
 const Map = (): JSX.Element => {
-    const { map, coords, location } = useMapController();
+    const { 
+        map, 
+        coords, 
+        location,
+        legend
+    } = useMapController();
 
     return (
         <Box w="100%" h="100%" maxH="calc(100vh - 60px)" position="relative">
@@ -88,12 +65,7 @@ const Map = (): JSX.Element => {
                 />
 
                 {map && map.features && map.features.length > 0 && (
-                    <GeoJSON
-                        key={`h3-grid-${map.features[0]?.id || 'empty'}`}
-                        data={map}
-                        style={getHexStyle}
-                        onEachFeature={onEachHexagon}
-                    />
+                    <MapHexGrid mapData={map} />
                 )}
 
                 {coords && (
@@ -113,6 +85,10 @@ const Map = (): JSX.Element => {
             </MapContainer>
 
             <Chat />
+
+            {legend && (
+                <MapLegend legend={legend} />
+            )}
         </Box>
     );
 };

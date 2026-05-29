@@ -19,7 +19,11 @@ def authenticate_gee():
 
 authenticate_gee()
 
-def compute_gee_analysis(bbox, start_time, end_time, dataset_type="tree_cover"):
+def compute_gee_analysis(
+    bbox, 
+    start_time, end_time, 
+    dataset_type="tree_cover"
+):
     roi = ee.Geometry.Rectangle(bbox)
     
     sen2_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
@@ -35,19 +39,21 @@ def compute_gee_analysis(bbox, start_time, end_time, dataset_type="tree_cover"):
     offset = ee.Number(fit_stats.get('offset'))
 
     predicted_img = median_ndvi.multiply(scale).add(offset).updateMask(median_ndvi.gt(0)).rename('biomass')
-    points_gdf = extract_gee_image_to_points(predicted_img, roi, palette)
+    vmin, vmax, points_gdf = extract_gee_image_to_points(predicted_img, roi, palette)
     final_hex_gdf = aggregate_points_to_h3_grid(points_gdf)
 
     processed_ts = compute_time_series(sen2_col, roi, scale, offset, start_time, end_time)
     land_cover_percent = compute_landcover_composition(roi)
     
+    legend_data = generate_legend_intervals(vmin, vmax, palette)
     area_ha = roi.area().divide(10000).getInfo()
 
     return {
         "hex_geojson": final_hex_gdf.__geo_interface__,
         "time_series": processed_ts,
         "land_cover": land_cover_percent,
-        "area_ha": round(area_ha, 2)
+        "area_ha": round(area_ha, 2),
+        "legend": legend_data
     }
 
 def get_sentinel_ndvi(roi, start_time, end_time):
@@ -85,12 +91,30 @@ def get_dataset_col(dataset_type, start_time, end_time, roi):
         palette = ['#ffffff', '#afce56', '#196e0c']
     return reference_img, palette
 
+def generate_legend_intervals(min_val, max_val, palette):
+    """
+    Splits the min/max range into even steps matching the palette size.
+    """
+    n_steps = len(palette)
+    step_size = (max_val - min_val) / n_steps
+    
+    legend = []
+    for i in range(n_steps):
+        start = min_val + (i * step_size)
+        end = min_val + ((i + 1) * step_size)
+
+        legend.append({
+            "color": palette[i],
+            "range": f"{max(0, round(start))} - {max(0, round(end))}"
+        })
+
+    return legend
+
 def extract_gee_image_to_points(
     predicted_img,
     roi, 
     palette,
-    scale=250, 
-    num_pixels=2500
+    scale=250
 ):
     """
     Computes local min/max statistics for an image over an ROI, applies a cloud-baked
@@ -105,8 +129,8 @@ def extract_gee_image_to_points(
     ).getInfo()
 
     band_name = predicted_img.bandNames().get(0).getInfo()
-    vmin = local_stats.get(f'{band_name}_min', 0)
-    vmax = local_stats.get(f'{band_name}_max', 100)
+    vmin = round(local_stats.get(f'{band_name}_min', 0), 2)
+    vmax = round(local_stats.get(f'{band_name}_max', 100), 2)
 
     visualized_img = predicted_img.visualize(
         min=vmin,
@@ -116,10 +140,9 @@ def extract_gee_image_to_points(
 
     export_img = predicted_img.addBands(visualized_img)
 
-    pixel_samples = export_img.sample(
-        region=roi,
-        scale=scale, 
-        numPixels=num_pixels,
+    pixel_samples = export_img.sampleRegions(
+        collection=ee.FeatureCollection([ee.Feature(roi)]),
+        scale=scale,
         geometries=True
     )
 
@@ -129,7 +152,7 @@ def extract_gee_image_to_points(
     })
     points_gdf.crs = 'EPSG:4326'
 
-    return points_gdf
+    return vmin, vmax, points_gdf
 
 def aggregate_points_to_h3_grid(points_gdf, h3_resolution=8):
     """
@@ -170,7 +193,12 @@ def aggregate_points_to_h3_grid(points_gdf, h3_resolution=8):
     
     return gpd.GeoDataFrame(hex_summary, geometry='geometry', crs="EPSG:4326")
 
-def compute_time_series(collection, roi, scale, offset, start_date, end_date):
+def compute_time_series(
+    collection, 
+    roi, 
+    scale, offset, 
+    start_date, end_date
+):
     """
     Generates a monthly environmental time series from a Sentinel-2 image collection.
     """
@@ -210,7 +238,7 @@ def compute_time_series(collection, roi, scale, offset, start_date, end_date):
 
     return [f['properties'] for f in fc.getInfo()['features']]
 
-def compute_landcover_composition(roi):
+def compute_landcover_composition(roi, scale=10):
     """
     Aggregates ESA WorldCover v200 land cover classes over a ROI
     and computes normalized class distribution based on pixel frequency.
@@ -269,7 +297,7 @@ def compute_landcover_composition(roi):
     histogram = reference_img.reduceRegion(
         reducer=ee.Reducer.frequencyHistogram(),
         geometry=roi,
-        scale=10,
+        scale=scale,
         bestEffort=True
     ).getInfo()
 

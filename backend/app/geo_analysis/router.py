@@ -72,7 +72,10 @@ async def get_geo_analysis_map(
                 }
             )
         
-        return { "data": result["hex_geojson"] }
+        return {
+            "hex_geojson": result["hex_geojson"],
+            "legend": result["legend"]
+        }
     except HTTPException:
         raise
     except Exception as err:

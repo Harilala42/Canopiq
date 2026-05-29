@@ -4,13 +4,17 @@ import useAnalyticsStore from "@/stores/useAnalyticsStore";
 import { useEffect, useContext, useCallback } from "react";
 import { AlertContext } from "@/contexts/alertContext";
 import { AnalysisAPI } from "@/api/analysis.api";
+import { MapData } from "@/types/map";
 
 export const useMapController = () => {
     const map = useMapStore((state) => state.map);
     const coords = useMapStore((state) => state.coords); 
     const location = useMapStore((state) => state.location);
-    const geoAnalysisId = useAnalyticsStore((state) => state.geo_analysis_id);
+    const legend = useMapStore((state) => state.legend);
+
     const setMap = useMapStore((state) => state.setMap);
+    const setLegend = useMapStore((state) => state.setLegend);
+    const geoAnalysisId = useAnalyticsStore((state) => state.geo_analysis_id);
 
     const currentQuery = useChatStore((state) => state.currentQuery);
 
@@ -20,10 +24,11 @@ export const useMapController = () => {
         if (!currentQuery?.id || !geoAnalysisId) return;
 
         try {
-            const oldMap = await AnalysisAPI.getMap(currentQuery.id, geoAnalysisId);
-            if (!oldMap?.data) throw new Error("No map data received");
+            const oldMap: MapData = await AnalysisAPI.getMap(currentQuery.id, geoAnalysisId);
+            if (!oldMap) throw new Error("No map data received");
 
-            setMap(oldMap.data);
+            setLegend(oldMap.legend);
+            setMap(oldMap.hex_geojson);
         } catch (err: any) {
             console.error("Error fetching geo-analysis map:", err);
             showAlert(false, "Failed to retrieve map. Please try again later.");
@@ -37,6 +42,7 @@ export const useMapController = () => {
     return {
         map,
         coords,
-        location
+        location,
+        legend
     }
 };

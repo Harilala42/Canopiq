@@ -1,3 +1,10 @@
+export interface HexProperties
+{
+    color: string;
+    hex_id: string;
+    biomass: number;
+}
+
 export interface GeoJSONFeature {
     type: "Feature";
     id: string;
@@ -6,15 +13,23 @@ export interface GeoJSONFeature {
         type: "Polygon";
         coordinates: number[][][];
     };
-    properties: {
-        color: string;
-        hex_id: string;
-        biomass: number;
-    };
+    properties: HexProperties;
 }
 
 export interface HexGeoJSONData {
     type: "FeatureCollection";
     bbox?: [number, number, number, number];
     features: GeoJSONFeature[];
+}
+
+export interface LegendData
+{
+    color: string;
+    range: string;
+}
+
+export interface MapData
+{
+    hex_geojson: HexGeoJSONData;
+    legend: LegendData[];
 }

@@ -84,7 +84,8 @@ def save_geo_analysis(
         chat_id=chat_id,
         user_id=user_id,
         geo_analysis_id=response.data[0]["id"],
-        hex_geojson=gis_analysis["hex_geojson"]
+        hex_geojson=gis_analysis["hex_geojson"],
+        legend=gis_analysis["legend"]
     )
 
     return response.data if response and response.data else None
@@ -93,7 +94,8 @@ def save_analysis_h3_cells(
     chat_id: str, 
     user_id: str, 
     geo_analysis_id: str, 
-    hex_geojson: dict
+    hex_geojson: dict,
+    legend: list
 ):
     client = supabase()
 
@@ -101,7 +103,8 @@ def save_analysis_h3_cells(
         "chat_id": chat_id,
         "user_id": user_id,
         "geo_analysis_id": geo_analysis_id,
-        "hex_geojson": hex_geojson
+        "hex_geojson": hex_geojson,
+        "legend": legend
     }).execute()
 
 def get_analysis_h3_cells(
@@ -112,7 +115,7 @@ def get_analysis_h3_cells(
     client = supabase()
     
     response = client.table("analysis_h3_cells") \
-        .select("hex_geojson") \
+        .select("hex_geojson, legend") \
         .eq("chat_id", chat_id) \
         .eq("user_id", user_id) \
         .eq("geo_analysis_id", geo_analysis_id) \
