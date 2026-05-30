@@ -2,7 +2,7 @@ import os
 import ee
 import h3
 import geopandas as gpd
-from shapely.geometry import Polygon
+from h3 import LatLngPoly
 from google.oauth2 import service_account
 
 service_account = os.environ.get("SERVICE_ACCOUNT")
@@ -22,9 +22,11 @@ authenticate_gee()
 def compute_gee_analysis(
     bbox, 
     start_time, end_time, 
-    dataset_type="tree_cover"
+    dataset_type="tree_cover",
+    scale=1000
 ):
     roi = ee.Geometry.Rectangle(bbox)
+    h3_vector_col = generate_gee_h3_grid(bbox)
     
     sen2_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
     reference_img, palette = get_dataset_col(dataset_type, start_time, end_time, roi)
@@ -32,24 +34,41 @@ def compute_gee_analysis(
     fit_stats = median_ndvi.addBands(reference_img).reduceRegion(
         reducer=ee.Reducer.linearFit(),
         geometry=roi,
-        scale=250,
+        scale=scale,
         bestEffort=True
     )
-    scale = ee.Number(fit_stats.get('scale'))
-    offset = ee.Number(fit_stats.get('offset'))
+    scale_factor = ee.Number(fit_stats.get('scale'))
+    offset_factor = ee.Number(fit_stats.get('offset'))
 
-    predicted_img = median_ndvi.multiply(scale).add(offset).updateMask(median_ndvi.gt(0)).rename('biomass')
-    vmin, vmax, points_gdf = extract_gee_image_to_points(predicted_img, roi, palette)
-    final_hex_gdf = aggregate_points_to_h3_grid(points_gdf)
+    predicted_img = median_ndvi \
+        .multiply(scale_factor) \
+        .add(offset_factor) \
+        .updateMask(median_ndvi.gt(0)) \
+        .rename('biomass')
+    
+    vmin, vmax, hex_gdf = extract_gee_image_to_h3_grid(
+        predicted_img=predicted_img, 
+        roi=roi, scale=scale,
+        h3_vector_col=h3_vector_col, 
+        palette=palette
+    )
 
-    processed_ts = compute_time_series(sen2_col, roi, scale, offset, start_time, end_time)
+    processed_ts = compute_time_series(
+        collection=sen2_col, 
+        roi=roi, 
+        scale=scale_factor, 
+        offset=offset_factor, 
+        start_date=start_time, 
+        end_date=end_time
+    )
+
     land_cover_percent = compute_landcover_composition(roi)
     
     legend_data = generate_legend_intervals(vmin, vmax, palette)
     area_ha = roi.area().divide(10000).getInfo()
 
     return {
-        "hex_geojson": final_hex_gdf.__geo_interface__,
+        "hex_geojson": hex_gdf.__geo_interface__,
         "time_series": processed_ts,
         "land_cover": land_cover_percent,
         "area_ha": round(area_ha, 2),
@@ -88,7 +107,7 @@ def get_dataset_col(dataset_type, start_time, end_time, roi):
     else:
         ref_col = ee.ImageCollection("MODIS/006/MOD44B").select('Percent_Tree_Cover')
         reference_img = ref_col.filterDate(start_time, end_time).mean().clip(roi)
-        palette = ['#ffffff', '#afce56', '#196e0c']
+        palette = ['#ffffff', '#afce56', "#3fa34d", '#196e0c']
     return reference_img, palette
 
 def generate_legend_intervals(min_val, max_val, palette):
@@ -110,18 +129,44 @@ def generate_legend_intervals(min_val, max_val, palette):
 
     return legend
 
-def extract_gee_image_to_points(
+def generate_gee_h3_grid(bbox, h3_resolution=8):
+    """
+    Generates H3 hex IDs for a bounding box and converts them 
+    directly into an Earth Engine FeatureCollection.
+    """
+    xmin, ymin, xmax, ymax = bbox
+    polygon = LatLngPoly([
+        (ymin, xmin),
+        (ymin, xmax),
+        (ymax, xmax),
+        (ymax, xmin),
+        (ymin, xmin)
+    ])
+
+    hex_ids = h3.polygon_to_cells(polygon, h3_resolution)
+    
+    ee_features = []
+    for hex_id in hex_ids:
+        boundary = h3.cell_to_boundary(hex_id)
+        flipped_boundary = [[lon, lat] for lat, lon in boundary]
+        
+        gee_geom = ee.Geometry.Polygon(flipped_boundary)
+        feat = ee.Feature(gee_geom, {'hex_id': hex_id})
+        ee_features.append(feat)
+        
+    return ee.FeatureCollection(ee_features)
+
+def extract_gee_image_to_h3_grid(
     predicted_img,
-    roi, 
-    palette,
-    scale=250
+    roi, scale,
+    h3_vector_col,
+    palette
 ):
     """
-    Computes local min/max statistics for an image over an ROI, applies a cloud-baked
-    color visualization palette, samples the pixels as points, and exports them 
-    directly into a native GeoPandas GeoDataFrame.
+    Reduces imagery data directly inside the provided H3 FeatureCollection 
+    and returns a clean, fully aggregated GeoPandas GeoDataFrame.
     """
-    local_stats = predicted_img.reduceRegion(
+    stats = predicted_img.reduceRegion(
         reducer=ee.Reducer.minMax(),
         geometry=roi,
         scale=scale,
@@ -129,69 +174,33 @@ def extract_gee_image_to_points(
     ).getInfo()
 
     band_name = predicted_img.bandNames().get(0).getInfo()
-    vmin = round(local_stats.get(f'{band_name}_min', 0), 2)
-    vmax = round(local_stats.get(f'{band_name}_max', 100), 2)
+    vmin = round(stats.get(f'{band_name}_min', 0), 2)
+    vmax = round(stats.get(f'{band_name}_max', 100), 2)
 
-    visualized_img = predicted_img.visualize(
-        min=vmin,
-        max=vmax,
-        palette=palette
-    )
-
-    export_img = predicted_img.addBands(visualized_img)
-
-    pixel_samples = export_img.sampleRegions(
-        collection=ee.FeatureCollection([ee.Feature(roi)]),
+    reduced_hex = predicted_img.reduceRegions(
+        collection=h3_vector_col,
+        reducer=ee.Reducer.mean(),
         scale=scale,
-        geometries=True
+        tileScale=4
     )
+    cleaned_hex = reduced_hex.filter(ee.Filter.gt('mean', 0))
 
-    points_gdf = ee.data.computeFeatures({
-        'expression': pixel_samples,
+    hex_gdf = ee.data.computeFeatures({
+        'expression': cleaned_hex,
         'fileFormat': 'GEOPANDAS_GEODATAFRAME'
     })
-    points_gdf.crs = 'EPSG:4326'
+    hex_gdf.crs = 'EPSG:4326'
 
-    return vmin, vmax, points_gdf
+    def map_val_to_color(val):
+        if vmax == vmin: return palette[0]
+        t = (val - vmin) / (vmax - vmin)
+        t = max(0.0, min(1.0, t))
+        idx = int(t * (len(palette) - 1))
+        return palette[idx]
+    hex_gdf = hex_gdf.rename(columns={'mean': band_name})
+    hex_gdf["color"] = hex_gdf[band_name].apply(map_val_to_color)
 
-def aggregate_points_to_h3_grid(points_gdf, h3_resolution=8):
-    """
-    Takes a GeoPandas GeoDataFrame of points containing 'biomass', 'vis-red', 
-    'vis-green', and 'vis-blue' bands. Maps them to an H3 grid, averages the metrics, 
-    and returns a clean, vector-ready GeoDataFrame.
-    """
-    if points_gdf.empty:
-        return gpd.GeoDataFrame()
-    
-    def convert_rgb_to_hex(row, rc='vis-red', gc='vis-green', bc='vis-blue'):
-        return '#{:02x}{:02x}{:02x}'.format(
-            int(row[rc]), 
-            int(row[gc]), 
-            int(row[bc])
-        )
-
-    points_gdf['color'] = points_gdf.apply(
-        lambda r: convert_rgb_to_hex(r), 
-        axis=1
-    )
-
-    points_gdf['hex_id'] = points_gdf.geometry.apply(
-        lambda geom: h3.latlng_to_cell(geom.y, geom.x, h3_resolution)
-    )
-
-    hex_summary = points_gdf.groupby('hex_id').agg({
-        'biomass': 'mean',
-        'color': 'first'
-    }).reset_index()
-
-    def cell_to_shapely_polygon(hex_str):
-        boundary = h3.cell_to_boundary(hex_str)
-        flipped_boundary = [(lon, lat) for lat, lon in boundary]
-        return Polygon(flipped_boundary)
-
-    hex_summary['geometry'] = hex_summary['hex_id'].apply(cell_to_shapely_polygon)
-    
-    return gpd.GeoDataFrame(hex_summary, geometry='geometry', crs="EPSG:4326")
+    return vmin, vmax, hex_gdf
 
 def compute_time_series(
     collection, 

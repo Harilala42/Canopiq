@@ -13,7 +13,7 @@ export const Button = ({ children, ...props }: ButtonProps):JSX.Element => {
             fontSize="md" fontWeight="bold" borderRadius="xl"
             type="submit" className="title-styles" color="text"
             spinner={<Spinner size="sm" />}
-            _Canceled={{ opacity: 0.9 }}
+            _disabled={{ opacity: 0.9 }}
             { ...props }
         >
             { children }

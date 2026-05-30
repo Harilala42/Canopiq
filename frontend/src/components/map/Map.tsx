@@ -56,6 +56,7 @@ const Map = (): JSX.Element => {
                 zoom={5}
                 zoomControl={false}
                 style={{ height: "100%", width: "100%" }}
+                preferCanvas={true}
             >
                 <ZoomControl position="topright" />
 
@@ -64,7 +65,7 @@ const Map = (): JSX.Element => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {map && map.features && map.features.length > 0 && (
+                {map && map.features?.length > 0 && (
                     <MapHexGrid mapData={map} />
                 )}
 

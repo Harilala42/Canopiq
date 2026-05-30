@@ -57,9 +57,11 @@ const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
         }
     }, [datasetMetaData]);
 
+    console.log("Rendering MapHexGrid with features:", mapData);
+
     return (
         <GeoJSON
-            key={`h3-grid-${mapData.features[0]?.id || 'empty'}-${mapData.features.length}`}
+            key={`h3-grid-${mapData.features[0].id}-${mapData.features.length}`}
             data={mapData}
             style={getHexStyle}
             onEachFeature={onEachHexagon}
