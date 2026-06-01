@@ -24,7 +24,7 @@ const MenuItem = memo(({
             value={name} onClick={onClick}
             onMouseEnter={() => setIsCanceleded(true)}
             onMouseLeave={() => setIsCanceleded(false)}
-            _Canceled={{ 
+            _disabled={{ 
                 bg: isDark ? "variantDark" : "variantLight",
                 cursor: "pointer"
             }}

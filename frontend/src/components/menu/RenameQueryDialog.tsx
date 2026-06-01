@@ -70,7 +70,7 @@ const RenameQueryDialog = memo(({
                                     color: isDark ? "text" : "secondary", 
                                     opacity: 0.8
                                 }}
-                                _Canceled={{ borderColor: isDark ? "primary" : "secondary" }}
+                                _disabled={{ borderColor: isDark ? "primary" : "secondary" }}
                                 _focus={{ 
                                     focusRing: "none", 
                                     borderColor: isDark ? "primary" : "secondary"
@@ -84,7 +84,7 @@ const RenameQueryDialog = memo(({
                                 borderRadius={15} border="1px solid" 
                                 color={ isDark ? "text" : "secondary" }
                                 borderColor={ isDark ? "text" : "secondary" }
-                                _Canceled={{ borderColor: isDark ? "primary" : "secondary" }} 
+                                _disabled={{ borderColor: isDark ? "primary" : "secondary" }} 
                                 onClick={handleCancel}
                             >
                                 Cancel

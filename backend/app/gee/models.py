@@ -1,7 +1,6 @@
 import os
 import ee
 import h3
-import geopandas as gpd
 from h3 import LatLngPoly
 from google.oauth2 import service_account
 
@@ -22,13 +21,15 @@ authenticate_gee()
 def compute_gee_analysis(
     bbox, 
     start_time, end_time, 
-    dataset_type="tree_cover",
-    scale=1000
+    dataset_type="tree_cover"
 ):
     roi = ee.Geometry.Rectangle(bbox)
-    h3_vector_col = generate_gee_h3_grid(bbox)
+    area_ha = roi.area().divide(10000).getInfo()
+
+    h3_resolution, scale = get_dynamic_h3_resolution_and_scale(area_ha)
+    h3_vector_col = generate_gee_h3_grid(bbox, h3_resolution)
     
-    sen2_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
+    ts_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
     reference_img, palette = get_dataset_col(dataset_type, start_time, end_time, roi)
 
     fit_stats = median_ndvi.addBands(reference_img).reduceRegion(
@@ -54,7 +55,7 @@ def compute_gee_analysis(
     )
 
     processed_ts = compute_time_series(
-        collection=sen2_col, 
+        collection=ts_col, 
         roi=roi, 
         scale=scale_factor, 
         offset=offset_factor, 
@@ -63,9 +64,7 @@ def compute_gee_analysis(
     )
 
     land_cover_percent = compute_landcover_composition(roi)
-    
     legend_data = generate_legend_intervals(vmin, vmax, palette)
-    area_ha = roi.area().divide(10000).getInfo()
 
     return {
         "hex_geojson": hex_gdf.__geo_interface__,
@@ -78,7 +77,7 @@ def compute_gee_analysis(
 def get_sentinel_ndvi(roi, start_time, end_time):
     """
     Fetches and masks Sentinel-2 collection,
-    returning the collection and a median NDVI.
+    returning the time series collection and a median NDVI.
     """
     
     def mask_s2(img):
@@ -87,13 +86,32 @@ def get_sentinel_ndvi(roi, start_time, end_time):
         cirrus = qa.bitwiseAnd(1 << 11).eq(0)
         return img.updateMask(cloud.And(cirrus)) 
 
-    sen2 = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    boa_col = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(roi)
-        .filterDate(start_time, end_time)
+        .filterDate(max(start_time, "2015-06-23"), end_time)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
         .map(mask_s2))
+    
+    toa_col = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+        .filterBounds(roi)
+        .filterDate(max(start_time, "2015-06-23"), end_time)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
+        .map(mask_s2))
+    
+    if boa_col.size().getInfo() > 0:
+        sen2_col = boa_col
+    else:
+        sen2_col = toa_col
 
-    median_ndvi = sen2.median().normalizedDifference(['B8', 'B4']).rename('ndvi')
-    return sen2, median_ndvi
+    ts_col = toa_col
+    if ts_col.size().getInfo() == 0:
+        raise Exception(
+            f"No Sentinel-2 imagery found "
+            f"between {start_time} and {end_time}."
+        )
+
+    median_ndvi = sen2_col.median().normalizedDifference(['B8', 'B4']).rename('ndvi')
+    return ts_col, median_ndvi
 
 def get_dataset_col(dataset_type, start_time, end_time, roi):
     """
@@ -128,6 +146,23 @@ def generate_legend_intervals(min_val, max_val, palette):
         })
 
     return legend
+
+def get_dynamic_h3_resolution_and_scale(area_ha):
+    """
+    Determines H3 resolution and corresponding GEE extraction scale 
+    based on area size to balance detail and performance.
+    """
+    area_km2 = area_ha / 100
+    if area_km2 >= 10000:
+        raise Exception(
+            f"Requested area ({round(area_km2)} km²) exceeds the maximum "
+            f"regional processing limit of 10,000 km²."
+        )
+    
+    h3_resolution = 8 if area_km2 < 1000 else 7
+    current_scale = 500 if h3_resolution == 8 else 1000
+
+    return h3_resolution, current_scale
 
 def generate_gee_h3_grid(bbox, h3_resolution=8):
     """
@@ -204,9 +239,10 @@ def extract_gee_image_to_h3_grid(
 
 def compute_time_series(
     collection, 
-    roi, 
+    roi,
     scale, offset, 
-    start_date, end_date
+    start_date, end_date,
+    roi_scale=1000
 ):
     """
     Generates a monthly environmental time series from a Sentinel-2 image collection.
@@ -224,28 +260,44 @@ def compute_time_series(
         month_end = month_start.advance(1, 'month')
 
         monthly_collection = collection.filterDate(month_start, month_end)
-        monthly_img = monthly_collection.median()
+        has_images = monthly_collection.size().gt(0)
 
-        ndvi = monthly_img.normalizedDifference(['B8', 'B4']).rename('ndvi')
-        pred = ndvi.multiply(scale).add(offset).max(0).rename('pred')
+        def calculate_metrics():
+            monthly_img = monthly_collection.median()
+            ndvi = monthly_img.normalizedDifference(['B8', 'B4']).rename('ndvi')
+            pred = ndvi.multiply(scale).add(offset).max(0).rename('pred')
 
-        stats = ndvi.addBands(pred).reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=roi,
-            scale=250,
-            bestEffort=True
-        )
+            stats = ndvi.addBands(pred).reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=roi,
+                scale=roi_scale,
+                bestEffort=True
+            )
+            return ee.Feature(None, {
+                'date': month_start.format('YYYY-MM'),
+                'ndvi': stats.get('ndvi'),
+                'pred': stats.get('pred'),
+                'valid': 1
+            })
 
-        return ee.Feature(None, {
-            'date': month_start.format('YYYY-MM'),
-            'ndvi': stats.get('ndvi'),
-            'pred': stats.get('pred')
-        })
+        def return_empty_feature():
+            return ee.Feature(None, {
+                'date': month_start.format('YYYY-MM'),
+                'ndvi': None,
+                'pred': None,
+                'valid': 0
+            })
+
+        return ee.Feature(ee.Algorithms.If(
+            has_images, 
+            calculate_metrics(),
+            return_empty_feature()
+        ))
 
     fc = ee.FeatureCollection(months.map(monthly_feature))
-    fc = fc.filter(ee.Filter.notNull(['ndvi', 'pred']))
+    clean_fc = fc.filter(ee.Filter.eq('valid', 1))
 
-    return [f['properties'] for f in fc.getInfo()['features']]
+    return [f['properties'] for f in clean_fc.getInfo()['features']]
 
 def compute_landcover_composition(roi, scale=10):
     """

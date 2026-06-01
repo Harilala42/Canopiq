@@ -111,7 +111,7 @@ function Login(): JSX.Element {
                                 >
 									<Flex justify="flex-end" w="full" mt={1}>
                                         <Link asChild className="text-styles" fontSize="xs" fontWeight="bold" color={isDark ? "primary" : "secondary"}
-                                            _Canceled={{ textDecoration: "underline" }}
+                                            _disabled={{ textDecoration: "underline" }}
 											aria-label="Forgot password?"
                                         >
                                             <RouterLink to="/">Forgot password?</RouterLink>
@@ -138,7 +138,7 @@ function Login(): JSX.Element {
 										borderColor={ isDark ? "text" : "primary" }
 										onClick={handleGoogleAuth} disabled={isGoogleAuth}
 										aria-label="Authenticate via Google account"
-										_Canceled={{ bg: isDark ? "text" : "primary" }}
+										_disabled={{ bg: isDark ? "text" : "primary" }}
 									>
 										{ !isGoogleAuth ? <Image src={googleIcon} alt="Image, Google Logo" w="24px" /> : <Spinner color={isDark ? "primary" : "secondary"} size="sm" /> }
 									</IconButton>
@@ -149,7 +149,7 @@ function Login(): JSX.Element {
 									Not a member yet?{" "}
 									<Link asChild
 										color={isDark ? "primary" : "secondary"}
-										_Canceled={{ textDecoration: "underline" }}
+										_disabled={{ textDecoration: "underline" }}
 										aria-label="Not a member yet ?"
 										fontWeight="bold"
 									>

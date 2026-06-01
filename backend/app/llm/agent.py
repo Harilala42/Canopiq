@@ -27,7 +27,7 @@ def classify_user_request(user_prompt: str, recent_context: list = None) -> str:
         🎯 OBJECTIVE:
         Categorize incoming text to exactly one route:
         1. 'conversational': Greetings, casual questions, or follow-up explanations about a previous map output.
-        2. 'impossible_request': Requests for non-Earth locations (Moon, Mars) or years before satellite history (anything before 1970 like 'France in 1520').
+        2. 'impossible_request': Requests for non-Earth locations (Moon, Mars) or years before Sentinel-2 satellite launch (anything before 2015 like 'France in 1520').
         3. 'geospatial_analysis': Direct commands to analyze or map environmental factors (tree cover, carbon density) on real Earth spots.
     """
 
@@ -234,7 +234,7 @@ def execute_contextual_chat(
             Politely explain the platform boundaries using these exact criteria:
             
             - SPATIAL BOUNDS: Canopiq only analyzes locations existing on planet Earth (not the Moon, Mars, exoplanets, etc.).
-            - TEMPORAL BOUNDS: We only support time ranges within the modern satellite observation era since 1980. Deep historical requests (e.g., "France in 1520") cannot be analyzed because imaging sensor grids did not exist.
+            - TEMPORAL BOUNDS: We only support time ranges since the Sentinel-2 satellite launch date on 23 June 2015. Deep historical requests (e.g., "France in 1520") cannot be analyzed because Sentinel-2 imagery data did not exist before then.
             - DATASET BOUNDS: We strictly process environmental metrics related to 'carbon_density' and 'tree_cover'.
             
             Tone: Academic, helpful, and direct. Guide them to rephrase using valid parameters.
