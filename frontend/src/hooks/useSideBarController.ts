@@ -1,17 +1,24 @@
+import useMapStore from '@/stores/useMapStore';
 import useChatStore from '@/stores/useChatStore';
+import useMessageStore from '@/stores/useMessageStore';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
-import { useState, useEffect, useCallback, useMemo, useContext } from 'react';
+import { useState, useEffect, useCallback, useMemo, useContext, use } from 'react';
 import { AlertContext } from '@/contexts/alertContext';
+import { supabase } from "@/utils/supabase.utils";
 import { ChatAPI } from '@/api/chat.api';
 import { ChatData } from '@/types/chat';
 
 export const useSideBarController = () => {
     const queries = useChatStore((state) => state.queries);
-    const addQuery = useChatStore((state) => state.addQuery);
-    const setQueries = useChatStore((state) => state.setQueries);
+    const currentQuery = useChatStore((state) => state.currentQuery);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
-    const openChart = useAnalyticsStore((state) => state.openChart);
-    const openChat = useChatStore((state) => state.openChat);
+    const setQueries = useChatStore((state) => state.setQueries);
+    const updateQuery = useChatStore((state) => state.updateQuery);
+    const addQuery = useChatStore((state) => state.addQuery);
+
+    const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
+    const resetMessages = useMessageStore((state) => state.resetMessages);
+    const clearMap = useMapStore((state) => state.clearMap);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -58,14 +65,41 @@ export const useSideBarController = () => {
     }, [addQuery, showAlert]);
 
     const handleSelectQuery = useCallback(async (query: ChatData) => {
+        resetAnalyticsData();
+        resetMessages();
+        clearMap();
+
         setCurrentQuery(query);
-        openChart();
-        openChat();
-    }, [setCurrentQuery, openChart, openChat]);
+    }, [setCurrentQuery, resetAnalyticsData, resetMessages]);
 
     useEffect(() => {
         fetchQueries();
     }, [fetchQueries]);
+
+    useEffect(() => {
+        if (!currentQuery?.id) return;
+
+        const channel = supabase
+            .channel('chats-channel')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chats',
+                    filter: `id=eq.${currentQuery.id}`
+                },
+                (payload) => {
+                    const { id, title } = payload.new;
+                    updateQuery(id, { title });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentQuery?.id, updateQuery]);
 
     return {
         queries,

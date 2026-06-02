@@ -79,6 +79,12 @@ const ChartHeader = memo(({
 							{tittle}
 						</Text>
 					)}
+
+					{!tittle && isLoading && (
+						<VStack h="100%" justify="center" ml={2} mb={2}>
+							<Spinner color={isDark ? "text" : "secondary"} size="sm" />
+						</VStack>
+					)}
 				</VStack>
 			)}
 		</HStack>

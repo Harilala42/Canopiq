@@ -38,7 +38,7 @@ def save_geo_analysis(
     tree_cover_metadata = {
         "legend": "Percent Tree Cover",
         "description": "Fraction of land covered by tree canopy",
-        "source": "MODIS/006/MOD44B",
+        "source": "MODIS/061/MOD44B",
         "unit": "%"
     }
 

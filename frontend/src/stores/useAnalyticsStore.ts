@@ -24,6 +24,7 @@ interface AnalyticsState
 	land_cover: LandCoverData | null;
 
 	openChart: () => void;
+	closeChart: () => void;
 	toggleIsChartOpen: () => void;
 
 	setGeoAnalysisId: (id: string) => void;
@@ -73,6 +74,8 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
 	openChart: () => set({ isChartOpen: true }),
 
+	closeChart: () => set({ isChartOpen: false }),
+
 	toggleIsChartOpen: () =>
 		set((state) => ({
 			isChartOpen: !state.isChartOpen,
@@ -101,7 +104,6 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
     })),
 
 	resetAnalyticsData: () => set({
-		isChartOpen: false,
 		dataset: null,
 		range_times: null,
 		land_cover: null,

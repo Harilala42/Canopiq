@@ -30,9 +30,9 @@ def compute_gee_analysis(
     h3_vector_col = generate_gee_h3_grid(bbox, h3_resolution)
     
     ts_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
-    reference_img, palette = get_dataset_col(dataset_type, start_time, end_time, roi)
+    ref_img, palette = get_dataset_col(dataset_type, start_time, end_time, roi)
 
-    fit_stats = median_ndvi.addBands(reference_img).reduceRegion(
+    fit_stats = median_ndvi.addBands(ref_img).reduceRegion(
         reducer=ee.Reducer.linearFit(),
         geometry=roi,
         scale=scale,
@@ -85,23 +85,18 @@ def get_sentinel_ndvi(roi, start_time, end_time):
         cloud = qa.bitwiseAnd(1 << 10).eq(0)
         cirrus = qa.bitwiseAnd(1 << 11).eq(0)
         return img.updateMask(cloud.And(cirrus)) 
+    
+    def make_col(collection_id):
+        return (ee.ImageCollection(collection_id)
+            .filterBounds(roi)
+            .filterDate(max(start_time, "2015-06-23"), end_time)
+            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
+            .select(['B2', 'B3', 'B4', 'B8', 'QA60'])
+            .map(mask_s2))
 
-    boa_col = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-        .filterBounds(roi)
-        .filterDate(max(start_time, "2015-06-23"), end_time)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
-        .map(mask_s2))
-    
-    toa_col = (ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
-        .filterBounds(roi)
-        .filterDate(max(start_time, "2015-06-23"), end_time)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
-        .map(mask_s2))
-    
-    if boa_col.size().getInfo() > 0:
-        sen2_col = boa_col
-    else:
-        sen2_col = toa_col
+    boa_col = make_col("COPERNICUS/S2_SR_HARMONIZED")
+    toa_col = make_col("COPERNICUS/S2_HARMONIZED")
+    sen2_col = boa_col if boa_col.size().getInfo() > 0 else toa_col
 
     ts_col = toa_col
     if ts_col.size().getInfo() == 0:
@@ -120,13 +115,22 @@ def get_dataset_col(dataset_type, start_time, end_time, roi):
 
     if dataset_type == "carbon_density":
         ref_col = ee.ImageCollection("WCMC/biomass_carbon_density/v1_0")
-        reference_img = ref_col.first().clip(roi)
+        ref_img = ref_col.first().clip(roi)
         palette = ['#a34b3c', '#b37a3f', '#4b907f', '#287662']
     else:
-        ref_col = ee.ImageCollection("MODIS/006/MOD44B").select('Percent_Tree_Cover')
-        reference_img = ref_col.filterDate(start_time, end_time).mean().clip(roi)
+        ref_col = ee.ImageCollection("MODIS/061/MOD44B").select('Percent_Tree_Cover')
+        ref_img = ref_col.filterDate(start_time, end_time).mean().clip(roi)
         palette = ['#ffffff', '#afce56', "#3fa34d", '#196e0c']
-    return reference_img, palette
+
+    ref_bands = ref_img.bandNames().getInfo()
+    if not ref_bands:
+        raise Exception(
+            f"The reference dataset '{dataset_type}' contains no valid data "
+            f"within the selected region bounding box "
+            f"between {start_time} and {end_time}."
+        )
+
+    return ref_img, palette
 
 def generate_legend_intervals(min_val, max_val, palette):
     """
@@ -306,7 +310,7 @@ def compute_landcover_composition(roi, scale=10):
     """
 
     ref_col = ee.ImageCollection("ESA/WorldCover/v200")
-    reference_img = ref_col.first().clip(roi)
+    ref_img = ref_col.first().clip(roi)
 
     class_info = {
         10: {
@@ -355,7 +359,7 @@ def compute_landcover_composition(roi, scale=10):
         }
     }
 
-    histogram = reference_img.reduceRegion(
+    histogram = ref_img.reduceRegion(
         reducer=ee.Reducer.frequencyHistogram(),
         geometry=roi,
         scale=scale,

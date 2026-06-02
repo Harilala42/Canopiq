@@ -20,6 +20,7 @@ export const useChartController = () => {
 
 	const isOpen = useAnalyticsStore((state) => state.isChartOpen);
 	const openChart = useAnalyticsStore((state) => state.openChart);
+	const closeChart = useAnalyticsStore((state) => state.closeChart);
 	const onToggle = useAnalyticsStore((state) => state.toggleIsChartOpen);
 
     const currentQuery = useChatStore((state) => state.currentQuery);
@@ -81,13 +82,15 @@ export const useChartController = () => {
 		setIsLoading(true);
 		try {
 			const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
-			if (!oldAnalysis?.data) {
+			if (!oldAnalysis?.data || oldAnalysis.data.length === 0) {
+				isOpen && closeChart();
 				resetAnalyticsData();
 				return;
 			}
 
 			clearMap();
-			applyAnalysisData(oldAnalysis.data[oldAnalysis.data.length - 1]);
+			!isOpen && openChart();
+			applyAnalysisData(oldAnalysis.data[0]);
 		} catch (err: any) {
 			resetAnalyticsData();
 			console.error("Failed to retrieve insight:", err.message);

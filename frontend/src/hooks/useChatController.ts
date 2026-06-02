@@ -15,8 +15,9 @@ export const useChatController = () => {
     const setIsLoading = useMessageStore((state) => state.setIsLoading);
     const addMessage = useMessageStore((state) => state.addMessage);
     
-    const toggleChat = useChatStore((state) => state.toggleChat);
+    const openChat = useChatStore((state) => state.openChat);
     const closeChat = useChatStore((state) => state.closeChat);
+    const toggleChat = useChatStore((state) => state.toggleChat);
     const { showAlert } = useContext(AlertContext);
 
     const retrieveChatMessages = useCallback(async () => {
@@ -38,6 +39,7 @@ export const useChatController = () => {
     }, [currentQuery?.id, setMessages, setIsLoading, showAlert]);
 
     useEffect(() => {
+        openChat();
         if (!currentQuery?.id) return;
 
         const channel = supabase

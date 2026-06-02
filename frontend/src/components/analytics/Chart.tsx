@@ -15,7 +15,7 @@ import {
 	ChartBar
 } from "@/components/analytics";
 import { useContext, JSX } from "react";
-import { Spinner, VStack } from "@chakra-ui/react";
+import { Skeleton, VStack } from "@chakra-ui/react";
 import { ThemeContext } from "@/contexts/themeContext";
 import { useChartController } from "@/hooks/useChartController";
 
@@ -60,8 +60,11 @@ const Chart = (): JSX.Element => {
 			/>
 
 			{isOpen && isLoading && (
-				<VStack h="100%" justify="center">
-					<Spinner color={isDark ? "text" : "secondary"} />
+				<VStack h="100%" align="stretch" p={5} gap={5}>
+					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
+					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
+					<Skeleton height="200px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
+					<Skeleton height="200px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
 				</VStack>
 			)}
 

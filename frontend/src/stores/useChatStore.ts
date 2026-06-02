@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ChatData } from '@/types/chat';
+import useMapStore from '@/stores/useMapStore';
 import useMessageStore from "@/stores/useMessageStore";
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
@@ -47,11 +48,17 @@ const useChatStore = create<ChatState>((set, get) => ({
     })),
 
     deleteQuery: (id) => {
-        const { closeChat, currentQuery } = get();
+        const { currentQuery } = get();
+        const { clearMap } = useMapStore.getState();
+        const { resetMessages } = useMessageStore.getState();
+        const { closeChart, resetAnalyticsData } = useAnalyticsStore.getState();
+
         if (currentQuery?.id === id) {
-            closeChat();
-            useMessageStore.getState().resetMessages();
-            useAnalyticsStore.getState().resetAnalyticsData();
+            closeChart();
+
+            clearMap();
+            resetMessages();
+            resetAnalyticsData();
         }
 
         set((state) => ({

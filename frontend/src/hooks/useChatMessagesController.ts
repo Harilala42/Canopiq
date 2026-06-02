@@ -9,11 +9,12 @@ export const useChatMessagesController = () => {
     const isThinking = useMessageStore((state) => state.isThinking);
     const currentStatus = useMessageStore((state) => state.currentStatus);
     const errMessage = useMessageStore((state) => state.errorMessage);
-    const currentQuery = useChatStore((state) => state.currentQuery);
 
     const setCurrentStatus = useMessageStore((state) => state.setCurrentStatus);
     const setErrorMessage = useMessageStore((state) => state.setErrorMessage);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
+
+    const currentQuery = useChatStore((state) => state.currentQuery);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +28,7 @@ export const useChatMessagesController = () => {
         if (!currentQuery?.id) return;
 
         const channel = supabase
-            .channel(`job-statue-${currentQuery.id}`)
+            .channel(`job-status-${currentQuery.id}`)
             .on(
                 'postgres_changes',
                 { 
@@ -45,9 +46,8 @@ export const useChatMessagesController = () => {
                         setIsThinking(false); 
                     }
                     
-                    if (status === 'completed') {
+                    if (status === 'completed')
                         setIsThinking(false);
-                    }
                 }
             )
             .subscribe();

@@ -13,6 +13,7 @@ export const useChatInputController = () => {
     const addQuery = useChatStore((state) => state.addQuery);
     const currentQuery = useChatStore((state) => state.currentQuery);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
+    const setCurrentStatus = useMessageStore((state) => state.setCurrentStatus);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [isSending, setIsSending] = useState<boolean>(false);
@@ -47,6 +48,7 @@ export const useChatInputController = () => {
             const newMessage = await MessageAPI.send(query.id, inputValue);
             if (newMessage && newMessage?.message) {
                 addMessage(newMessage.message);
+                setCurrentStatus("queued");
                 setIsThinking(true);
                 setInputValue('');
             }

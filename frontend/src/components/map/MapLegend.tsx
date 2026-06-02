@@ -47,7 +47,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
                     color={isDark ? "text" : "secondary"}
                     fontSize="sm" fontWeight="semibold"
                 >
-                    {`${datasetMetaData.legend}: ${datasetMetaData.unit}`}
+                    {`${datasetMetaData?.legend}: ${datasetMetaData?.unit}`}
                 </Text>
             </VStack>
         </Box>

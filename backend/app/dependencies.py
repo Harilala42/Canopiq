@@ -52,7 +52,7 @@ async def rate_limiter(request: Request):
     client_ip = request.client.host if request.client else "unknown"
     key = f"rate_limit:{client_ip}"
     
-    rate_limit = 30
+    rate_limit = 50
     window = 60
 
     async with redis_client.pipeline(transaction=True) as pipe:
