@@ -63,8 +63,8 @@ const Chart = (): JSX.Element => {
 				<VStack h="100%" align="stretch" p={5} gap={5}>
 					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
 					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
-					<Skeleton height="200px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
-					<Skeleton height="200px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
+					<Skeleton flex={1} width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
+					<Skeleton flex={1} width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
 				</VStack>
 			)}
 

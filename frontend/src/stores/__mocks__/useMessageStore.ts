@@ -1,0 +1,40 @@
+import { jest } from '@jest/globals';
+
+const initialState = {
+  messages: [],
+  isLoading: false,
+  isThinking: false,
+  currentStatus: 'queued',
+  errorMessage: null,
+};
+
+export const mockSetMessages = jest.fn();
+export const mockSetIsThinking = jest.fn();
+export const mockSetIsLoading = jest.fn();
+export const mockSetCurrentStatus = jest.fn();
+export const mockSetErrorMessage = jest.fn();
+export const mockAddMessage = jest.fn();
+export const mockResetMessages = jest.fn();
+
+let mockState = {
+  ...initialState,
+  setMessages: mockSetMessages,
+  setIsThinking: mockSetIsThinking,
+  setIsLoading: mockSetIsLoading,
+  setCurrentStatus: mockSetCurrentStatus,
+  setErrorMessage: mockSetErrorMessage,
+  addMessage: mockAddMessage,
+  resetMessages: mockResetMessages,
+};
+
+const useMessageStore = jest.fn((selector: any) => {
+  return selector ? selector(mockState) : mockState;
+});
+
+(useMessageStore as any).getState = jest.fn(() => mockState);
+
+(useMessageStore as any).setState = jest.fn((newState: any, replace?: boolean) => {
+  mockState = replace ? { ...newState } : { ...mockState, ...newState };
+});
+
+export default useMessageStore;

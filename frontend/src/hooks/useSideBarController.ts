@@ -2,7 +2,7 @@ import useMapStore from '@/stores/useMapStore';
 import useChatStore from '@/stores/useChatStore';
 import useMessageStore from '@/stores/useMessageStore';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
-import { useState, useEffect, useCallback, useMemo, useContext, use } from 'react';
+import { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from "@/utils/supabase.utils";
 import { ChatAPI } from '@/api/chat.api';
@@ -12,9 +12,13 @@ export const useSideBarController = () => {
     const queries = useChatStore((state) => state.queries);
     const currentQuery = useChatStore((state) => state.currentQuery);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
+
     const setQueries = useChatStore((state) => state.setQueries);
     const updateQuery = useChatStore((state) => state.updateQuery);
     const addQuery = useChatStore((state) => state.addQuery);
+    
+    const isOpen = useChatStore((state) => state.isOpen);
+    const openChat = useChatStore((state) => state.openChat);
 
     const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
     const resetMessages = useMessageStore((state) => state.resetMessages);
@@ -32,6 +36,14 @@ export const useSideBarController = () => {
             return Number(b.is_pinned) - Number(a.is_pinned) || timeB - timeA;
         });
     }, [queries]);
+
+    const handleSelectQuery = useCallback(async (query: ChatData) => {
+        resetAnalyticsData();
+        resetMessages();
+        clearMap();
+
+        setCurrentQuery(query);
+    }, [setCurrentQuery, resetAnalyticsData, resetMessages]);
 
     const fetchQueries = useCallback(async () => {
         setIsLoading(true);
@@ -53,7 +65,9 @@ export const useSideBarController = () => {
         try {
             const newQuery = await ChatAPI.create();
             if (newQuery && newQuery.chat) {
+                !isOpen && openChat();
                 addQuery(newQuery.chat);
+                handleSelectQuery(newQuery.chat);
                 showAlert(true, "New query created successfully.");
             }
         } catch (err: any) {
@@ -62,15 +76,7 @@ export const useSideBarController = () => {
         } finally {
             setIsCreating(false);
         }
-    }, [addQuery, showAlert]);
-
-    const handleSelectQuery = useCallback(async (query: ChatData) => {
-        resetAnalyticsData();
-        resetMessages();
-        clearMap();
-
-        setCurrentQuery(query);
-    }, [setCurrentQuery, resetAnalyticsData, resetMessages]);
+    }, [addQuery, isOpen, openChat, showAlert, handleSelectQuery]);
 
     useEffect(() => {
         fetchQueries();

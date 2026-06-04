@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext } from "react";
 import { toaster } from "@/components/ui/toaster";
 
 export const AlertContext = createContext(null);

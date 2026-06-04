@@ -90,7 +90,7 @@ export const useChartController = () => {
 
 			clearMap();
 			!isOpen && openChart();
-			applyAnalysisData(oldAnalysis.data[0]);
+			applyAnalysisData(oldAnalysis.data[oldAnalysis.data.length - 1]);
 		} catch (err: any) {
 			resetAnalyticsData();
 			console.error("Failed to retrieve insight:", err.message);
