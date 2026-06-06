@@ -58,7 +58,7 @@ async def get_geo_analysis_map(
                 }
             )
         
-        result = geo_analysis_model.get_analysis_h3_cells(
+        result = geo_analysis_model.get_analysis_h3_grid_map(
             chat_id=chat_id, 
             user_id=user_id, 
             geo_analysis_id=payload.geo_analysis_id

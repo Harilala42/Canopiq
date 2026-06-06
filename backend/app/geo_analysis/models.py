@@ -80,7 +80,7 @@ def save_geo_analysis(
             }
         }).execute()
      
-    save_analysis_h3_cells(
+    save_analysis_h3_grid_map(
         chat_id=chat_id,
         user_id=user_id,
         geo_analysis_id=response.data[0]["id"],
@@ -90,7 +90,7 @@ def save_geo_analysis(
 
     return response.data if response and response.data else None
 
-def save_analysis_h3_cells(
+def save_analysis_h3_grid_map(
     chat_id: str, 
     user_id: str, 
     geo_analysis_id: str, 
@@ -99,7 +99,7 @@ def save_analysis_h3_cells(
 ):
     client = supabase()
 
-    client.table("analysis_h3_cells").insert({
+    client.table("analysis_h3_grid_map").insert({
         "chat_id": chat_id,
         "user_id": user_id,
         "geo_analysis_id": geo_analysis_id,
@@ -107,14 +107,14 @@ def save_analysis_h3_cells(
         "legend": legend
     }).execute()
 
-def get_analysis_h3_cells(
+def get_analysis_h3_grid_map(
     chat_id: str, 
     user_id: str, 
     geo_analysis_id: str
 ):
     client = supabase()
     
-    response = client.table("analysis_h3_cells") \
+    response = client.table("analysis_h3_grid_map") \
         .select("hex_geojson, legend") \
         .eq("chat_id", chat_id) \
         .eq("user_id", user_id) \

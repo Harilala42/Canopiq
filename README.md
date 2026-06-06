@@ -1,25 +1,135 @@
-# Canopiq: Collaborative GeoSpatial AI Agent 🛰️ for Environmental Research 🌱
+<p align="center">
+  <img src="./frontend/src/assets/logo.svg" alt="Canopiq Logo" width="150"/>
+</p>
 
-Canopiq bridges the gap between complex geospatial data and actionable insights. Built specifically for researchers and academic students, this full-stack application allows users to query specific geographic locations using natural language. By orchestrating a Large Language Model (Gemini AI) with Google Earth Engine (GEE) API, Canopiq processes environmental queries and delivers comprehensive biomass reports. The platform features a real-time, multi-user dashboard powered by Yjs, allowing distributed teams to analyze interactive maps and dynamic graphs simultaneously.
+# Canopiq: GeoAI Agent for Planetary Carbon 🛰️ & Environmental Monitoring 🌱
+
+Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize complex environmental monitoring and carbon accounting. By bridging the gap between natural language processing (NLP) and cloud-based remote sensing data, Canopiq enables scientists, academic researchers, and sustainability analysts to estimate biomass carbon sequestration for any geographic location using simple, conversational queries.
+
+Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist—asking natural language questions about local tree cover, biomass density, or land-use distribution—and instantly receive structured, visual, and scientifically sound analytical reports.
+
+![screenshot_1](./frontend//public/Screenshot_1.png)
+
+![screenshot_2](./frontend//public/Screenshot_2.png)
 
 # ✨ Key Features
 
-- AI-Driven Geospatial Analysis: Natural language querying powered by Gemini AI for localized biomass data extraction via Google Earth Engine.
+- **AI-Driven Geospatial Analysis:** When a user submits a natural language query, the AI pipeline (orchestrated via LangChain and powered by Gemini model) parses the user's intent. It extracts relevant spatial boundaries, timeframes, and environmental parameters, translating the prompt into executable GIS data tasks.
 
-- Real-Time Collaboration: Multi-user dashboard experience enabled by Yjs (CRDTs), allowing multiple researchers to view and interact with data simultaneously without conflict.
+- **GIS Data Processing & Spatial Indexing:** The translated requests are routed to Google Earth Engine (GEE), which performs heavy-lifting computations (such as linear regression models for biomass estimation) across massive satellite datasets from Sentinel-2. To optimize performance and ensure rapid query times, spatial data is binned using Uber's H3 Grid Indexing system, which groups geospatial regions into highly performant hexagonal clusters.
 
-- Dynamic Visualizations: Interactive mapping and graphing interfaces for instant, comprehensible environmental reporting.
-
-- Scalable Architecture: Built on a modern, asynchronous stack utilizing FastAPI and React.js, backed by Supabase for secure data management, storage, and authentication.
+- **Interactive Analytical Dashboard:** The computed results are streamed back in real-time to a responsive frontend dashboard built with React.js and TypeScript. Users can interactively explore their environmental reports via a dynamic React Leaflet 2D map displaying precise H3 grid overlays, accompanied by granular time-series data visualizations powered by Chart.js.
 
 # 🛠️ Tech Stack
 
-- Frontend: React.js, TypeScript, Chakra UI v3
+- **Frontend:** React.js, TypeScript, Zustand, Chakra UI v3, React Leaflet, Chart.js
 
-- Backend: FastAPI, Python
+- **Backend & Data Validation:** FastAPI, Python, Pydantic
 
-- Database & Auth: Supabase (PostgreSQL)
+- **Database & Auth & Synchronization:** Supabase (PostgreSQL & Real-Time WebSocket)
 
-- AI & Data: Gemini AI, Google Earth Engine (GEE) API
+- **AI & LLM Orchestration:** LangChain, Gemini AI
 
-- Collaboration: Yjs
+- **Geospatial Computing:** Google Earth Engine, GeoPandas, H3
+
+- **Unit/Integration Testing:** Jest, Playwright
+
+# ⚙️ Architecture
+
+![architecture_diagram](./frontend/public/architecture_diagram.png)
+
+# 🗄️ Database Schemas
+
+```mermaid
+erDiagram
+	users {
+		uuid id PK
+		text username "UNIQUE"
+		text email "UNIQUE"
+		text avatar_url
+		boolean is_active
+		timestamptz created_at
+		timestamptz updated_at
+	}
+
+	chats {
+		uuid id PK
+		uuid user_id FK
+		text title
+		timestamptz created_at
+		timestamptz updated_at
+		boolean is_pinned
+	}
+
+	messages {
+		uuid id PK
+		uuid chat_id FK
+		uuid user_id FK
+		text role "user | model"
+		text content
+		timestamptz created_at
+	}
+
+	geo_analysis {
+		uuid id PK
+		uuid chat_id FK
+		uuid user_id FK
+		text location
+		text dataset "tree_cover | carbon_density"
+		USER-DEFINED boundary
+		USER-DEFINED center_point
+		jsonb analytics
+		date start_year
+		date end_year
+		timestamptz created_at
+	}
+
+	jobs {
+		uuid id PK
+		uuid chat_id FK
+		uuid user_id FK
+		varchar celery_task_id
+		USER-DEFINED status "queued | ..."
+		text error_message
+		timestamptz created_at
+		timestamptz updated_at
+	}
+
+	analysis_h3_grid_map {
+		uuid geo_analysis_id PK, FK
+		uuid chat_id FK
+		uuid user_id FK
+		jsonb hex_geojson
+		jsonb legend
+	}
+
+	users ||--o{ chats : "creates"
+	users ||--o{ messages : "sends"
+	users ||--o{ geo_analysis : "owns"
+	users ||--o{ jobs : "triggers"
+	users ||--o{ analysis_h3_grid_map : "views"
+
+	chats ||--o{ messages : "contains"
+	chats ||--o{ geo_analysis : "has"
+	chats ||--o{ jobs : "tracks"
+	chats ||--o{ analysis_h3_grid_map : "displays"
+
+	geo_analysis ||--|| analysis_h3_grid_map : "maps_to"
+```
+
+# 📂 Project Structure
+
+Canopiq is architected as a production-ready monorepo consisting of a decoupled React frontend application and a domain-driven monolithic FastAPI backend pipeline:
+
+	Canopiq/
+	├── backend/               # 🐍 FastAPI & Python, Monolith Server, LangChain GeoAI Agent
+	├── frontend/              # ⚛️ React & TypeScript, Geospatial Dashboard UI
+	├── docker-compose.yml     # Orchestrator spinning up backend, frontend
+	├── Makefile               # Developer environment task automations (build, test, run)
+	└── README.md              # Main project hub documentation
+
+# 📖 Services Documentation
+
+For more details about technical implementations specific to each service, explore their dedicated documentation hubs: 
+- **[Frontend Architecture](./frontend/README.md)**: Explains the MVC-based pattern using Zustand and custom React Hooks controllers, alongside the Jest unit and and Playwright integration testing.
+- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangChain agent orchestration, Gemini prompt loops, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing optimization with GeoPandas.

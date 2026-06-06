@@ -1,5 +1,5 @@
 import app.chat.models as chat_models
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from app.llm.tasks import trigger_geospatial_request_analysis
 from app.dependencies import check_auth, rate_limiter
@@ -62,7 +62,8 @@ async def create_new_chat(request: Request):
 async def send_message_to_llm(
     chat_id: str,
     payload: MessageCreate,
-    request: Request
+    request: Request,
+    response: Response
 ):
     try:
         user_id = request.state.user.id
@@ -84,6 +85,7 @@ async def send_message_to_llm(
 
         trigger_geospatial_request_analysis.delay(chat_id, user_id, payload.message)
     
+        response.status_code = 202
         return { "message": user_message[0] }
     except HTTPException:
         raise
