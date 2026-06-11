@@ -4,6 +4,7 @@ import useAnalyticsStore from "@/stores/useAnalyticsStore";
 import { useEffect, useContext, useCallback } from "react";
 import { AlertContext } from "@/contexts/alertContext";
 import { AnalysisAPI } from "@/api/analysis.api";
+import { fetchWithRetry } from "@/utils/utils";
 import { MapData } from "@/types/map";
 
 export const useMapController = () => {
@@ -24,7 +25,9 @@ export const useMapController = () => {
         if (!currentQuery?.id || !geoAnalysisId) return;
 
         try {
-            const oldMap: MapData = await AnalysisAPI.getMap(currentQuery.id, geoAnalysisId);
+            const oldMap: MapData = await fetchWithRetry(
+                () => AnalysisAPI.getMap(currentQuery.id!, geoAnalysisId)
+            )
             if (!oldMap) throw new Error("No map data received");
 
             setLegend(oldMap.legend);

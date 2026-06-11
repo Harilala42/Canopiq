@@ -2,6 +2,7 @@ import { UserData } from "@/types/user";
 import { AuthAPI } from '@/api/auth.api';
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { AlertContext } from "@/contexts/alertContext";
+import { fetchWithRetry } from '@/utils/utils';
 
 export const AuthContext = createContext(null);
 
@@ -17,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
 	const checkSession = useCallback(async () => {
 		try {
-			const userData: UserData = await AuthAPI.getMe();
+			const userData: UserData = await fetchWithRetry(() => AuthAPI.getMe())
 			if (!userData) throw Error("User's data is missing");
 
 			setIsAuthenticated(true);

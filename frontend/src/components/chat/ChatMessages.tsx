@@ -7,6 +7,7 @@ import {
 	Spinner,
 	Icon
 } from "@chakra-ui/react";
+import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
 import { ThemeContext } from "@/contexts/themeContext";
@@ -83,7 +84,9 @@ const ChatMessages = memo((): JSX.Element => {
 								: "text"
 							}
 						>
-							{msg.content}
+							<ReactMarkdown>
+								{msg.content}
+							</ReactMarkdown>
 						</Text>
 					</VStack>
 					))

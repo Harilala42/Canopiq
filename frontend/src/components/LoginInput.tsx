@@ -45,7 +45,7 @@ export const LoginInput = ({ name, label, error, type="text", isInvalid=false, c
                         color: isDark ? "text" : "primary", 
                         opacity: 0.8
                     }}
-                    _disabled={{ borderColor: isDark ? "primary" : "secondary" }}
+                    _hover={{ borderColor: isDark ? "primary" : "secondary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
                     {...props}

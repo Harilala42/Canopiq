@@ -11,6 +11,7 @@ export interface ChatData
 export interface MessageData
 {
     id: string;
+    job_id: string;
     role: "user" | "model";
     content: string;
     created_at: string;

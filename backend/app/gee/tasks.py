@@ -1,19 +1,14 @@
 import app.gee.models as gee
 import app.llm.tasks as llm_task
 from app.geo_analysis.models import save_geo_analysis
-from app.gee.utils import update_job_progress
-from app.worker import app
+from app.job.models import update_job_progress
+from celery import shared_task
 
-@app.task(
-    bind=True, 
-    name="trigger_geospatial_computation", 
-    max_retries=2
-)
-def trigger_geospatial_computation(
+@shared_task(bind=True, max_retries=3)
+def compute_gis_dataset(
     self, 
-    chat_id: str, 
-    user_id: str, 
-    query: dict
+    query: dict,
+    job_id=job_id
 ):
     task_id = self.request.id
     update_job_progress(chat_id, user_id, task_id, "computing_gee")

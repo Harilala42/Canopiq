@@ -15,6 +15,7 @@ export const useChatMessagesController = () => {
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
 
     const currentQuery = useChatStore((state) => state.currentQuery);
+    const setCurrentJobId = useChatStore((state) => state.setCurrentJobId);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -38,24 +39,33 @@ export const useChatMessagesController = () => {
                     filter: `chat_id=eq.${currentQuery.id}` 
                 },
                 (payload) => {
-                    const { status, error_message } = payload.new;
+                    const { status, error_message, celery_task_id } = payload.new;
+                    setCurrentJobId(celery_task_id);
                     setCurrentStatus(status);
                     
                     if (status === 'failed') {
                         setErrorMessage(error_message);
+                        setCurrentJobId(null);
                         setIsThinking(false); 
-                    }
-                    
-                    if (status === 'completed')
+                    } else if (status === 'completed') {
                         setIsThinking(false);
+                        setCurrentJobId(null);
+                    }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('Job Channel status:', status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentQuery?.id, setCurrentStatus, setErrorMessage, setIsThinking]);
+    }, [
+        currentQuery?.id, 
+        setCurrentStatus, 
+        setErrorMessage, 
+        setIsThinking
+    ]);
 
     return {
         messages,

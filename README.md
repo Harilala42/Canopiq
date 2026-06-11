@@ -8,9 +8,7 @@ Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize comp
 
 Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist—asking natural language questions about local tree cover, biomass density, or land-use distribution—and instantly receive structured, visual, and scientifically sound analytical reports.
 
-![screenshot_1](./frontend//public/Screenshot_1.png)
-
-![screenshot_2](./frontend//public/Screenshot_2.png)
+![demo](./frontend//public/demo.gif)
 
 # ✨ Key Features
 
@@ -47,7 +45,6 @@ erDiagram
 		text username "UNIQUE"
 		text email "UNIQUE"
 		text avatar_url
-		boolean is_active
 		timestamptz created_at
 		timestamptz updated_at
 	}
@@ -132,4 +129,4 @@ Canopiq is architected as a production-ready monorepo consisting of a decoupled 
 
 For more details about technical implementations specific to each service, explore their dedicated documentation hubs: 
 - **[Frontend Architecture](./frontend/README.md)**: Explains the MVC-based pattern using Zustand and custom React Hooks controllers, alongside the Jest unit and and Playwright integration testing.
-- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangChain agent orchestration, Gemini prompt loops, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing optimization with GeoPandas.
+- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangChain MCP agentic pipeline, Gemini prompt loops, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing with GeoPandas.

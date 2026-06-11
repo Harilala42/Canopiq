@@ -4,7 +4,7 @@ import {
 	Textarea,
 	Spinner
 } from "@chakra-ui/react";
-import { LuSend } from "react-icons/lu";
+import { LuSend, LuSquare } from "react-icons/lu";
 import { memo, JSX, useContext } from "react";
 import { ThemeContext } from "@/contexts/themeContext";
 import { useChatInputController } from "@/hooks/useChatInputController";
@@ -20,7 +20,10 @@ const ChatInputBar = memo((): JSX.Element => {
 		setInputValue,
 		isSending,
 		isLoading,
-		handleSendMessage
+        isThinking,
+        isCanceling,
+		handleSendMessage,
+        handleCancelAnalysis
 	} = useChatInputController();
 
 	return (
@@ -61,11 +64,24 @@ const ChatInputBar = memo((): JSX.Element => {
 
                 <IconButton 
                     aria-label="Send Message" 
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || isLoading || isSending}
+                    onClick={!isThinking ? handleSendMessage : handleCancelAnalysis}
+                    disabled={
+                        isSending || isCanceling ||
+                        (isLoading && !isThinking) ||
+                        (!isThinking && !inputValue.trim())
+                    }
+                    bg={isDark ? "primary" : "secondary"}
                     borderRadius="full" size="md"
                 >
-                    { !isSending ? <LuSend /> : <Spinner color={isDark ? "text" : "secondary"} /> }
+                    { 
+                        isThinking ? (
+                            <LuSquare />
+                        ) : isSending ? (
+                            <Spinner color={isDark ? "text" : "secondary"} />
+                        ) : (
+                            <LuSend />
+                        )
+                    }
                 </IconButton>
             </HStack>
         </Popover.Footer>

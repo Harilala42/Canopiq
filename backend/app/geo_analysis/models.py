@@ -8,6 +8,7 @@ def get_geo_analysis(chat_id: str, user_id: str):
         .select("*") \
         .eq("chat_id", chat_id) \
         .eq("user_id", str(user_id)) \
+        .order("created_at", desc=False) \
         .execute()
     
     return response.data if response and response.data else []
@@ -58,7 +59,7 @@ def save_geo_analysis(
             "start_year": str(query["start_time"]),
             "end_year": str(query["end_time"]),
             "boundary": wkt_boundary,
-            "center_point": wkt_center,
+            "coordinates": wkt_center,
             "analytics": {
                 "stats": {
                     "global_average": global_average,

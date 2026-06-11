@@ -4,20 +4,25 @@ import { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { AlertContext } from '@/contexts/alertContext';
 import { MessageAPI } from '@/api/message.api';
 import { ChatAPI } from '@/api/chat.api';
+import { JobAPI } from "@/api/job.api";
 
 export const useChatInputController = () => {
     const isLoading = useMessageStore((state) => state.isLoading);
+    const isThinking = useMessageStore((state) => state.isThinking);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
     const addMessage = useMessageStore((state) => state.addMessage);
 
     const addQuery = useChatStore((state) => state.addQuery);
     const currentQuery = useChatStore((state) => state.currentQuery);
+    const currentJobId = useChatStore((state) => state.currentJobId);
     const setCurrentQuery = useChatStore((state) => state.setCurrentQuery);
+    const setCurrentJobId = useChatStore((state) => state.setCurrentJobId);
     const setCurrentStatus = useMessageStore((state) => state.setCurrentStatus);
     const setErrorMessage = useMessageStore((state) => state.setErrorMessage);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [isSending, setIsSending] = useState<boolean>(false);
+    const [isCanceling, setIsCanceling] = useState<boolean>(false);
     const [inputValue, setInputValue] = useState<string>('');
     const { showAlert } = useContext(AlertContext);
 
@@ -47,13 +52,16 @@ export const useChatInputController = () => {
             }
 
             const newMessage = await MessageAPI.send(query.id, inputValue);
-            if (newMessage && newMessage?.message) {
-                addMessage(newMessage.message);
-                setCurrentStatus("queued");
-                setErrorMessage(null);
-                setIsThinking(true);
-                setInputValue('');
-            }
+            if (!newMessage) throw new Error("Missing New Message");
+
+            addMessage(newMessage.message);
+
+            setCurrentStatus("queued");
+            setCurrentJobId(newMessage.job_id);
+
+            setErrorMessage(null);
+            setIsThinking(true);
+            setInputValue('');
         } catch (err: any) {
             console.error("Failed to send message:", err.message);
             showAlert(false, "Failed to send message. Try again later!");
@@ -62,12 +70,35 @@ export const useChatInputController = () => {
         }
     }, [currentQuery, inputValue, addMessage, setIsThinking, showAlert]);
 
+    const handleCancelAnalysis = useCallback(async () => {
+        if (!currentQuery?.id || !currentJobId) return;
+        setIsCanceling(true);
+
+        try {
+            await JobAPI.cancelJob(currentQuery.id, currentJobId);
+
+            showAlert(true, "Successfully cancelled analysis");
+
+            setIsThinking(false);
+            setCurrentJobId(null);
+            setCurrentStatus(null);
+        } catch (err) {
+            console.error("Cancel failed:", err);
+            showAlert(false, "Failed to cancel analysis");
+        } finally {
+            setIsCanceling(false);
+        }
+    }, [currentQuery, currentJobId, showAlert]);
+
     return {
         textareaRef,
         inputValue,
         setInputValue,
         isSending,
         isLoading,
-        handleSendMessage
+        isThinking,
+        isCanceling,
+        handleSendMessage,
+        handleCancelAnalysis
     };
 };

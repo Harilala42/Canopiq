@@ -1,3 +1,4 @@
+import uuid
 import app.chat.models as chat_models
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
@@ -83,10 +84,17 @@ async def send_message_to_llm(
             content=payload.message
         )
 
-        trigger_geospatial_request_analysis.delay(chat_id, user_id, payload.message)
+        job_id = str(uuid.uuid4())
+        trigger_geospatial_analysis.apply_async(
+            args=[user_id, chat_id, prompt],
+            task_id=job_id
+        )
     
         response.status_code = 202
-        return { "message": user_message[0] }
+        return { 
+            "job_id": job_id,
+            "message": user_message[0]
+        }
     except HTTPException:
         raise
     except Exception as err:
