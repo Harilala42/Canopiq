@@ -1,3 +1,4 @@
+import uuid
 import app.chat.models as chat_models
 import app.geo_analysis.models as geo_analysis_model
 from app.geo_analysis.schemas import GeoAnalysisMapRequest
@@ -9,25 +10,24 @@ router = APIRouter(dependencies=[
     Depends(rate_limiter)
 ])
 
-@router.get("/geo-analysis/{chat_id}", tags=["geo-analysis"])
+@router.get("/geo-analysis/{geo_analysis_id}", tags=["geo-analysis"])
 async def get_geo_analysis(
-    chat_id: str,
+    geo_analysis_id: uuid.UUID,
     request: Request
 ):
     try:
         user_id = request.state.user.id
-        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
+        geo_analysis = geo_analysis_model.get_geo_analysis(geo_analysis_id, user_id)
+        if not geo_analysis:
             raise HTTPException(
                 status_code=404,
                 detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
+                    "code": "GEO_ANALYSIS_NOT_FOUND",
+                    "message": "Geospatial analysis not found"
                 }
             )
         
-        result = geo_analysis_model.get_geo_analysis(chat_id, user_id)
-        
-        return { "data": result }
+        return { "data": geo_analysis }
     except HTTPException:
         raise
     except Exception as err:
@@ -41,29 +41,29 @@ async def get_geo_analysis(
             }
         )
         
-@router.post("/geo-analysis/{chat_id}", tags=["geo-analysis"])
+@router.post("/geo-analysis/{geo_analysis_id}", tags=["geo-analysis"])
 async def get_geo_analysis_map(
-    chat_id: str,
+    geo_analysis_id: uuid.UUID,
     payload: GeoAnalysisMapRequest,
     request: Request
 ):
     try:
         user_id = request.state.user.id
-        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
+        geo_analysis = geo_analysis_model.get_geo_analysis(geo_analysis_id, user_id)
+        if not geo_analysis:
             raise HTTPException(
                 status_code=404,
                 detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
+                    "code": "GEO_ANALYSIS_NOT_FOUND",
+                    "message": "Geospatial analysis not found"
                 }
             )
         
-        result = geo_analysis_model.get_analysis_h3_grid_map(
-            chat_id=chat_id, 
-            user_id=user_id, 
-            geo_analysis_id=payload.geo_analysis_id
+        h3_grid_map = geo_analysis_model.get_h3_grid_map(
+            h3_grid_map_id=payload.h3_grid_map_id,
+            user_id=user_id
         )
-        if not result:
+        if not h3_grid_map:
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -73,8 +73,9 @@ async def get_geo_analysis_map(
             )
         
         return {
-            "hex_geojson": result["hex_geojson"],
-            "legend": result["legend"]
+            "map_id": h3_grid_map["id"],
+            "hex_geojson": h3_grid_map["hex_geojson"],
+            "legend": h3_grid_map["legend"]
         }
     except HTTPException:
         raise

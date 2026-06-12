@@ -14,6 +14,7 @@ export const useMapController = () => {
     const legend = useMapStore((state) => state.legend);
 
     const setMap = useMapStore((state) => state.setMap);
+    const setMapId = useMapStore((state) => state.setId);
     const setLegend = useMapStore((state) => state.setLegend);
     const geoAnalysisId = useAnalyticsStore((state) => state.geo_analysis_id);
 
@@ -30,6 +31,7 @@ export const useMapController = () => {
             )
             if (!oldMap) throw new Error("No map data received");
 
+            setMapId(oldMap.map_id);
             setLegend(oldMap.legend);
             setMap(oldMap.hex_geojson);
         } catch (err: any) {

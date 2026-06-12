@@ -9,14 +9,14 @@ ssl_options = {
     "ssl_cert_reqs": ssl.CERT_NONE
 }
 
-app = Celery(
+celery_app = Celery(
     'canopiq_worker',
     broker=os.getenv("UPSTASH_REDIS_URL"),
     backend=os.getenv("UPSTASH_REDIS_URL"),
     include=["app.job.tasks"]
 )
 
-app.conf.update(
+celery_app.conf.update(
     broker_pool_limit=1,
     broker_use_ssl=ssl_options,
     broker_transport_options={

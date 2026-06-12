@@ -8,7 +8,6 @@ from fastapi.responses import RedirectResponse
 
 public_router = APIRouter(dependencies=[Depends(rate_limiter)])
 
-# Endpoint to allow user to register
 @public_router.post("/auth/register", tags=["auth"])
 async def register_user(payload: RegisterForm):
 	try:
@@ -66,7 +65,6 @@ async def register_user(payload: RegisterForm):
 			}
 		)
 
-# Endpoint to login via email/password
 @public_router.post("/auth/login", tags=["auth"])
 async def login_user_with_password(payload: LoginForm, response: Response):
 	try:
@@ -124,7 +122,6 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			}
 		)
 
-# Endpoint to logout user's session	
 @public_router.post("/auth/logout", tags=["auth"])
 async def logout(response: Response):
 	response.delete_cookie(
@@ -143,7 +140,6 @@ async def logout(response: Response):
 
 	return { "message": "Logged out successfully" }
 
-# Endpoint to refresh access token
 @public_router.post("/auth/refresh", tags=["auth"])
 async def refresh_access_token(
 	response: Response,
@@ -195,7 +191,6 @@ async def refresh_access_token(
 			}
 		)
 	
-# Endpoint to login via Google OAuth
 @public_router.get("/auth/google", tags=["auth"])
 async def login_with_google():
 	try:
@@ -215,7 +210,6 @@ async def login_with_google():
 			}
 		)
 
-# Endpoint to handle Google OAuth callback
 @public_router.get("/auth/google/callback", tags=["auth"])
 async def google_callback(code: str):
 	if not code:
@@ -279,7 +273,6 @@ router = APIRouter(dependencies=[
 	Depends(rate_limiter)
 ])
 	
-# Endpoint to retrieve user's data
 @router.get("/auth/me", tags=["auth"])
 async def check_user_profile(request: Request):
 	try:

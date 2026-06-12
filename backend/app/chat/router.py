@@ -2,7 +2,7 @@ import uuid
 import app.chat.models as chat_models
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
-from app.llm.tasks import trigger_geospatial_request_analysis
+from app.job.tasks import trigger_geospatial_analysis
 from app.dependencies import check_auth, rate_limiter
 
 router = APIRouter(dependencies=[
@@ -86,7 +86,7 @@ async def send_message_to_llm(
 
         job_id = str(uuid.uuid4())
         trigger_geospatial_analysis.apply_async(
-            args=[user_id, chat_id, prompt],
+            args=[user_id, chat_id, payload.message],
             task_id=job_id
         )
     

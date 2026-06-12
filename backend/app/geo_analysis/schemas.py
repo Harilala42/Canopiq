@@ -1,4 +1,4 @@
 from pydantic import BaseModel, UUID4
 
 class GeoAnalysisMapRequest(BaseModel):
-    geo_analysis_id: UUID4
+    h3_grid_map_id: UUID4

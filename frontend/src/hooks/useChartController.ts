@@ -81,7 +81,7 @@ export const useChartController = () => {
 	const fetchGeoAnalysisData = useCallback(async () => {
 		setIsLoading(true);
 		try {
-			const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
+			const oldAnalysis = await AnalysisAPI.getAnalysis(currentQuery.id);
 			if (!oldAnalysis?.data || oldAnalysis.data.length === 0) {
 				isOpen && closeChart();
 				resetAnalyticsData();

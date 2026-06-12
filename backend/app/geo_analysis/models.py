@@ -1,24 +1,31 @@
 from app.dependencies import get_supabase as supabase
 from app.gee.utils import compute_global_average, compute_yearly_average, compute_total_change_percent
 
-def get_geo_analysis(chat_id: str, user_id: str):
+def get_geo_analysis(geo_analysis_id: str, user_id: str):
     client = supabase()
 
     response = client.table("geo_analysis") \
         .select("*") \
-        .eq("chat_id", chat_id) \
+        .eq("id", geo_analysis_id) \
         .eq("user_id", str(user_id)) \
-        .order("created_at", desc=False) \
+        .maybe_single() \
         .execute()
     
-    return response.data if response and response.data else []
+    return response.data if response and response.data else None
 
-def save_geo_analysis(
-    chat_id: str,
-    user_id: str, 
-    query: dict, 
-    gis_analysis: dict
-):
+def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
+    client = supabase()
+    
+    response = client.table("h3_grid_maps") \
+        .select("hex_geojson, legend") \
+        .eq("id", h3_grid_map_id) \
+        .eq("user_id", user_id) \
+        .maybe_single() \
+        .execute()
+    
+    return response.data if response and response.data else None
+
+def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, job_id: str):
     client = supabase()
     
     b = query['bbox']
@@ -49,15 +56,23 @@ def save_geo_analysis(
         "source": "ESA/WorldCover/v200",
         "unit": "%"
     }
+
+    h3_grid_map = save_h3_grid_map(
+        hex_geojson=gis_analysis["hex_geojson"],
+        legend=gis_analysis["legend"],
+        user_id=user_id,
+        job_id=job_id
+    )
     
     response = client.table("geo_analysis") \
-        .insert({
-            "chat_id": chat_id,
+        .upsert({
+            "job_id": job_id,
             "user_id": user_id,
+            "h3_grid_map_id": h3_grid_map[0]["id"],
             "location": query['location'],
             "dataset": query['data_set'],
-            "start_year": str(query["start_time"]),
-            "end_year": str(query["end_time"]),
+            "start_year": query["start_time"].isoformat(),
+            "end_year": query["end_time"].isoformat(),
             "boundary": wkt_boundary,
             "coordinates": wkt_center,
             "analytics": {
@@ -79,48 +94,21 @@ def save_geo_analysis(
                     "metadata": land_cover_metadata
                 }
             }
-        }).execute()
-     
-    save_analysis_h3_grid_map(
-        chat_id=chat_id,
-        user_id=user_id,
-        geo_analysis_id=response.data[0]["id"],
-        hex_geojson=gis_analysis["hex_geojson"],
-        legend=gis_analysis["legend"]
-    )
+        }, on_conflict="job_id") \
+        .execute()
 
     return response.data if response and response.data else None
 
-def save_analysis_h3_grid_map(
-    chat_id: str, 
-    user_id: str, 
-    geo_analysis_id: str, 
-    hex_geojson: dict,
-    legend: list
-):
+def save_h3_grid_map(hex_geojson: dict, legend: list, job_id: str, user_id: str):
     client = supabase()
 
-    client.table("analysis_h3_grid_map").insert({
-        "chat_id": chat_id,
-        "user_id": user_id,
-        "geo_analysis_id": geo_analysis_id,
-        "hex_geojson": hex_geojson,
-        "legend": legend
-    }).execute()
-
-def get_analysis_h3_grid_map(
-    chat_id: str, 
-    user_id: str, 
-    geo_analysis_id: str
-):
-    client = supabase()
-    
-    response = client.table("analysis_h3_grid_map") \
-        .select("hex_geojson, legend") \
-        .eq("chat_id", chat_id) \
-        .eq("user_id", user_id) \
-        .eq("geo_analysis_id", geo_analysis_id) \
-        .maybe_single() \
+    response = client.table("h3_grid_maps") \
+        .upsert({
+            "job_id": job_id,
+            "user_id": user_id,
+            "hex_geojson": hex_geojson,
+            "legend": legend
+        }, on_conflict="job_id") \
         .execute()
-    
+
     return response.data if response and response.data else None

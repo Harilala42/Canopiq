@@ -65,7 +65,7 @@ def get_user_chats(user_id: str):
         .order("created_at", desc=True) \
         .execute()
     
-    return response.data if response and response.data else None
+    return response.data if response and response.data else []
 
 def rename_chat(chat_id: str, user_id: str, new_title: str):
     client = supabase()
