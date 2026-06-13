@@ -36,8 +36,8 @@ export const useChatInputController = () => {
 
     const handleSendMessage = useCallback(async () => {
         if (!inputValue.trim()) return;
+        
         setIsSending(true);
-
         try {
             let query = currentQuery;
             if (!query) {
@@ -68,27 +68,42 @@ export const useChatInputController = () => {
         } finally {
             setIsSending(false);
         }
-    }, [currentQuery, inputValue, addMessage, setIsThinking, showAlert]);
+    }, [
+        currentQuery, 
+        inputValue, 
+        addMessage, 
+        setCurrentStatus,
+        setCurrentJobId,
+        setIsThinking, 
+        showAlert
+    ]);
 
     const handleCancelAnalysis = useCallback(async () => {
         if (!currentQuery?.id || !currentJobId) return;
+
         setIsCanceling(true);
-
         try {
-            await JobAPI.cancelJob(currentQuery.id, currentJobId);
-
-            showAlert(true, "Successfully cancelled analysis");
+            await JobAPI.cancelJob(currentJobId);
 
             setIsThinking(false);
             setCurrentJobId(null);
             setCurrentStatus(null);
+
+            showAlert(true, "Successfully cancelled analysis");
         } catch (err) {
-            console.error("Cancel failed:", err);
-            showAlert(false, "Failed to cancel analysis");
+            console.error("Canceling GIS analysis failed:", err);
+            showAlert(false, "Failed to cancel GIS analysis");
         } finally {
             setIsCanceling(false);
         }
-    }, [currentQuery, currentJobId, showAlert]);
+    }, [
+        currentQuery, 
+        currentJobId, 
+        setIsThinking, 
+        setCurrentJobId, 
+        setCurrentStatus, 
+        showAlert
+    ]);
 
     return {
         textareaRef,

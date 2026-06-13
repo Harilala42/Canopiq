@@ -1,17 +1,17 @@
 from app.dependencies import get_supabase as supabase
 from app.gee.utils import compute_global_average, compute_yearly_average, compute_total_change_percent
 
-def get_geo_analysis(geo_analysis_id: str, user_id: str):
+def get_geo_analysis(chat_id: str, user_id: str):
     client = supabase()
 
     response = client.table("geo_analysis") \
         .select("*") \
-        .eq("id", geo_analysis_id) \
+        .eq("chat_id", str(chat_id)) \
         .eq("user_id", str(user_id)) \
-        .maybe_single() \
+        .order("created_at", desc=True) \
         .execute()
     
-    return response.data if response and response.data else None
+    return response.data if response and response.data else []
 
 def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
     client = supabase()
@@ -25,7 +25,7 @@ def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
     
     return response.data if response and response.data else None
 
-def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, job_id: str):
+def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: str, job_id: str):
     client = supabase()
     
     b = query['bbox']
@@ -68,6 +68,7 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, job_id: str
         .upsert({
             "job_id": job_id,
             "user_id": user_id,
+            "chat_id": chat_id,
             "h3_grid_map_id": h3_grid_map[0]["id"],
             "location": query['location'],
             "dataset": query['data_set'],

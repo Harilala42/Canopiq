@@ -14,35 +14,31 @@ export const useMapController = () => {
     const legend = useMapStore((state) => state.legend);
 
     const setMap = useMapStore((state) => state.setMap);
-    const setMapId = useMapStore((state) => state.setId);
     const setLegend = useMapStore((state) => state.setLegend);
-    const geoAnalysisId = useAnalyticsStore((state) => state.geo_analysis_id);
-
-    const currentQuery = useChatStore((state) => state.currentQuery);
+    const currentMapId = useMapStore((state) => state.id);
 
     const { showAlert } = useContext(AlertContext);
 
     const fetchGeoAnalysisMap = useCallback(async () => {
-        if (!currentQuery?.id || !geoAnalysisId) return;
+        if (!currentMapId) return;
 
         try {
             const oldMap: MapData = await fetchWithRetry(
-                () => AnalysisAPI.getMap(currentQuery.id!, geoAnalysisId)
+                () => AnalysisAPI.getMap(currentMapId)
             )
             if (!oldMap) throw new Error("No map data received");
 
-            setMapId(oldMap.map_id);
-            setLegend(oldMap.legend);
             setMap(oldMap.hex_geojson);
+            setLegend(oldMap.legend);
         } catch (err: any) {
             console.error("Error fetching geo-analysis map:", err);
             showAlert(false, "Failed to retrieve map. Please try again later.");
         }
-    }, [geoAnalysisId, setMap, showAlert]);
+    }, [currentMapId, setMap, setLegend, showAlert]);
 
     useEffect(() => {
         fetchGeoAnalysisMap();
-    }, [geoAnalysisId, fetchGeoAnalysisMap]);
+    }, [currentMapId, fetchGeoAnalysisMap]);
 
     return {
         map,

@@ -15,7 +15,7 @@ async def cancel_running_job(job_id: uuid.UUID, request: Request):
     try:
         user_id = request.state.user.id
 
-        job = job_model.get_job_by_task_id(job_id)
+        job = job_model.get_job_by_task_id(job_id, user_id)
         if not job:
             raise HTTPException(
                 status_code=404,
@@ -30,18 +30,18 @@ async def cancel_running_job(job_id: uuid.UUID, request: Request):
                 status_code=409,
                 detail={
                     "code": "JOB_ALREADY_FINISHED",
-                    "message": f"Job-{job_id} is already finished"
+                    "message": f"Job is already finished"
                 }
             )
 
-        celery_app.control.revoke(job_id, terminate=True, signal='SIGKILL')
+        celery_app.control.revoke(str(job_id), terminate=True)
         job_model.update_job_progress(job_id, "cancelled")
 
         return { "message": "Successfully cancelled job" }
     except HTTPException:
         raise
     except Exception as err:
-        print(f"ERROR: Failed to cancel job-{task_id}:", str(err))
+        print(f"ERROR: Failed to cancel job:", str(err))
 
         raise HTTPException(
             status_code=500,

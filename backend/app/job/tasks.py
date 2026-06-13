@@ -23,7 +23,8 @@ def trigger_geospatial_analysis(
             ),
             gee_task.compute_gis_dataset.s(
                 job_id=job_id,
-                user_id=user_id
+                user_id=user_id,
+                chat_id=chat_id
             ),
             llm_task.generate_environmental_report.s(
                 job_id=job_id, 
@@ -37,5 +38,5 @@ def trigger_geospatial_analysis(
             "status": "completed"
         }
     except Exception as err:
-        update_job_progress(job_id, "failed", str(err))
+        print(f"[GEOSPATIAL TASK FAILED] job_id={job_id} err={err}")
         raise

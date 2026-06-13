@@ -30,7 +30,6 @@ export interface LegendData
 
 export interface MapData
 {
-    map_id: string;
     hex_geojson: HexGeoJSONData;
     legend: LegendData[];
 }

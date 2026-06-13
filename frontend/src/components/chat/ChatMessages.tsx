@@ -75,19 +75,25 @@ const ChatMessages = memo((): JSX.Element => {
 						maxW={msg.role === "user" ? "90%" : "100%"} 
 						p={msg.role === "user" ? 3 : 0}
 					>
-						<Text 
-							className="text-styles" fontSize="md"
-							wordBreak="break-word" whiteSpace="pre-wrap"
-							color={
-								msg.role !== "user" 
-								? (isDark ? "text" : "secondary")
-								: "text"
-							}
+						<ReactMarkdown
+							components={{
+								p: ({ children }) => (
+									<Text 
+										className="text-styles" fontSize="md"
+										wordBreak="break-word" whiteSpace="pre-wrap"
+										color={ 
+											msg.role !== "user" 
+											? (isDark ? "text" : "secondary") 
+											: "text"
+										}  
+									>
+										{children}
+									</Text>
+								)
+							}}
 						>
-							<ReactMarkdown>
-								{msg.content}
-							</ReactMarkdown>
-						</Text>
+							{msg.content}
+						</ReactMarkdown>
 					</VStack>
 					))
 				)}

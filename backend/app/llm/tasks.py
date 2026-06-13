@@ -11,7 +11,7 @@ def analyze_gis_intent(
 	chat_id: str,
 	prompt: str
 ) -> dict:
-	update_job_progress(job_id, "analyzing_prompt")
+	update_job_progress(job_id, user_id, "analyzing_prompt")
 
 	try:
 		chat_history = chat.get_chat_message(chat_id, user_id)
@@ -21,6 +21,8 @@ def analyze_gis_intent(
 
 		return { "query": query	}
 	except Exception as e:
+		if self.request.retries >= self.max_retries:
+			update_job_progress(job_id, user_id, "failed", str(e))
 		raise self.retry(exc=e, countdown=2 ** self.request.retries)
 
 @shared_task(bind=True, max_retries=3)
@@ -31,7 +33,7 @@ def generate_environmental_report(
 	user_id: str,
 	chat_id: str
 ):
-	update_job_progress(job_id, "generating_report")
+	update_job_progress(job_id, user_id, "generating_report")
 
 	try:
 		report = llm.generate_environmental_report(
@@ -41,6 +43,8 @@ def generate_environmental_report(
 		chat.rename_chat(chat_id, user_id, report["title"])
 		chat.save_chat_message(chat_id, user_id, "model", report["summary"])
 
-		update_job_progress(job_id, "completed")
+		update_job_progress(job_id, user_id, "completed")
 	except Exception as e:
+		if self.request.retries >= self.max_retries:
+			update_job_progress(job_id, user_id, "failed", str(e))
 		raise self.retry(exc=e, countdown=2 ** self.request.retries)
