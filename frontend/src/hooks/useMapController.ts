@@ -1,10 +1,7 @@
 import useMapStore from "@/stores/useMapStore";
-import useChatStore from "@/stores/useChatStore";
-import useAnalyticsStore from "@/stores/useAnalyticsStore";
 import { useEffect, useContext, useCallback } from "react";
 import { AlertContext } from "@/contexts/alertContext";
 import { AnalysisAPI } from "@/api/analysis.api";
-import { fetchWithRetry } from "@/utils/utils";
 import { MapData } from "@/types/map";
 
 export const useMapController = () => {
@@ -23,9 +20,7 @@ export const useMapController = () => {
         if (!currentMapId) return;
 
         try {
-            const oldMap: MapData = await fetchWithRetry(
-                () => AnalysisAPI.getMap(currentMapId)
-            )
+            const oldMap: MapData = await AnalysisAPI.getMap(currentMapId);
             if (!oldMap) throw new Error("No map data received");
 
             setMap(oldMap.hex_geojson);

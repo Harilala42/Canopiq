@@ -12,8 +12,14 @@ public_router = APIRouter(dependencies=[Depends(rate_limiter)])
 async def register_user(payload: RegisterForm):
 	try:
 		result = auth_models.register_with_password(payload.model_dump())
-		if not result:
-			raise Exception("User registration failed")
+		if not result or not result.user:
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "REGISTER_FAILED",
+					"message": "User registration failed. The email may already be in use."
+				}
+			)
 		
 		user_id = result.user.id
 		user = UserProfile(
@@ -24,8 +30,10 @@ async def register_user(payload: RegisterForm):
 		)
 
 		auth_models.set_user_profile(user.model_dump())
-
+		
 		return { "message": "User registered successfully" }
+	except HTTPException:
+		raise
 	except Exception as err:
 		error_msg = str(err).lower()
 		print("ERROR: Failed to register:", str(err))
@@ -70,7 +78,13 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 	try:
 		result = auth_models.login_with_password(payload.model_dump())
 		if not result or not result.session:
-			return Exception("User login failed")
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "LOGIN_FAILED",
+					"message": "User login failed."
+				}
+			)
 		
 		access_token = result.session.access_token
 		refresh_token = result.session.refresh_token
@@ -92,6 +106,8 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 		)
 
 		return { "message": "User logged in successfully" }
+	except HTTPException:
+		raise
 	except Exception as err:
 		error_msg = str(err).lower()
 		print("ERROR: Failed to login:", str(err))
@@ -157,7 +173,13 @@ async def refresh_access_token(
 	try:
 		result = auth_models.refresh_session(refresh_token)
 		if not result or not result.session:
-			raise Exception("Refresh token failed")
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "REFRESH_FAILED",
+					"message": "Refresh token failed."
+				}
+			)
 		
 		new_access_token = result.session.access_token
 
@@ -170,6 +192,8 @@ async def refresh_access_token(
 		)
 
 		return { "message": "Session refreshed successfully" }
+	except HTTPException:
+		raise
 	except Exception as err:
 		error_msg = str(err).lower()
 		print("ERROR: Failed to refresh token:", str(err))
@@ -196,9 +220,17 @@ async def login_with_google():
 	try:
 		result = auth_models.login_with_google()
 		if not result or not result.url:
-			raise Exception("Google login failed")
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "MISSING_REDIRECT_URL",
+					"message": "Missing redirect url"
+				}
+			)
 
 		return RedirectResponse(url=result.url)
+	except HTTPException:
+		raise
 	except Exception as err:
 		print("ERROR: Failed to login with Google:", str(err))
 
@@ -224,8 +256,14 @@ async def google_callback(code: str):
 	try:
 		result = auth_models.handle_google_callback(code)
 		if not result or not result.session:
-			raise Exception("Google OAuth callback failed")
-		 
+			raise HTTPException(
+				status_code=400,
+				detail={
+					"code": "GOOGLE_AUTH_FAILED",
+					"message": "Google OAuth callback failed"
+				}
+			)
+		
 		user = UserProfile(
 			id=result.user.id,
 			email=result.user.email,
@@ -257,6 +295,8 @@ async def google_callback(code: str):
 		)
 
 		return redirect
+	except HTTPException:
+		raise
 	except Exception as err:
 		print("ERROR: Google OAuth callback failed:", str(err))
 
@@ -278,7 +318,6 @@ async def check_user_profile(request: Request):
 	try:
 		user_id = request.state.user.id
 		user_data = auth_models.get_user_profile(user_id)
-
 		if not user_data:
 			raise HTTPException(
 				status_code=404,
@@ -289,6 +328,8 @@ async def check_user_profile(request: Request):
 			)
 
 		return user_data
+	except HTTPException:
+		raise
 	except Exception as err:
 		print("ERROR: Failed to retrieve user's data:", str(err))
 

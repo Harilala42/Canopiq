@@ -10,7 +10,6 @@ export const useChatInputController = () => {
     const isLoading = useMessageStore((state) => state.isLoading);
     const isThinking = useMessageStore((state) => state.isThinking);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
-    const addMessage = useMessageStore((state) => state.addMessage);
 
     const addQuery = useChatStore((state) => state.addQuery);
     const currentQuery = useChatStore((state) => state.currentQuery);
@@ -52,15 +51,13 @@ export const useChatInputController = () => {
             }
 
             const newMessage = await MessageAPI.send(query.id, inputValue);
-            if (!newMessage) throw new Error("Missing New Message");
-
-            addMessage(newMessage.message);
-
-            setCurrentStatus("queued");
-            setCurrentJobId(newMessage.job_id);
+            if (newMessage?.job_id) {
+                setCurrentStatus("queued");
+                setCurrentJobId(newMessage.job_id);
+                setIsThinking(true);
+            } 
 
             setErrorMessage(null);
-            setIsThinking(true);
             setInputValue('');
         } catch (err: any) {
             console.error("Failed to send message:", err.message);
@@ -71,7 +68,6 @@ export const useChatInputController = () => {
     }, [
         currentQuery, 
         inputValue, 
-        addMessage, 
         setCurrentStatus,
         setCurrentJobId,
         setIsThinking, 

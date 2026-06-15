@@ -219,7 +219,7 @@ def generate_environmental_report(geo_analysis_id: str) -> dict:
         print("ERROR: Failed to write environmental report:", str(err))
         raise Exception(err)
 
-def execute_contextual_chat(
+def generate_conversational_reply(
     chat_id: str, 
     user_id: str, 
     user_prompt: str,

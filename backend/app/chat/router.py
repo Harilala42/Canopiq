@@ -1,9 +1,11 @@
 import uuid
+import app.llm.agent as llm
 import app.chat.models as chat_models
-from fastapi import APIRouter, HTTPException, Request, Response, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from app.job.tasks import trigger_geospatial_analysis
 from app.dependencies import check_auth, rate_limiter
+from fastapi.responses import JSONResponse
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
@@ -13,9 +15,8 @@ router = APIRouter(dependencies=[
 @router.get("/chat", tags=["chat"])
 async def get_user_chats(request: Request):
     try:
-        chats = chat_models.get_user_chats(
-            user_id=request.state.user.id
-        )
+        user_id=request.state.user.id
+        chats = chat_models.get_user_chats(user_id)
 
         return { "chats": chats }
     except Exception as err:
@@ -32,12 +33,9 @@ async def get_user_chats(request: Request):
 @router.post("/chat/new", tags=["chat"])
 async def create_new_chat(request: Request):
     try:
-        chat = chat_models.create_new_chat(
-            user_id=request.state.user.id
-        )
-
-        if chat is None:
-            raise Exception("Failed to create chat")
+        user_id=request.state.user.id
+        chat = chat_models.create_new_chat(user_id)
+        if chat is None: raise Exception("Failed to create chat")
 
         return {
             "chat": {
@@ -60,12 +58,7 @@ async def create_new_chat(request: Request):
         )
 
 @router.post("/chat/{chat_id}", tags=["chat"])
-async def send_message_to_llm(
-    chat_id: str,
-    payload: MessageCreate,
-    request: Request,
-    response: Response
-):
+async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Request):
     try:
         user_id = request.state.user.id
         if not chat_id or not chat_models.chat_exists(chat_id, user_id):
@@ -77,24 +70,41 @@ async def send_message_to_llm(
                 }
             )
         
-        user_message = chat_models.save_chat_message(
+        chat_models.save_chat_message(
             chat_id=chat_id, 
             user_id=user_id, 
             role="user",
             content=payload.message
         )
 
-        job_id = str(uuid.uuid4())
-        trigger_geospatial_analysis.apply_async(
-            args=[user_id, chat_id, payload.message],
-            task_id=job_id
-        )
-    
-        response.status_code = 202
-        return { 
-            "job_id": job_id,
-            "message": user_message[0]
-        }
+        chat_history = chat_models.get_chat_message(chat_id, user_id)
+        recent_context = chat_history[-3:] if chat_history else []
+        route = llm.classify_user_request(payload.message, recent_context)
+
+        if route == "geospatial_analysis":
+            job_id = str(uuid.uuid4())
+            trigger_geospatial_analysis.apply_async(
+                args=[user_id, chat_id, payload.message],
+                task_id=job_id
+            )
+
+            return JSONResponse(
+                status_code=202, 
+                content={ "job_id": job_id }
+            )
+        else:
+            is_impossible = (route == "impossible_request")
+            
+            reply = llm.generate_conversational_reply(
+                chat_id=chat_id, 
+                user_id=user_id, 
+                user_prompt=payload.message, 
+                is_impossible=is_impossible
+            )
+            
+            chat_models.save_chat_message(chat_id, user_id, "model", reply)
+
+            return { "message": "User's prompt successfully sent." }
     except HTTPException:
         raise
     except Exception as err:

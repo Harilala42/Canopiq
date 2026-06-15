@@ -89,6 +89,24 @@ const ChatMessages = memo((): JSX.Element => {
 									>
 										{children}
 									</Text>
+								),
+								ul: ({ children }) => (
+									<Box as="ul"
+										pl={5} mt={2} mb={2}
+										style={{ listStyleType: "disc" }}
+									>
+										{children}
+									</Box>
+								),
+								li: ({ children }) => (
+									<Box as="li" mb={1}>
+										<Text
+											className="text-styles" fontSize="md"
+											wordBreak="break-word" whiteSpace="pre-wrap"
+										>
+											{children}
+										</Text>
+									</Box>
 								)
 							}}
 						>

@@ -3,7 +3,7 @@ import axios, { AxiosError } from 'axios';
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
-    timeout: 15000,
+    timeout: 30000,
 });
 
 // Interceptor to handle token refresh and error formatting
