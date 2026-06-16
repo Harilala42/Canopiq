@@ -157,49 +157,56 @@ def generate_environmental_report(geo_analysis_id: str) -> dict:
         response_format=EnvironmentalReport
     )
 
-    prompt = """
+    prompt = f"""
         You are an environmental analysis reporting AI.
         You MUST call the tool `normalizeGeoAnalysisData` before generating the report.
-        Return ONLY valid JSON.
+        Return ONLY valid JSON matching the schema.
 
-        ---
-
-        🎯 OBJECTIVE:
-
-        Generate:
-        1. A concise report title
-        2. An objective environmental summary
-
-        ---
-
-        🚫 RULES:
-        - Use ONLY provided data
-        - Do NOT speculate
-        - Do NOT exaggerate
-        - Keep summary under 500 characters
-        - Use scientific and neutral tone
-        - Mention important trends and percentages
-        - Mention dominant land cover when relevant
-        - Mention comparison against global average if relevant
+        CURRENT TIME CALENDAR BASELINE: {date.today().strftime("%Y-%m-%d")}
 
         ---
 
         🏷️ TITLE RULES:
         - Format:
-            "<Dataset Label> in <Location>"
+            - "<Dataset Label> in <Location> from <Start Time> to <End Time>" for a specific timesframe.
+            - "<Dataset Label> in <Location> since <Start Time>" for a period until today.
         - Examples:
-            "Urban Forest in Singapore"
-            "Tree Cover in Madagascar"
-            "Carbon Density in Amazon Basin"
+            "Urban Forest in Singapore since 2020"
+            "Carbon Density in KL, Malaysia from 2016 to 2024"
 
         ---
 
-        ✏️ SUMMARY RULES:
-        - Focus on:
-            - environmental trend
-            - major change
-            - land cover dominance
-            - ecological significance
+        📋 REPORT STRUCTURE RULES:
+        The `report_markdown` field MUST be structured exactly like this template:
+
+        ## GIS Analysis:
+        - **Location:** [Insert location]
+        - **Dataset:** [Insert dataset]
+        - **Period:** [Insert period]
+
+        ## Temporal Changes:
+        - **Total Change:** [Insert total_change_percent]
+        - **Global Average Comparison:** [Insert global_average]
+        - **Total Area Coverage:** [Insert area_coverage_km2]
+
+        ## Land-Use Distribution:
+        | Dominant Land Cover Class | Percent Area Coverage |
+        | :--- | :--- |
+        | [Main Land Cover Type 1] | [X]% |
+        | [Main Land Cover Type 2] | [Y]% |
+        | [Main Land Cover Type 3] | [Z]% |
+
+        ## Summary:
+        [Insert a concise, objective paragraph under 500 characters highlighting the trend, major change, and ecological significance.]
+
+        ---
+
+        🚫 SCIENTIFIC CONSTRAINT RULES:
+        - Use scientific and neutral tone
+        - Mention important trends and percentages
+        - Order the rows in the Land-Use Distribution table from highest percentage to lowest.
+        - Use ONLY provided tool data. Do NOT speculate or exaggerate.
+        - Keep environmental report under 5000 characters
     """
 
     try:

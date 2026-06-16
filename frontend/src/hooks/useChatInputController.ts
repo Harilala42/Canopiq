@@ -10,6 +10,7 @@ export const useChatInputController = () => {
     const isLoading = useMessageStore((state) => state.isLoading);
     const isThinking = useMessageStore((state) => state.isThinking);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
+    const addMessage = useMessageStore((state) => state.addMessage);
 
     const addQuery = useChatStore((state) => state.addQuery);
     const currentQuery = useChatStore((state) => state.currentQuery);
@@ -35,31 +36,46 @@ export const useChatInputController = () => {
 
     const handleSendMessage = useCallback(async () => {
         if (!inputValue.trim()) return;
-        
+
+        const messageText = inputValue;
+        const tempId = `temp-${Date.now()}`;
+
         setIsSending(true);
+        setIsThinking(true);
+        setInputValue('');
+        addMessage({
+            id: tempId,
+            role: 'user',
+            content: messageText,
+            created_at: new Date().toISOString(),
+        })
+
         try {
             let query = currentQuery;
             if (!query) {
                 const newQuery = await ChatAPI.create();
-                
-                if (newQuery && newQuery.chat) {                    
-                    addQuery(newQuery.chat);
-                    setCurrentQuery(newQuery.chat);
-                    query = newQuery.chat;
-                } else
-                    throw new Error("Query creation failed");
+                if (!newQuery?.chat) throw new Error("Query creation failed");
+
+                addQuery(newQuery.chat);
+                setCurrentQuery(newQuery.chat);
+                query = newQuery.chat;
             }
 
             const newMessage = await MessageAPI.send(query.id, inputValue);
             if (newMessage?.job_id) {
                 setCurrentStatus("queued");
                 setCurrentJobId(newMessage.job_id);
-                setIsThinking(true);
-            } 
+            } else if (newMessage?.reply) {
+                setIsThinking(false);
+                setCurrentStatus(null);
+            }
 
             setErrorMessage(null);
-            setInputValue('');
         } catch (err: any) {
+            setIsThinking(false);
+            setCurrentStatus(null);
+            setInputValue(messageText);
+            
             console.error("Failed to send message:", err.message);
             showAlert(false, "Failed to send message. Try again later!");
         } finally {

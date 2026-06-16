@@ -69,18 +69,28 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
                     "message": "Chat not found"
                 }
             )
-        
-        chat_models.save_chat_message(
-            chat_id=chat_id, 
-            user_id=user_id, 
-            role="user",
-            content=payload.message
-        )
 
         chat_history = chat_models.get_chat_message(chat_id, user_id)
         recent_context = chat_history[-3:] if chat_history else []
-        route = llm.classify_user_request(payload.message, recent_context)
 
+        chat_models.save_chat_message(chat_id, user_id, "user", payload.message)
+
+        route = llm.classify_user_request(payload.message, recent_context)
+        if route in ["conversational", "impossible_request"]:
+            reply = llm.generate_conversational_reply(
+                chat_id=chat_id, 
+                user_id=user_id, 
+                user_prompt=payload.message, 
+                is_impossible=(route == "impossible_request")
+            )
+
+            chat_models.save_chat_message(chat_id, user_id, "model", reply)
+
+            return {
+                "status": "success", 
+                "type": "conversational", 
+                "reply": reply
+            }
         if route == "geospatial_analysis":
             job_id = str(uuid.uuid4())
             trigger_geospatial_analysis.apply_async(
@@ -88,23 +98,14 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
                 task_id=job_id
             )
 
-            return JSONResponse(
-                status_code=202, 
-                content={ "job_id": job_id }
-            )
-        else:
-            is_impossible = (route == "impossible_request")
-            
-            reply = llm.generate_conversational_reply(
-                chat_id=chat_id, 
-                user_id=user_id, 
-                user_prompt=payload.message, 
-                is_impossible=is_impossible
-            )
-            
-            chat_models.save_chat_message(chat_id, user_id, "model", reply)
-
-            return { "message": "User's prompt successfully sent." }
+        return JSONResponse(
+            status_code=202, 
+            content={ 
+                "status": "accepted", 
+                "type": "geospatial", 
+                "job_id": job_id
+            }
+        )
     except HTTPException:
         raise
     except Exception as err:

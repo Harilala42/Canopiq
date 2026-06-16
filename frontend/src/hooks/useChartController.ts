@@ -6,6 +6,7 @@ import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from "@/utils/supabase.utils";
 import { AnalysisAPI } from "@/api/analysis.api";
 import { BiomeData } from "@/types/analysis";
+import useMessageStore from "@/stores/useMessageStore";
 
 export const useChartController = () => {
 	const setDataset = useAnalyticsStore((state) => state.setDataset);
@@ -26,7 +27,7 @@ export const useChartController = () => {
 
     const currentQuery = useChatStore((state) => state.currentQuery);
 
-	const [isLoading, setIsLoading] = useState(true);
+	const [isFetching, setIsFetching] = useState<boolean>(true);
     const { showAlert } = useContext(AlertContext);
 
 	const applyAnalysisData = useCallback((data: any) => {
@@ -85,7 +86,7 @@ export const useChartController = () => {
 	const fetchGeoAnalysisData = useCallback(async () => {
 		if (!currentQuery?.id) return;
 
-		setIsLoading(true);
+		setIsFetching(true);
 		try {
 			const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
 			if (!oldAnalysis?.geo_analysis || oldAnalysis.geo_analysis.length === 0) {
@@ -102,7 +103,7 @@ export const useChartController = () => {
 			console.error("Failed to retrieve insight:", err.message);
 			showAlert(false, "Failed to retrieve insight. Please try again later.");
 		} finally {
-			setIsLoading(false);
+			setIsFetching(false);
 		}
 	}, [
 		currentQuery?.id, 
@@ -146,7 +147,7 @@ export const useChartController = () => {
 	return {
         isOpen,
         onToggle,
-		isLoading,
+		isFetching,
 		location
 	};
 };

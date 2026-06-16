@@ -47,7 +47,7 @@ class EnvironmentalReport(BaseModel):
 	"""AI Environmental Report based on provided data from GEE"""
 
 	title: str = Field(description="Short environmental report title")
-	summary: str = Field(
-		max_length=500,
+	report_markdown: str = Field(
+		max_length=5000,
 		description="Objective environmental analysis summary under 500 characters"
 	)

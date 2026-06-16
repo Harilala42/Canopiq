@@ -2,11 +2,14 @@ import {
 	VStack,
 	HStack,
 	Text,
+	Heading,
 	Popover,
 	Box,
 	Spinner,
-	Icon
+	Icon,
+	Table
 } from "@chakra-ui/react";
+import remarkGfm from 'remark-gfm';
 import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
@@ -76,16 +79,43 @@ const ChatMessages = memo((): JSX.Element => {
 						p={msg.role === "user" ? 3 : 0}
 					>
 						<ReactMarkdown
+							remarkPlugins={[remarkGfm]}
 							components={{
+								h1: ({ children }) => (
+									<Heading 
+										as="h1" 
+										className="titles-styles" size="xl"
+										color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
+										textDecoration="underline"
+									>
+										{children}
+									</Heading>
+								),
+								h2: ({ children }) => (
+									<Heading 
+										as="h2"
+										className="titles-styles" size="lg" 
+										color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
+										textDecoration="underline"
+									>
+										{children}
+									</Heading>
+								),
+								h3: ({ children }) => (
+									<Heading 
+										as="h3"
+										className="titles-styles" size="md" 
+										color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
+										textDecoration="underline"
+									>
+										{children}
+									</Heading>
+								),
 								p: ({ children }) => (
 									<Text 
 										className="text-styles" fontSize="md"
 										wordBreak="break-word" whiteSpace="pre-wrap"
-										color={ 
-											msg.role !== "user" 
-											? (isDark ? "text" : "secondary") 
-											: "text"
-										}  
+										color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}  
 									>
 										{children}
 									</Text>
@@ -107,7 +137,47 @@ const ChatMessages = memo((): JSX.Element => {
 											{children}
 										</Text>
 									</Box>
-								)
+								),
+								table: ({ children }) => (
+									<Box 
+										overflowX="auto" 
+										borderLeft="1px solid" borderRight="1px solid" 
+										borderColor={isDark ? "variantLight" : "variantDark" }
+										my={4} w="100%"
+									>
+										<Table.Root variant="line" size="sm">
+											{children}
+										</Table.Root>
+									</Box>
+								),
+								thead: ({ children }) => (
+									<Table.Header bg={isDark ? "variantLight" : "variantDark" }>
+										{children}
+									</Table.Header>
+								),
+								th: ({ children }) => (
+									<Table.ColumnHeader 
+										className="text-styles"
+										color={isDark ? "secondary" : "text"} 
+										borderColor={isDark ? "variantLight" : "variantDark" }
+										py={3}
+										px={4}
+										textAlign="left"
+									>
+										{children}
+									</Table.ColumnHeader>
+								),
+								td: ({ children }) => (
+									<Table.Cell 
+										className="text-styles"
+										color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
+										borderColor={isDark ? "variantLight" : "variantDark" }
+										py={3}
+										px={4}
+									>
+										{children}
+									</Table.Cell>
+								),
 							}}
 						>
 							{msg.content}
@@ -116,13 +186,13 @@ const ChatMessages = memo((): JSX.Element => {
 					))
 				)}
 
-				{isLoading && !messages.length && (
+				{isLoading && !isThinking && !messages.length && (
 					<VStack h="100%" justify="center">
 						<Spinner color={isDark ? "text" : "secondary"} />
 					</VStack>
 				)}
 
-				{!isLoading && !messages.length && <ChatGreeting />}
+				{!isLoading && !isThinking && !messages.length && <ChatGreeting />}
 
 				{isThinking && currentStatus !== "failed" && (
 					<HStack alignSelf="flex-start" pl={2} gap={4}>
@@ -142,7 +212,7 @@ const ChatMessages = memo((): JSX.Element => {
 					</HStack>
 				)}
 
-				{currentStatus === "failed" && (
+				{!isThinking && currentStatus === "failed" && (
 					<VStack 
 						alignSelf="flex-start" 
 						align="flex-start"

@@ -14,7 +14,6 @@ export const useChatMessagesController = () => {
     const setErrorMessage = useMessageStore((state) => state.setErrorMessage);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
 
-    const currentQuery = useChatStore((state) => state.currentQuery);
     const currentJobId = useChatStore((state) => state.currentJobId);
     const setCurrentJobId = useChatStore((state) => state.setCurrentJobId);
 
@@ -44,12 +43,12 @@ export const useChatMessagesController = () => {
                     setCurrentStatus(status);
                     
                     if (status === 'failed') {
-                        setErrorMessage(err_message);
                         setCurrentJobId(null);
-                        setIsThinking(false); 
+                        setErrorMessage(err_message);
+                        isThinking && setIsThinking(false); 
                     } else if (status === 'completed') {
                         setCurrentJobId(null);
-                        setIsThinking(false);
+                        isThinking && setIsThinking(false);
                     }
                 }
             )

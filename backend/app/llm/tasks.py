@@ -41,7 +41,7 @@ def generate_environmental_report(
 		)
 
 		chat.rename_chat(chat_id, user_id, report["title"])
-		chat.save_chat_message(chat_id, user_id, "model", report["summary"])
+		chat.save_chat_message(chat_id, user_id, "model", report["report_markdown"])
 
 		update_job_progress(job_id, user_id, "completed")
 	except Exception as e:

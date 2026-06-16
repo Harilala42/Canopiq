@@ -36,7 +36,7 @@ const Chart = (): JSX.Element => {
 	const { 
 		isOpen,
         onToggle,
-		isLoading,
+		isFetching,
 		location
 	} = useChartController();
 
@@ -55,11 +55,11 @@ const Chart = (): JSX.Element => {
 			<ChartHeader 
 				isOpen={isOpen} 
 				onToggle={onToggle}
-				isLoading={isLoading}
+				isLoading={isFetching}
 				tittle={location ? `In ${location}` : undefined}
 			/>
 
-			{isOpen && isLoading && (
+			{isOpen && isFetching && (
 				<VStack h="100%" align="stretch" p={5} gap={5}>
 					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
 					<Skeleton height="100px" width="100%" borderRadius="xl" bg={isDark ? "variantDark" : "variantLight"} />
@@ -68,7 +68,7 @@ const Chart = (): JSX.Element => {
 				</VStack>
 			)}
 
-			{isOpen && !isLoading && location && (
+			{isOpen && !isFetching && location && (
 				<VStack
 					flex={1}
 					w="100%"
