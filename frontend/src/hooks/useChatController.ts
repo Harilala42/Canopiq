@@ -9,6 +9,7 @@ import { MessageData } from '@/types/chat';
 export const useChatController = () => {
     const isOpen = useChatStore((state) => state.isOpen);
     const isVisible = useChatStore((state) => state.isVisible);
+    const isThinking = useMessageStore((state) => state.isThinking);
     const currentQuery = useChatStore((state) => state.currentQuery);
     
     const setMessages = useMessageStore((state) => state.setMessages);
@@ -21,7 +22,7 @@ export const useChatController = () => {
     const { showAlert } = useContext(AlertContext);
 
     const retrieveChatMessages = useCallback(async () => {
-        if (!currentQuery?.id) return;
+        if (!currentQuery?.id || isThinking) return;
         setMessages([]);
         setIsLoading(true);
 
@@ -54,6 +55,8 @@ export const useChatController = () => {
                 },
                 (payload: any) => {
                     const { id, role, content, created_at } = payload.new;
+                    if (role === 'user') return; // message already displays
+
                     const newMessage: MessageData = { id, role, content, created_at };
                     addMessage(newMessage);
                 }

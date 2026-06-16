@@ -1,6 +1,6 @@
+import uuid
 import app.chat.models as chat_models
 import app.geo_analysis.models as geo_analysis_model
-from app.geo_analysis.schemas import GeoAnalysisMapRequest
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.dependencies import check_auth, rate_limiter
 
@@ -10,24 +10,12 @@ router = APIRouter(dependencies=[
 ])
 
 @router.get("/geo-analysis/{chat_id}", tags=["geo-analysis"])
-async def get_geo_analysis(
-    chat_id: str,
-    request: Request
-):
+async def get_geo_analysis(chat_id: uuid.UUID, request: Request):
     try:
         user_id = request.state.user.id
-        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
+        geo_analysis = geo_analysis_model.get_geo_analysis(chat_id, user_id)
         
-        result = geo_analysis_model.get_geo_analysis(chat_id, user_id)
-        
-        return { "data": result }
+        return { "geo_analysis": geo_analysis }
     except HTTPException:
         raise
     except Exception as err:
@@ -41,40 +29,26 @@ async def get_geo_analysis(
             }
         )
         
-@router.post("/geo-analysis/{chat_id}", tags=["geo-analysis"])
-async def get_geo_analysis_map(
-    chat_id: str,
-    payload: GeoAnalysisMapRequest,
-    request: Request
-):
+@router.get("/geo-analysis/map/{h3_grid_map_id}", tags=["geo-analysis"])
+async def get_geo_analysis_map(h3_grid_map_id: uuid.UUID, request: Request):
     try:
-        user_id = request.state.user.id
-        if not chat_id or not chat_models.chat_exists(chat_id, user_id):
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "code": "CHAT_NOT_FOUND",
-                    "message": "Chat not found"
-                }
-            )
-        
-        result = geo_analysis_model.get_analysis_h3_grid_map(
-            chat_id=chat_id, 
-            user_id=user_id, 
-            geo_analysis_id=payload.geo_analysis_id
+        user_id = request.state.user.id        
+        h3_grid_map = geo_analysis_model.get_h3_grid_map(
+            h3_grid_map_id=h3_grid_map_id,
+            user_id=user_id
         )
-        if not result:
+        if not h3_grid_map:
             raise HTTPException(
                 status_code=404,
                 detail={
                     "code": "MAP_NOT_FOUND",
-                    "message": "No H3 grid analysis records found for this execution"
+                    "message": "No H3 grid map found"
                 }
             )
         
         return {
-            "hex_geojson": result["hex_geojson"],
-            "legend": result["legend"]
+            "hex_geojson": h3_grid_map["hex_geojson"],
+            "legend": h3_grid_map["legend"]
         }
     except HTTPException:
         raise

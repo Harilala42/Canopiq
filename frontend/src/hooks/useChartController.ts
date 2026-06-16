@@ -6,6 +6,7 @@ import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from "@/utils/supabase.utils";
 import { AnalysisAPI } from "@/api/analysis.api";
 import { BiomeData } from "@/types/analysis";
+import useMessageStore from "@/stores/useMessageStore";
 
 export const useChartController = () => {
 	const setDataset = useAnalyticsStore((state) => state.setDataset);
@@ -16,6 +17,7 @@ export const useChartController = () => {
 	const location = useMapStore((state) => state.location);
 	const setLocation = useMapStore((state) => state.setLocation);
 	const setCoords = useMapStore((state) => state.setCoords);
+	const setMapId = useMapStore((state) => state.setId);
 	const clearMap = useMapStore((state) => state.clearMap);
 
 	const isOpen = useAnalyticsStore((state) => state.isChartOpen);
@@ -25,7 +27,7 @@ export const useChartController = () => {
 
     const currentQuery = useChatStore((state) => state.currentQuery);
 
-	const [isLoading, setIsLoading] = useState(true);
+	const [isFetching, setIsFetching] = useState<boolean>(true);
     const { showAlert } = useContext(AlertContext);
 
 	const applyAnalysisData = useCallback((data: any) => {
@@ -33,18 +35,21 @@ export const useChartController = () => {
 			id,
 			location,
 			dataset,
-			center_point,
+			coordinates,
 			start_year,
 			end_year,
 			analytics,
+			h3_grid_map_id
 		} = data;
 
 		setLocation(location);
 
 		setCoords([
-			center_point.coordinates[1],
-			center_point.coordinates[0],
+			coordinates.coordinates[1],
+			coordinates.coordinates[0],
 		]);
+
+		setMapId(h3_grid_map_id);
 
 		setDataset(dataset, analytics.insights.metadata);
 
@@ -79,10 +84,12 @@ export const useChartController = () => {
 	]);
 
 	const fetchGeoAnalysisData = useCallback(async () => {
-		setIsLoading(true);
+		if (!currentQuery?.id) return;
+
+		setIsFetching(true);
 		try {
 			const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
-			if (!oldAnalysis?.data || oldAnalysis.data.length === 0) {
+			if (!oldAnalysis?.geo_analysis || oldAnalysis.geo_analysis.length === 0) {
 				isOpen && closeChart();
 				resetAnalyticsData();
 				return;
@@ -90,15 +97,26 @@ export const useChartController = () => {
 
 			clearMap();
 			!isOpen && openChart();
-			applyAnalysisData(oldAnalysis.data[oldAnalysis.data.length - 1]);
+			applyAnalysisData(oldAnalysis.geo_analysis[0]);
 		} catch (err: any) {
 			resetAnalyticsData();
 			console.error("Failed to retrieve insight:", err.message);
 			showAlert(false, "Failed to retrieve insight. Please try again later.");
 		} finally {
-			setIsLoading(false);
+			setIsFetching(false);
 		}
-	}, [currentQuery?.id, resetAnalyticsData, showAlert]);
+	}, [
+		currentQuery?.id, 
+		resetAnalyticsData,
+		openChart,
+		closeChart,
+		clearMap,
+		showAlert
+	]);
+
+	useEffect(() => {
+		fetchGeoAnalysisData();
+	}, [fetchGeoAnalysisData])
 
 	useEffect(() => {
 		if (!currentQuery?.id) return;
@@ -121,17 +139,15 @@ export const useChartController = () => {
             )
             .subscribe();
 
-		fetchGeoAnalysisData();
-
 		return () => {
             supabase.removeChannel(channel);
         };
-	}, [currentQuery?.id, fetchGeoAnalysisData]);
+	}, [currentQuery?.id, openChart, clearMap]);
 
 	return {
         isOpen,
         onToggle,
-		isLoading,
+		isFetching,
 		location
 	};
 };

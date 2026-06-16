@@ -7,7 +7,7 @@ interface MessageState
     isLoading: boolean;
     isThinking: boolean;
 
-    currentStatus: JobStatus;
+    currentStatus: JobStatus | null;
     errorMessage: string | null;
 
     setMessages: (messages: MessageData[]) => void; 
@@ -26,7 +26,7 @@ const useMessageStore = create<MessageState>((set) => ({
     isLoading: false,
     isThinking: false,
 
-    currentStatus: 'queued',
+    currentStatus: null,
     errorMessage: null,
 
     setMessages: (messages) => set({ messages }),
@@ -50,7 +50,7 @@ const useMessageStore = create<MessageState>((set) => ({
         messages: [],
         isLoading: false,
         isThinking: false,
-        currentStatus: 'queued',
+        currentStatus: null,
         errorMessage: null
     })
 }));

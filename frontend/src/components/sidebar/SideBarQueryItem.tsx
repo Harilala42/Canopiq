@@ -30,7 +30,7 @@ const SideBarQueryItem = memo(({
             onClick={() => onSelect(query)}
             borderRadius={10}
             pl={2}
-            _disabled={{
+            _hover={{
                 bg: isDark ? "variantDark" : "variantLight",
                 cursor: "pointer",
             }}

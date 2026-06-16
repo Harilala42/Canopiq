@@ -101,7 +101,7 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
 			),
 			"total_change_percent": stats.get("total_change_percent"),
 			"global_average": stats.get("global_average"),
-			"area_coverage_ha": stats.get("area_coverage_ha"),
+			"area_coverage_km2": round(stats.get("area_coverage_ha") / 100),
 			"dominant_land_cover": dominant_land_cover,
 			"latest_value": latest_value,
 			"peak_value": peak_value

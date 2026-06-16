@@ -8,9 +8,7 @@ Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize comp
 
 Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist—asking natural language questions about local tree cover, biomass density, or land-use distribution—and instantly receive structured, visual, and scientifically sound analytical reports.
 
-![screenshot_1](./frontend//public/Screenshot_1.png)
-
-![screenshot_2](./frontend//public/Screenshot_2.png)
+![demo](./frontend//public/demo.gif)
 
 # ✨ Key Features
 
@@ -47,17 +45,16 @@ erDiagram
 		text username "UNIQUE"
 		text email "UNIQUE"
 		text avatar_url
-		boolean is_active
-		timestamptz created_at
-		timestamptz updated_at
+		timestamp_with_time_zone created_at
+		timestamp_with_time_zone updated_at
 	}
 
 	chats {
 		uuid id PK
 		uuid user_id FK
 		text title
-		timestamptz created_at
-		timestamptz updated_at
+		timestamp_with_time_zone created_at
+		timestamp_with_time_zone updated_at
 		boolean is_pinned
 	}
 
@@ -65,56 +62,59 @@ erDiagram
 		uuid id PK
 		uuid chat_id FK
 		uuid user_id FK
+		uuid geo_analysis_id FK
 		text role "user | model"
 		text content
-		timestamptz created_at
+		timestamp_with_time_zone created_at
 	}
 
 	geo_analysis {
 		uuid id PK
-		uuid chat_id FK
 		uuid user_id FK
+		uuid chat_id FK
+		uuid job_id FK "UNIQUE"
+		uuid h3_grid_map_id FK
 		text location
 		text dataset "tree_cover | carbon_density"
 		USER-DEFINED boundary
-		USER-DEFINED center_point
+		USER-DEFINED coordinates
+		timestamp_with_time_zone created_at
 		jsonb analytics
 		date start_year
 		date end_year
-		timestamptz created_at
 	}
 
 	jobs {
-		uuid id PK
-		uuid chat_id FK
+		uuid id PK "UNIQUE"
 		uuid user_id FK
-		varchar celery_task_id
 		USER-DEFINED status "queued | ..."
-		text error_message
-		timestamptz created_at
-		timestamptz updated_at
+		text err_message
+		timestamp_with_time_zone created_at
+		timestamp_with_time_zone updated_at
 	}
 
-	analysis_h3_grid_map {
-		uuid geo_analysis_id PK, FK
-		uuid chat_id FK
+	h3_grid_maps {
+		uuid id PK
 		uuid user_id FK
+		uuid job_id FK "UNIQUE"
 		jsonb hex_geojson
 		jsonb legend
 	}
 
-	users ||--o{ chats : "creates"
+	users ||--o{ chats : "has"
 	users ||--o{ messages : "sends"
-	users ||--o{ geo_analysis : "owns"
+	users ||--o{ geo_analysis : "requests"
 	users ||--o{ jobs : "triggers"
-	users ||--o{ analysis_h3_grid_map : "views"
+	users ||--o{ h3_grid_maps : "owns"
 
 	chats ||--o{ messages : "contains"
-	chats ||--o{ geo_analysis : "has"
-	chats ||--o{ jobs : "tracks"
-	chats ||--o{ analysis_h3_grid_map : "displays"
+	chats ||--o{ geo_analysis : "contains"
 
-	geo_analysis ||--|| analysis_h3_grid_map : "maps_to"
+	jobs ||--|| geo_analysis : "processes"
+	jobs ||--|| h3_grid_maps : "generates"
+
+	h3_grid_maps ||--o{ geo_analysis : "referenced_by"
+	geo_analysis ||--o{ messages : "attached_to"
 ```
 
 # 📂 Project Structure
@@ -132,4 +132,4 @@ Canopiq is architected as a production-ready monorepo consisting of a decoupled 
 
 For more details about technical implementations specific to each service, explore their dedicated documentation hubs: 
 - **[Frontend Architecture](./frontend/README.md)**: Explains the MVC-based pattern using Zustand and custom React Hooks controllers, alongside the Jest unit and and Playwright integration testing.
-- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangChain agent orchestration, Gemini prompt loops, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing optimization with GeoPandas.
+- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangChain MCP agentic pipeline, Gemini prompt loops, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing with GeoPandas.

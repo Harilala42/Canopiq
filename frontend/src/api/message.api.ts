@@ -10,7 +10,7 @@ export const MessageAPI = {
 
     send: async (chatId: string, content: string) => {
         const url = import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", chatId);
-        const response = await apiClient.post<{ message: MessageData }>(url, { message: content });
+        const response = await apiClient.post(url, { message: content });
         return response.data;
     }
 };

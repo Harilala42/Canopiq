@@ -46,7 +46,7 @@ function Login(): JSX.Element {
 		setIsLoggingIn(true);
 
 		try {
-			await AuthAPI.loginWithPassword(formData);
+			await AuthAPI.loginWithPassword(formData)
 
 			login();
 			showAlert(true, "Welcome back! You’re now logged in.");
@@ -111,7 +111,7 @@ function Login(): JSX.Element {
                                 >
 									<Flex justify="flex-end" w="full" mt={1}>
                                         <Link asChild className="text-styles" fontSize="xs" fontWeight="bold" color={isDark ? "primary" : "secondary"}
-                                            _disabled={{ textDecoration: "underline" }}
+                                            _hover={{ textDecoration: "underline" }}
 											aria-label="Forgot password?"
                                         >
                                             <RouterLink to="/">Forgot password?</RouterLink>
@@ -136,9 +136,10 @@ function Login(): JSX.Element {
 										variant="outline" borderRadius="full" 
 										bg={isDark ? "secondary" : "text"} 
 										borderColor={ isDark ? "text" : "primary" }
-										onClick={handleGoogleAuth} disabled={isGoogleAuth}
+										onClick={handleGoogleAuth} 
+										disabled={isGoogleAuth || isLoggingIn}
 										aria-label="Authenticate via Google account"
-										_disabled={{ bg: isDark ? "text" : "primary" }}
+										_hover={{ bg: isDark ? "text" : "primary" }}
 									>
 										{ !isGoogleAuth ? <Image src={googleIcon} alt="Image, Google Logo" w="24px" /> : <Spinner color={isDark ? "primary" : "secondary"} size="sm" /> }
 									</IconButton>
@@ -149,7 +150,7 @@ function Login(): JSX.Element {
 									Not a member yet?{" "}
 									<Link asChild
 										color={isDark ? "primary" : "secondary"}
-										_disabled={{ textDecoration: "underline" }}
+										_hover={{ textDecoration: "underline" }}
 										aria-label="Not a member yet ?"
 										fontWeight="bold"
 									>

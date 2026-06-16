@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router, public_router
 from app.geo_analysis.router import router as geo_analysis_router
 from app.chat.router import router as chat_router
+from app.job.router import router as job_router
 
 app = FastAPI(
     title="Canopiq",
@@ -26,3 +27,4 @@ app.include_router(public_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
 app.include_router(chat_router, prefix="/api/v1", tags=["chat"])
 app.include_router(geo_analysis_router, prefix="/api/v1", tags=["geo-analysis"])
+app.include_router(job_router, prefix="/api/v1", tags=["job"])

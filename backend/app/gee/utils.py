@@ -58,27 +58,3 @@ def compute_total_change_percent(yearly_data: list[dict]) -> float:
 	change_percent = ((last_year_val - first_year_val) / first_year_val) * 100
 	
 	return round(change_percent, 2)
-
-def update_job_progress(
-	chat_id: str, 
-	user_id: str,
-	task_id: str, 
-	status: str, 
-	error_msg: str = None
-):
-	"""
-	Updates the realtime jobs table with the current status milestone.
-	"""
-	client = supabase()
-
-	payload = {
-		"chat_id": chat_id,
-        "user_id": user_id,
-        "status": status,
-        "celery_task_id": task_id
-	}
-	if error_msg: payload["error_message"] = error_msg
-		
-	client.table("jobs") \
-		.upsert(payload, on_conflict="chat_id, user_id") \
-		.execute()

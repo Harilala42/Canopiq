@@ -3,11 +3,13 @@ import { HexGeoJSONData, LegendData } from '@/types/map';
 
 interface MapState
 {
+    id: string;
     location: string | null;
     map: HexGeoJSONData | null;
     coords: [number, number] | null;
     legend: LegendData[] | null;
 
+    setId: (id: string) => void;
     setMap: (map: HexGeoJSONData) => void;
     setCoords: (coords: [number, number]) => void;
     setLocation: (location: string) => void;
@@ -16,10 +18,13 @@ interface MapState
 }
 
 const useMapStore = create<MapState>((set) => ({
+    id: null,
     map: null,
     coords: null,
     location: null,
     legend: null,
+
+    setId: (id) => set({ id }),
 
     setMap: (map) => set({ map }),
 
@@ -30,6 +35,7 @@ const useMapStore = create<MapState>((set) => ({
     setLegend: (legend) => set({ legend }),
 
     clearMap: () => set({ 
+        id: null,
         map: null, 
         coords: null,
         location: null,

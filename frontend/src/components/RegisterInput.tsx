@@ -39,7 +39,7 @@ export const RegisterInput = ({ name, label, error, type="text", isInvalid=false
                     transition="border-color 0.2s"
                     placeholder=" "
                     
-                    _disabled={{ borderColor: isDark ? "primary" : "secondary" }}
+                    _hover={{ borderColor: isDark ? "primary" : "secondary" }}
                     _focus={{ focusRing: "none", borderColor: "primary" }}
                     _invalid={{ borderColor: "red.500" }}
                     { ...props }

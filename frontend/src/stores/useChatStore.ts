@@ -8,12 +8,14 @@ interface ChatState
 {
     queries: ChatData[];
     currentQuery: ChatData | null;
+    currentJobId: string | null;
 
     isOpen: boolean;
     isVisible: boolean;
 
     setQueries: (queries: ChatData[]) => void;
     setCurrentQuery: (query: ChatData | null) => void;
+    setCurrentJobId: (jobId: string | null) => void;
 
     addQuery: (query: ChatData) => void;
     updateQuery: (id: string, updates: Partial<ChatData>) => void;
@@ -27,6 +29,7 @@ interface ChatState
 const useChatStore = create<ChatState>((set, get) => ({
     queries: [],
     currentQuery: null,
+    currentJobId: null,
 
     isOpen: true,
     isVisible: true,
@@ -34,6 +37,8 @@ const useChatStore = create<ChatState>((set, get) => ({
     setQueries: (queries) => set({ queries }),
     
     setCurrentQuery: (query) => set({ currentQuery: query }),
+
+    setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
 
     addQuery: (query) => set((state) => ({ 
         queries: [query, ...state.queries] 
