@@ -1,11 +1,14 @@
 import uuid
 import app.llm.agent as llm
+import app.gee.tasks as gee_task
+import app.llm.tasks as llm_task
 import app.chat.models as chat_models
+from app.job.models import update_job_progress
 from fastapi import APIRouter, HTTPException, Request, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
-from app.job.tasks import trigger_geospatial_analysis
 from app.dependencies import check_auth, rate_limiter
 from fastapi.responses import JSONResponse
+from celery import chain
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
@@ -91,21 +94,39 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
                 "type": "conversational", 
                 "reply": reply
             }
-        if route == "geospatial_analysis":
+        elif route == "geospatial_analysis":
             job_id = str(uuid.uuid4())
-            trigger_geospatial_analysis.apply_async(
-                args=[user_id, chat_id, payload.message],
-                task_id=job_id
-            )
+            update_job_progress(job_id, user_id, "queued")
 
-        return JSONResponse(
-            status_code=202, 
-            content={ 
-                "status": "accepted", 
-                "type": "geospatial", 
-                "job_id": job_id
-            }
-        )
+            chain(
+                llm_task.analyze_gis_intent.s(
+                    job_id=job_id, 
+                    user_id=user_id, 
+                    chat_id=chat_id, 
+                    prompt=payload.message
+                ),
+                gee_task.compute_gis_dataset.s(
+                    job_id=job_id,
+                    user_id=user_id,
+                    chat_id=chat_id
+                ),
+                llm_task.generate_environmental_report.s(
+                    job_id=job_id, 
+                    user_id=user_id, 
+                    chat_id=chat_id
+                )
+            ).apply_async(task_id=job_id)
+
+            return JSONResponse(
+                status_code=202, 
+                content={ 
+                    "status": "accepted", 
+                    "type": "geospatial", 
+                    "job_id": job_id
+                }
+            )
+            
+        raise Exception("Unknow value returned by LLM")
     except HTTPException:
         raise
     except Exception as err:

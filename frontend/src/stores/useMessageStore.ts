@@ -18,6 +18,7 @@ interface MessageState
     setErrorMessage: (message: string | null) => void;
 
     addMessage: (message: MessageData) => void;
+    removeMessage: (id: string) => void;
     resetMessages: () => void;
 }
 
@@ -45,6 +46,10 @@ const useMessageStore = create<MessageState>((set) => ({
         
         return { messages: [...state.messages, newMessage] };
     }),
+
+    removeMessage: (id) => set((state) => ({
+        messages: state.messages.filter((msg) => msg.id !== id)
+    })),
 
     resetMessages: () => set({
         messages: [],

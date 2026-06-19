@@ -70,6 +70,7 @@ const ChatInputBar = memo((): JSX.Element => {
                         (isLoading && !isThinking) ||
                         (!isThinking && !inputValue.trim())
                     }
+                    color={isDark ? "text" : "text"}
                     bg={isDark ? "primary" : "secondary"}
                     borderRadius="full" size="md"
                 >
@@ -77,7 +78,7 @@ const ChatInputBar = memo((): JSX.Element => {
                         isThinking ? (
                             <LuSquare />
                         ) : isSending ? (
-                            <Spinner color={isDark ? "text" : "secondary"} />
+                            <Spinner color={isDark ? "text" : "text"} size="sm" />
                         ) : (
                             <LuSend />
                         )

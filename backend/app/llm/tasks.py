@@ -1,9 +1,9 @@
 import app.llm.agent as llm
 import app.chat.models as chat
+from app.worker import celery_app
 from app.job.models import update_job_progress
-from celery import shared_task
 
-@shared_task(bind=True, max_retries=3)
+@celery_app.task(bind=True, max_retries=3)
 def analyze_gis_intent(
 	self,
 	job_id: str,
@@ -25,7 +25,7 @@ def analyze_gis_intent(
 			update_job_progress(job_id, user_id, "failed", str(e))
 		raise self.retry(exc=e, countdown=2 ** self.request.retries)
 
-@shared_task(bind=True, max_retries=3)
+@celery_app.task(bind=True, max_retries=3)
 def generate_environmental_report(
 	self, 
 	gis_results,

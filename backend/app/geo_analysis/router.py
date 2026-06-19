@@ -16,8 +16,6 @@ async def get_geo_analysis(chat_id: uuid.UUID, request: Request):
         geo_analysis = geo_analysis_model.get_geo_analysis(chat_id, user_id)
         
         return { "geo_analysis": geo_analysis }
-    except HTTPException:
-        raise
     except Exception as err:
         print("ERROR: Failed to retrieve geospatial analysis:", str(err))
 
