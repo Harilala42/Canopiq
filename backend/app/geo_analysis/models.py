@@ -31,31 +31,28 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: st
     b = query['bbox']
     wkt_boundary = f"POLYGON(({b[0]} {b[1]}, {b[2]} {b[1]}, {b[2]} {b[3]}, {b[0]} {b[3]}, {b[0]} {b[1]}))"
     wkt_center = f"POINT({query['longitude']} {query['latitude']})"
-     
+
+    if query['data_set'] == "carbon_density":
+        dataset_meta = {
+            "legend": "Biomass Carbon Density",
+            "description": "Estimated above-ground carbon biomass",
+            "source": "WCMC Biomass Carbon Density",
+            "type": "carbon_density",
+            "unit": "tC/ha"
+        }
+    else:
+        dataset_meta = {
+            "legend": "Percent Tree Cover",
+            "description": "Fraction of land covered by tree canopy",
+            "source": "MOD44B Version 6.1 Vegetation Continuous Fields",
+            "type": "tree_cover",
+            "unit": "%"
+        }
+
+
     global_average = compute_global_average(gis_analysis["time_series"])
     yearly_average = compute_yearly_average(gis_analysis["time_series"])
     total_change_percent = compute_total_change_percent(yearly_average)
-
-    carbon_density_metadata = {
-        "legend": "Biomass Carbon Density",
-        "description": "Estimated above-ground carbon biomass",
-        "source": "WCMC/biomass_carbon_density/v1_0",
-        "unit": "tC/ha"
-    }
-
-    tree_cover_metadata = {
-        "legend": "Percent Tree Cover",
-        "description": "Fraction of land covered by tree canopy",
-        "source": "MODIS/061/MOD44B",
-        "unit": "%"
-    }
-
-    land_cover_metadata = {
-        "legend": "Land Cover Distribution",
-        "description": "Global land cover map representing surface cover categories such as forest, shrubland, cropland, urban areas, water bodies, and bare land",
-        "source": "ESA/WorldCover/v200",
-        "unit": "%"
-    }
 
     h3_grid_map = save_h3_grid_map(
         hex_geojson=gis_analysis["hex_geojson"],
@@ -83,16 +80,15 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: st
                     "total_change_percent": total_change_percent
                 },
                 "insights": {
-                    "time_series": yearly_average,
-                    "metadata": (
-                        carbon_density_metadata 
-                        if query['data_set'] == "carbon_density" 
-                        else tree_cover_metadata
-                    )
+                    **dataset_meta,
+                    "time_series": yearly_average
                 },
-                "land_cover": {
-                    "distribution": gis_analysis["land_cover"],
-                    "metadata": land_cover_metadata
+                "land_use_distribution": {
+                    "legend": "Land-Use Distribution",
+                    "description": "Global land cover map representing surface cover categories such as forest, shrubland, cropland, urban areas, water bodies, and bare land",
+                    "categories": gis_analysis["land_use"],
+                    "source": "ESA WorldCover",
+                    "unit": "%"
                 }
             }
         }, on_conflict="job_id") \

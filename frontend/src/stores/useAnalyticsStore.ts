@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { 
-	TimeSeriesData, 
+	DatasetData,
 	RangeTimesData, 
-	DatasetMetaData, 
-	LandCoverData, 
+	LandUseData, 
 	BiomeData, 
 	datasetType
 } from '@/types/analysis';
@@ -13,15 +12,14 @@ interface AnalyticsState
 	isChartOpen: boolean;
 
 	geo_analysis_id: string;
-	dataset: DatasetMetaData | null;
 	range_times: RangeTimesData | null;
 
 	area_coverage: number;
 	global_average: number;
 	total_change: number;
 
-	dataset_time_series: TimeSeriesData[];
-	land_cover: LandCoverData | null;
+	dataset: DatasetData | null;
+	land_use: LandUseData | null;
 
 	openChart: () => void;
 	closeChart: () => void;
@@ -29,10 +27,7 @@ interface AnalyticsState
 
 	setGeoAnalysisId: (id: string) => void;
 
-	setDataset: (
-		type: datasetType, 
-		dataset: Exclude<DatasetMetaData, "type">
-	) => void;
+	setDataset: (dataset: DatasetData) => void;
 
 	setRangeTimes: (start: number, end: number) => void;
 
@@ -42,14 +37,7 @@ interface AnalyticsState
 
 	setTotalChange: (value: number) => void;
 
-	setDatasetTimeSeries: (
-		data: TimeSeriesData[]
-	) => void;
-
-	setLandCover: (
-		metadata: Exclude<LandCoverData, "categories">,
-		categories: BiomeData[]
-	) => void;
+	setLandUse: (data: LandUseData) => void;
 
 	setAnalyticsData: (
 		data: Partial<AnalyticsState>
@@ -69,8 +57,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	global_average: 0,
 	total_change: 0,
 
-	dataset_time_series: [],
-	land_cover: null,
+	land_use: null,
 
 	openChart: () => set({ isChartOpen: true }),
 
@@ -83,7 +70,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
 	setGeoAnalysisId: (id) => set({ geo_analysis_id: id }),
 
-    setDataset: (type, dataset) => set({ dataset: { ...dataset, type } }),
+    setDataset: (dataset) => set({ dataset: dataset }),
 
     setRangeTimes: (start, end) => set({
         range_times: { start, end }
@@ -95,9 +82,20 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 
     setTotalChange: (value) => set({ total_change: value }),
 
-    setDatasetTimeSeries: (data) => set({ dataset_time_series: data }),
+	setLandUse: (data) => {
+		const landUseDistribution: LandUseData = {
+			...data,
+			categories: Object.entries(data.categories).map(
+				([categoryName, details]: [string, any]) => ({
+					category: categoryName,
+					value: details.value,
+					color: details.color
+				})
+			)
+		};
 
-	setLandCover: (metadata, categories) => set({ land_cover: { ...metadata, categories } }),
+		set({ land_use: landUseDistribution });
+	},
 
     setAnalyticsData: (data) => set((state) => ({
         ...state, ...data
@@ -106,11 +104,10 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	resetAnalyticsData: () => set({
 		dataset: null,
 		range_times: null,
-		land_cover: null,
+		land_use: null,
 		area_coverage: 0,
 		global_average: 0,
 		total_change: 0,
-		dataset_time_series: [],
 		geo_analysis_id: null
 	})
 }));

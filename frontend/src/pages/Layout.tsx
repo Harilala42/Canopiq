@@ -48,7 +48,7 @@ function Layout(): JSX.Element {
 					<Grid 
 						templateColumns={
 							isChartOpen 
-							? "repeat(3, 1fr) 400px" 
+							? "repeat(3, 1fr) 40%" 
 							: "repeat(3, 1fr) 50px"
 						} 
 						transition="grid-template-columns 0.3s ease-in-out"

@@ -72,7 +72,7 @@ const ChatInputBar = memo((): JSX.Element => {
                     }
                     color={isDark ? "text" : "text"}
                     bg={isDark ? "primary" : "secondary"}
-                    borderRadius="full" size="md"
+                    borderRadius={15} size="md"
                 >
                     { 
                         isThinking ? (

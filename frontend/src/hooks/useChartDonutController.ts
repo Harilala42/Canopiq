@@ -1,65 +1,30 @@
 import { useMemo } from 'react';
-import { ChartData, ChartOptions } from 'chart.js';
-import useAnalyticsStore from '@/stores/useAnalyticsStore';
+import { LandUseData, BiomeData } from '@/types/analysis';
 
-export const useChartDonutController = (theme: string) => {
-    const landCover = useAnalyticsStore((state) => state.land_cover);
-    const isDark = theme === "dark";
+export const useChartDonutController = (landCover: LandUseData) => {
+    const donutData = useMemo<BiomeData[]>(() => {
+        if (!landCover) return [];
 
-    const donutData = useMemo<ChartData<"doughnut", number[], string>>(() => {
         const threshold = 2;
-        const main = landCover.categories.filter((item) => item.percent >= threshold);
-        const small = landCover.categories.filter((item) => item.percent < threshold);
-        const otherPercent = small.reduce((sum, item) => sum + item.percent, 0);
+        const main = landCover.categories.filter((item) => item.value >= threshold);
+        const small = landCover.categories.filter((item) => item.value < threshold);
+        const otherPercent = small.reduce((sum, item) => sum + item.value, 0);
 
         if (otherPercent > 0) {
-            main.push({ 
+            main.push({
                 category: "Others",
-                percent: Math.round(otherPercent),
-                color: "#7A728F" 
+                value: Math.round(otherPercent),
+                color: "#a695d1ff",
             });
         }
 
-        return {
-            labels: main.map((item) => item.category),
-            datasets: [
-                {
-                    data: main.map((item) => item.percent),
-                    backgroundColor: main.map((item) => item.color),
-                    borderWidth: 0
-                }
-            ]
-        };
+        return main;
     }, [landCover]);
 
-    const options = useMemo<ChartOptions<"doughnut">>(() => {
-        return {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: "circle",
-                        color: isDark ? "#cecbf6" : "#1a1535",
-                        font: { size: 12, weight: "bold" },
-                        padding: 12
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.label}: ${ctx.raw}%`
-                    }
-                }
-            }
-        };
-    }, [theme]);
-
     return {
-        donutData,
-        options,
-        legend: landCover.legend,
-        unit: landCover.unit,
-        source: landCover.source
+        categories: donutData,
+        legend: landCover?.legend || "",
+        unit: landCover?.unit || "",
+        source: landCover?.source || "",
     };
 };

@@ -5,6 +5,7 @@ import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from '@/utils/supabase.utils';
 import { MessageAPI } from '@/api/message.api';
 import { MessageData } from '@/types/chat';
+import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 export const useChatController = () => {
     const isOpen = useChatStore((state) => state.isOpen);
@@ -19,6 +20,9 @@ export const useChatController = () => {
     const openChat = useChatStore((state) => state.openChat);
     const closeChat = useChatStore((state) => state.closeChat);
     const toggleChat = useChatStore((state) => state.toggleChat);
+
+    const setGeoAnalysisId = useAnalyticsStore((state) => state.setGeoAnalysisId);
+
     const { showAlert } = useContext(AlertContext);
 
     const retrieveChatMessages = useCallback(async () => {
@@ -54,10 +58,11 @@ export const useChatController = () => {
                     filter: `chat_id=eq.${currentQuery.id}`
                 },
                 (payload: any) => {
-                    const { id, role, content, created_at } = payload.new;
+                    const { id, role, content, created_at, geo_analysis_id } = payload.new;
                     if (role === 'user') return; // message already displays
 
                     const newMessage: MessageData = { id, role, content, created_at };
+                    geo_analysis_id && setGeoAnalysisId(geo_analysis_id);
                     addMessage(newMessage);
                 }
             )

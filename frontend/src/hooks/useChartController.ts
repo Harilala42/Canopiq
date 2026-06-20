@@ -5,12 +5,10 @@ import { useCallback, useEffect, useContext, useState } from "react";
 import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from "@/utils/supabase.utils";
 import { AnalysisAPI } from "@/api/analysis.api";
-import { BiomeData } from "@/types/analysis";
-import useMessageStore from "@/stores/useMessageStore";
 
 export const useChartController = () => {
 	const setDataset = useAnalyticsStore((state) => state.setDataset);
-	const setLandCover = useAnalyticsStore((state) => state.setLandCover);
+	const setLandUse = useAnalyticsStore((state) => state.setLandUse);
 	const setAnalyticsData = useAnalyticsStore((state) => state.setAnalyticsData);
 	const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
 
@@ -34,7 +32,6 @@ export const useChartController = () => {
 		const {
 			id,
 			location,
-			dataset,
 			coordinates,
 			start_year,
 			end_year,
@@ -51,18 +48,9 @@ export const useChartController = () => {
 
 		setMapId(h3_grid_map_id);
 
-		setDataset(dataset, analytics.insights.metadata);
+		setDataset(analytics.insights);
 
-		setLandCover(
-			analytics.land_cover.metadata,
-			Object.entries(analytics.land_cover.distribution).map(
-				([category, value]: any) => ({
-					category,
-					color: value.color,
-					percent: value.percent,
-				})
-			) as BiomeData[]
-		);
+		setLandUse(analytics.land_use_distribution);
 
 		setAnalyticsData({
 			geo_analysis_id: id,
@@ -72,14 +60,13 @@ export const useChartController = () => {
 			},
 			area_coverage: analytics.stats.area_coverage_ha,
 			global_average: analytics.stats.global_average,
-			total_change: analytics.stats.total_change_percent,
-			dataset_time_series: analytics.insights.time_series,
+			total_change: analytics.stats.total_change_percent
 		});
 	}, [
 		setLocation,
 		setCoords,
 		setDataset,
-		setLandCover,
+		setLandUse,
 		setAnalyticsData
 	]);
 
