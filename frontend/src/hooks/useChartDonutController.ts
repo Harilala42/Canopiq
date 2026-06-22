@@ -5,7 +5,7 @@ export const useChartDonutController = (landCover: LandUseData) => {
     const donutData = useMemo<BiomeData[]>(() => {
         if (!landCover) return [];
 
-        const threshold = 2;
+        const threshold = 3;
         const main = landCover.categories.filter((item) => item.value >= threshold);
         const small = landCover.categories.filter((item) => item.value < threshold);
         const otherPercent = small.reduce((sum, item) => sum + item.value, 0);

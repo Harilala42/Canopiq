@@ -1,50 +1,17 @@
-import { memo, JSX, useContext } from "react";
-import { LuInfo, LuLandPlot } from "react-icons/lu";
-import { ThemeContext } from "@/contexts/themeContext";
-import { BiomeData, LandUseData, TimeSeriesData } from "@/types/analysis";
-import { useChartDonutController } from "@/hooks/useChartDonutController";
-import { VStack, HStack, Box, SimpleGrid, Skeleton, Text, Icon, Span } from "@chakra-ui/react";
 import { 
     PieChart, 
     Pie, 
     Sector, 
-    Tooltip as ReChartToolTip, 
-    ResponsiveContainer ,
-    TooltipProps
+    Tooltip as ReChartToolTip,
+    ResponsiveContainer
 } from "recharts";
-
-interface DonutTooltipProps extends TooltipProps
-{
-    payload?: any;
-    unit: string;
-}
-
-const DonutTooltip = memo(({active, payload, unit}: DonutTooltipProps) => {
-    const { theme } = useContext(ThemeContext);
-    const isDark = theme === "dark";
-
-    if (!active || !payload?.length) return null;
-
-    const { category: label, value } = payload[0].payload;
-
-    return (
-        <VStack
-            align="flex-start"
-            border="1px solid" borderRadius="md"
-            bg={isDark ? "secondary" : "primary"}
-            borderColor={isDark ? "variantLight" : "variantDark"}
-            p={2} gap={1}
-        >
-            <Text className="title-styles" fontSize="xs" fontWeight="bold">
-                {label}
-            </Text>
-
-            <Text className="text-styles" fontSize="xs">
-                {value}{unit}
-            </Text>
-        </VStack>
-    );
-});
+import { LuLandPlot } from "react-icons/lu";
+import { memo, JSX, useContext } from "react";
+import { ThemeContext } from "@/contexts/themeContext";
+import { BiomeData, LandUseData } from "@/types/analysis";
+import { HStack, Box, SimpleGrid, Text } from "@chakra-ui/react";
+import { ChartContainer, ChartTooltip } from "@/components/analytics";
+import { useChartDonutController } from "@/hooks/useChartDonutController";
 
 interface DonutLegendProps
 {
@@ -52,120 +19,73 @@ interface DonutLegendProps
     tickColor: string;
 }
 
-const DonutLegend = memo(({data, tickColor}: DonutLegendProps): JSX.Element => {
-    return (
-        <SimpleGrid columns={2} w="100%" h="100%" py={10}>
-            {data.map((entry) => (
-                <HStack key={entry.category} align="center" gap={2}>
-                    <Box
-                        w="15px" h="15px"
-                        borderRadius="full"
-                        bg={entry.color}
-                        flexShrink={0}
-                    />
-
-                    <Text fontSize="xs" fontWeight="bold" color={tickColor}>
-                        {entry.category}
-                    </Text>
-                </HStack>
-            ))}
-        </SimpleGrid>
-    );
-});
+const DonutLegend = memo(({ data, tickColor }: DonutLegendProps): JSX.Element => (
+    <SimpleGrid columns={2} w="100%" h="100%" py={10}>
+        {data.map((entry) => (
+            <HStack key={entry.category} align="center" gap={2}>
+                <Box w="15px" h="15px" borderRadius="full" bg={entry.color} flexShrink={0} />
+                <Text fontSize="xs" fontWeight="bold" color={tickColor}>{entry.category}</Text>
+            </HStack>
+        ))}
+    </SimpleGrid>
+));
 
 interface ChartDonutProps
 {
-    donutData?: LandUseData
+    donutData?: LandUseData;
 }
 
-const ChartDonut = ({donutData}: ChartDonutProps): JSX.Element => {
+const ChartDonut = ({ donutData }: ChartDonutProps): JSX.Element => {
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
-    if (!donutData)
-        return (
-            <Skeleton 
-                flex={1} w="100%" borderRadius="xl" 
-                bg={isDark ? "variantDark" : "variantLight"}
-            />
-        )
-
-    const { categories: data, legend, unit, source } = useChartDonutController(donutData);
+    const { 
+        categories: data, 
+        legend, 
+        unit, 
+        source
+    } = useChartDonutController(donutData || ({} as LandUseData));
+    const tickColor = isDark ? "#cecbf6" : "#1a1535";
 
     return (
-        <VStack
-            w="100%" p={5} gap={0}
-            bg={isDark ? "variantDark" : "variantLight"}
-            borderRadius="xl"
+        <ChartContainer 
+            hasData={!!donutData} 
+            legend={legend} 
+            unit={unit} 
+            source={source} 
+            icon={LuLandPlot}
         >
-            <HStack justify="center" w="100%" gap={2}>
-                <Icon color={isDark ? "text" : "secondary"} size="md">
-                    <LuLandPlot />
-                </Icon>
-                <Text
-                    fontSize="md"
-                    fontWeight="bold"
-                    color={isDark ? "text" : "secondary"}
-                >
-                    {`${legend} (${unit})`}
-                </Text>
-            </HStack>
-
             <HStack align="flex-start" gap={2} w="100%">
                 <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                         <Pie
-                            data={data}
-                            dataKey="value"
-                            nameKey="category"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={90}
+                            data={data} 
+                            dataKey="value" 
+                            nameKey="category" 
+                            cx="50%" cy="50%" 
+                            innerRadius={60} 
+                            outerRadius={90} 
                             strokeWidth={0}
-                            shape={(props: any) => {
-                                const { 
-                                    cx, cy, 
-                                    innerRadius, 
-                                    outerRadius, 
-                                    startAngle, 
-                                    endAngle, 
-                                    index
-                                } = props;
-
-                                return (
-                                    <Sector
-                                        cx={cx}
-                                        cy={cy}
-                                        innerRadius={innerRadius}
-                                        outerRadius={outerRadius}
-                                        startAngle={startAngle}
-                                        endAngle={endAngle}
-                                        fill={data[index]?.color}
-                                    />
-                                );
-                            }}
+                            
+                            shape={(props: any) => (
+                                <Sector 
+                                    cx={props.cx} cy={props.cy} 
+                                    fill={data[props.index]?.color}
+                                    innerRadius={props.innerRadius} 
+                                    outerRadius={props.outerRadius} 
+                                    startAngle={props.startAngle} 
+                                    endAngle={props.endAngle} 
+                                />
+                            )}
                         />
 
-                        <ReChartToolTip content={<DonutTooltip unit={unit} />}/>
+                        <ReChartToolTip content={<ChartTooltip unit={unit} labelKey="category" labelValue="value" />} />
                     </PieChart>
                 </ResponsiveContainer>
 
-                <DonutLegend data={data} tickColor={isDark ? "#cecbf6" : "#1a1535"}/>
+                <DonutLegend data={data} tickColor={tickColor} />
             </HStack>
-
-            <HStack justify="center" gap={2}>
-                <Icon color={isDark ? "text" : "secondary"} size="md">
-                    <LuInfo />
-                </Icon>
-                <Text className="text-styles" fontSize="sm" color={isDark ? "text" : "secondary"}>
-                    <Span fontWeight="semibold" textDecoration="underline">
-                        Source:
-                    </Span>{" "}
-                    {source}
-                </Text>
-            </HStack>
-        </VStack>
+        </ChartContainer>
     );
 };
 

@@ -22,9 +22,9 @@ export const Header = (): JSX.Element => {
                 <Text 
                     className="title-styles" 
                     fontSize="xl" fontWeight="bold"
-                    color={ isDark ? "text" : "primary" }
+                    color={ isDark ? "text" : "secondary" }
                 >
-                    Canopi<Span color={ isDark ? "primary" : "secondary" }>q</Span>
+                    Canopi<Span color={ isDark ? "variantLight" : "primary" }>q</Span>
                 </Text>
             </Box>
 

@@ -6,12 +6,11 @@ import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 interface ChatState
 {
+    isOpen: boolean;
+
     queries: ChatData[];
     currentQuery: ChatData | null;
     currentJobId: string | null;
-
-    isOpen: boolean;
-    isVisible: boolean;
 
     setQueries: (queries: ChatData[]) => void;
     setCurrentQuery: (query: ChatData | null) => void;
@@ -21,18 +20,17 @@ interface ChatState
     updateQuery: (id: string, updates: Partial<ChatData>) => void;
     deleteQuery: (id: string) => void;
 
-    openChat: () => void;
-    closeChat: () => void;
-    toggleChat: () => void;
+    openSidebar: () => void;
+    closeSideBar: () => void;
+    toggleSideBar: () => void;
 }
 
 const useChatStore = create<ChatState>((set, get) => ({
+    isOpen: false,
+
     queries: [],
     currentQuery: null,
     currentJobId: null,
-
-    isOpen: true,
-    isVisible: true,
 
     setQueries: (queries) => set({ queries }),
     
@@ -56,11 +54,9 @@ const useChatStore = create<ChatState>((set, get) => ({
         const { currentQuery } = get();
         const { clearMap } = useMapStore.getState();
         const { resetMessages } = useMessageStore.getState();
-        const { closeChart, resetAnalyticsData } = useAnalyticsStore.getState();
+        const { resetAnalyticsData } = useAnalyticsStore.getState();
 
         if (currentQuery?.id === id) {
-            closeChart();
-
             clearMap();
             resetMessages();
             resetAnalyticsData();
@@ -72,16 +68,13 @@ const useChatStore = create<ChatState>((set, get) => ({
         }));
     },
 
-    openChat: () => set({ isOpen: true, isVisible: true }),
+    openSidebar: () => set({ isOpen: true }),
 
-    closeChat: () => {
-        set({ isVisible: false });
-        setTimeout(() => set({ isOpen: false }), 300);
-    },
+    closeSideBar: () => set({ isOpen: false }),
 
-    toggleChat: () => {
+    toggleSideBar: () => {
         const state = get();
-        state.isOpen ? state.closeChat() : state.openChat()
+        state.isOpen ? state.closeSideBar() : state.openSidebar()
     }
 }));
 

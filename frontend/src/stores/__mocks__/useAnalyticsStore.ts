@@ -9,7 +9,7 @@ const initialState = {
   global_average: 0,
   total_change: 0,
   dataset_time_series: [],
-  land_use: null,
+  land_use_distribution: null,
 };
 
 export const mockOpenChart = jest.fn();

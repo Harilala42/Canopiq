@@ -20,7 +20,7 @@ const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
             return {
                 weight: 1,
                 opacity: 0.8,
-                color: "#1a1535",
+                color: "#261f4d",
                 fillColor: feature.properties?.color,
                 fillOpacity: 0.5
             };

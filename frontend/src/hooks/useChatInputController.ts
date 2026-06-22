@@ -100,7 +100,7 @@ export const useChatInputController = () => {
         try {
             await JobAPI.cancelJob(currentJobId);
 
-            setIsThinking(false);
+            isThinking && setIsThinking(false);
             setCurrentJobId(null);
             setCurrentStatus(null);
 

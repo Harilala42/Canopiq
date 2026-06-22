@@ -1,7 +1,8 @@
 import {
 	VStack,
 	Text,
-	Image
+	Image,
+    Box
 } from "@chakra-ui/react";
 import dark from "@/assets/darkEarth.svg";
 import light from "@/assets/lightEarth.svg";
@@ -26,15 +27,17 @@ const ChatGreeting = memo((): JSX.Element => {
                     ease: "easeInOut" 
                 }}
             >
-                <Image src={theme !== "dark" ? dark : light} w="150px" alt="Welcome Earth Icon" />
+                <Box display="flex" alignItems="center" justifyContent="center">
+                    <Image src={theme !== "dark" ? dark : light} w="50%" alt="Welcome Earth Icon" />
+                </Box>
             </motion.div>
 
             <VStack align="center">
-                <Text className="titles-styles" color={isDark ? "text" : "secondary"} fontSize="sm" fontWeight="bold">
+                <Text className="titles-styles" color={isDark ? "text" : "secondary"} fontSize="lg" fontWeight="bold">
                     Hi {user.username}
                 </Text>
                 
-                <Text className="text-styles" color={isDark ? "text" : "secondary"} fontSize="md">
+                <Text className="text-styles" color={isDark ? "text" : "secondary"} fontSize="2xl">
                     Where should we start? 
                 </Text>
             </VStack>

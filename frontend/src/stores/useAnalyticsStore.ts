@@ -1,16 +1,8 @@
 import { create } from 'zustand';
-import { 
-	DatasetData,
-	RangeTimesData, 
-	LandUseData, 
-	BiomeData, 
-	datasetType
-} from '@/types/analysis';
+import { DatasetData, RangeTimesData, LandUseData } from '@/types/analysis';
 
 interface AnalyticsState
 {
-	isChartOpen: boolean;
-
 	geo_analysis_id: string;
 	range_times: RangeTimesData | null;
 
@@ -19,11 +11,7 @@ interface AnalyticsState
 	total_change: number;
 
 	dataset: DatasetData | null;
-	land_use: LandUseData | null;
-
-	openChart: () => void;
-	closeChart: () => void;
-	toggleIsChartOpen: () => void;
+	land_use_distribution: LandUseData | null;
 
 	setGeoAnalysisId: (id: string) => void;
 
@@ -47,8 +35,6 @@ interface AnalyticsState
 }
 
 const useAnalyticsStore = create<AnalyticsState>((set) => ({
-	isChartOpen: false,
-
 	dataset: null,
 	range_times: null,
 	geo_analysis_id: null,
@@ -57,16 +43,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	global_average: 0,
 	total_change: 0,
 
-	land_use: null,
-
-	openChart: () => set({ isChartOpen: true }),
-
-	closeChart: () => set({ isChartOpen: false }),
-
-	toggleIsChartOpen: () =>
-		set((state) => ({
-			isChartOpen: !state.isChartOpen,
-		})),
+	land_use_distribution: null,
 
 	setGeoAnalysisId: (id) => set({ geo_analysis_id: id }),
 
@@ -94,7 +71,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 			)
 		};
 
-		set({ land_use: landUseDistribution });
+		set({ land_use_distribution: landUseDistribution });
 	},
 
     setAnalyticsData: (data) => set((state) => ({
@@ -104,7 +81,7 @@ const useAnalyticsStore = create<AnalyticsState>((set) => ({
 	resetAnalyticsData: () => set({
 		dataset: null,
 		range_times: null,
-		land_use: null,
+		land_use_distribution: null,
 		area_coverage: 0,
 		global_average: 0,
 		total_change: 0,
