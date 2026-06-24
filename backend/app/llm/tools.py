@@ -83,8 +83,8 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
 		dominant_land_use: List[Dict[str, Any]] = sorted(
 			[
 				{
-					"category": category,
-					"percent": values.get("percent", 0)
+					"biome": category,
+					"percent_area": values.get("percent", 0)
 				}
 				for category, values in distribution.items()
 			],
@@ -99,10 +99,11 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
 				f"{data.get('start_year', '')[:4]}-"
 				f"{data.get('end_year', '')[:4]}"
 			),
+			"unit": insights.get("unit"),
 			"total_change_percent": stats.get("total_change_percent"),
 			"global_average": stats.get("global_average"),
 			"area_coverage_km2": round(stats.get("area_coverage_ha") / 100),
-			"dominant_land_use": dominant_land_use,
+			"land_use_classes": dominant_land_use,
 			"latest_value": latest_value,
 			"peak_value": peak_value
 		}

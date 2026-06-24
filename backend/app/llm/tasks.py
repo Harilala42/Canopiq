@@ -36,8 +36,12 @@ def generate_environmental_report(
 	update_job_progress(job_id, user_id, "generating_report")
 
 	try:
+		chat_history = chat.get_chat_message(chat_id, user_id)
+		recent_context = chat_history[-3:] if chat_history else []
+
 		report = llm.generate_environmental_report(
-			geo_analysis_id=gis_results["geo_analysis_id"]
+			geo_analysis_id=gis_results["geo_analysis_id"],
+			recent_context=recent_context
 		)
 
 		chat.rename_chat(chat_id, user_id, report["title"])

@@ -9,9 +9,10 @@ import { LuLandPlot } from "react-icons/lu";
 import { memo, JSX, useContext } from "react";
 import { ThemeContext } from "@/contexts/themeContext";
 import { BiomeData, LandUseData } from "@/types/analysis";
-import { HStack, Box, SimpleGrid, Text } from "@chakra-ui/react";
 import { ChartContainer, ChartTooltip } from "@/components/analytics";
+import { HStack, Box, SimpleGrid, Text, Skeleton } from "@chakra-ui/react";
 import { useChartDonutController } from "@/hooks/useChartDonutController";
+import useAnalyticsStore from "@/stores/useAnalyticsStore";
 
 interface DonutLegendProps
 {
@@ -32,10 +33,11 @@ const DonutLegend = memo(({ data, tickColor }: DonutLegendProps): JSX.Element =>
 
 interface ChartDonutProps
 {
-    donutData?: LandUseData;
+    GISAnalysisId?: string;
 }
 
-const ChartDonut = ({ donutData }: ChartDonutProps): JSX.Element => {
+const ChartDonut = memo(({ GISAnalysisId }: ChartDonutProps): JSX.Element => {
+    const donutData = useAnalyticsStore((state) => state.land_use_distribution);
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
@@ -46,6 +48,15 @@ const ChartDonut = ({ donutData }: ChartDonutProps): JSX.Element => {
         source
     } = useChartDonutController(donutData || ({} as LandUseData));
     const tickColor = isDark ? "#cecbf6" : "#1a1535";
+
+    if (!donutData) {
+        return (
+            <Skeleton 
+                flex={1} w="100%" borderRadius="xl" 
+                bg={isDark ? "variantDark" : "variantLight"}
+            />
+        )
+    }
 
     return (
         <ChartContainer 
@@ -87,6 +98,6 @@ const ChartDonut = ({ donutData }: ChartDonutProps): JSX.Element => {
             </HStack>
         </ChartContainer>
     );
-};
+});
 
 export default ChartDonut;

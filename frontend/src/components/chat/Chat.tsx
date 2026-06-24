@@ -17,9 +17,11 @@ const Chat = (): JSX.Element => {
 	return (
 		<VStack
             align="stretch"
-            overflow="hidden"
             bg={isDark ? "secondary" : "text"}
-            w="100%" h="100%" gap={0}
+            w="100%" h="100%"
+            maxH="calc(100vh - 60px)"
+            overflow="hidden"
+            gap={0}
         >
             <ChatHeader title={title} />
 

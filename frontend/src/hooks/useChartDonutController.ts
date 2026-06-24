@@ -3,7 +3,8 @@ import { LandUseData, BiomeData } from '@/types/analysis';
 
 export const useChartDonutController = (landCover: LandUseData) => {
     const donutData = useMemo<BiomeData[]>(() => {
-        if (!landCover) return [];
+        if (!landCover?.categories || !Array.isArray(landCover.categories)) 
+            return [];
 
         const threshold = 3;
         const main = landCover.categories.filter((item) => item.value >= threshold);

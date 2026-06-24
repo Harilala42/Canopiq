@@ -17,6 +17,8 @@ export const useChatController = () => {
     const setIsLoading = useMessageStore((state) => state.setIsLoading);
     const addMessage = useMessageStore((state) => state.addMessage);
 
+    const setDataset = useAnalyticsStore((state) => state.setDataset);
+    const setLandUse = useAnalyticsStore((state) => state.setLandUse);
     const setAnalyticsData = useAnalyticsStore((state) => state.setAnalyticsData);
 	const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
 
@@ -43,7 +45,13 @@ export const useChatController = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentQuery?.id, setMessages, setIsLoading, showAlert]);
+    }, [
+        currentQuery?.id,
+        isThinking,
+        setMessages, 
+        setIsLoading, 
+        showAlert
+    ]);
 
     const applyAnalysisData = useCallback((data: any) => {
 		const {
@@ -65,6 +73,10 @@ export const useChatController = () => {
 
         setMapId(h3_grid_map_id);
 
+        setDataset(analytics.insights),
+
+        setLandUse(analytics.land_use_distribution),
+
         setAnalyticsData({
             geo_analysis_id: id,
             range_times: {
@@ -73,9 +85,7 @@ export const useChatController = () => {
             },
             area_coverage: analytics.stats.area_coverage_ha,
             global_average: analytics.stats.global_average,
-            total_change: analytics.stats.total_change_percent,
-            land_use_distribution: analytics.land_use_distribution,
-            dataset: analytics.insights
+            total_change: analytics.stats.total_change_percent
         });
 	}, [
 		setLocation,
@@ -103,6 +113,7 @@ export const useChatController = () => {
         }
     }, [
         currentQuery?.id, 
+        isThinking,
         resetAnalyticsData,
         applyAnalysisData,
         clearMap,

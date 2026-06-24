@@ -3,7 +3,6 @@ import {
 	HStack,
 	Text,
 	Heading,
-	Popover,
 	Box,
 	Spinner,
 	Icon,
@@ -12,11 +11,12 @@ import {
 import remarkGfm from 'remark-gfm';
 import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
+import { ChartBar, ChartDonut } from "@/components/analytics";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
 import { ThemeContext } from "@/contexts/themeContext";
 import { ChatGreeting } from "@/components/chat";
-import { JobStatus } from "@/types/chat";
 import { LuCircleX } from "react-icons/lu";
+import { JobStatus } from "@/types/chat";
 
 const PIPELINE_STEPS: Record<
 	Exclude<JobStatus, "completed">, 
@@ -59,8 +59,9 @@ const ChatMessages = memo((): JSX.Element => {
 
 	return (
 		<VStack 
-			w="100%" h="100%"
+			w="100%"
 			align="center" justify="flex-start"
+			overflowX="none"
 			overflowY="auto" p={4}
 			gap={5} flex={1}
 		>
@@ -177,6 +178,26 @@ const ChatMessages = memo((): JSX.Element => {
 									{children}
 								</Table.Cell>
 							),
+							pre: ({ children }) => (
+								<Box w="100%" display="block" my={2}>
+									{children}
+								</Box>
+							),
+							code: ({ className, children }) => {
+								const raw = String(children).trim();
+
+								if (className === "language-biomass_trends") {
+									const { geo_analysis_id } = JSON.parse(raw);
+									return <ChartBar GISAnalysisId={geo_analysis_id} />;
+								}
+
+								if (className === "language-land_use_distribution") {
+									const { geo_analysis_id } = JSON.parse(raw);
+									return <ChartDonut GISAnalysisId={geo_analysis_id} />;
+								}
+
+								return <code className={className}>{children}</code>;
+							}
 						}}
 					>
 						{msg.content}

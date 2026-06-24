@@ -28,7 +28,7 @@ const ChatGreeting = memo((): JSX.Element => {
                 }}
             >
                 <Box display="flex" alignItems="center" justifyContent="center">
-                    <Image src={theme !== "dark" ? dark : light} w="50%" alt="Welcome Earth Icon" />
+                    <Image src={theme !== "dark" ? dark : light} w="40%" alt="Welcome Earth Icon" />
                 </Box>
             </motion.div>
 

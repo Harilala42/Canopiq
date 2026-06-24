@@ -1,5 +1,5 @@
 import { ThemeContext } from "@/contexts/themeContext";
-import { HStack, VStack, Text, Icon, Skeleton, Span } from "@chakra-ui/react";
+import { HStack, VStack, Box, Text, Icon, Skeleton, Span } from "@chakra-ui/react";
 import { useContext, JSX } from "react";
 import { LuInfo } from "react-icons/lu";
 import { IconType } from "react-icons";
@@ -53,7 +53,9 @@ const ChartContainer = ({
             </HStack>
 
             {/* Core Visualization Data */}
-            {children}
+            <Box w="100%" minW="100%">
+                {children}
+            </Box>
 
             {/* Source */}
             <HStack justify="center" w="100%" gap={2}>
