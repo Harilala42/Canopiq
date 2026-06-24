@@ -1,9 +1,9 @@
 import app.gee.models as gee
+from app.worker import celery_app
 from app.job.models import update_job_progress
 from app.geo_analysis.models import save_geo_analysis
-from celery import shared_task
 
-@shared_task(bind=True, max_retries=3)
+@celery_app.task(bind=True, max_retries=3)
 def compute_gis_dataset(
 	self, 
 	gis_intent, 

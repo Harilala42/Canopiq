@@ -34,7 +34,7 @@ async def cancel_running_job(job_id: uuid.UUID, request: Request):
                 }
             )
 
-        celery_app.control.revoke(str(job_id), terminate=True)
+        celery_app.control.revoke(job_id, terminate=True, signal='SIGTERM')
         job_model.update_job_progress(job_id, "cancelled")
 
         return { "message": "Successfully cancelled job" }

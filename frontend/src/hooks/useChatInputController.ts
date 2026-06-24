@@ -10,7 +10,9 @@ export const useChatInputController = () => {
     const isLoading = useMessageStore((state) => state.isLoading);
     const isThinking = useMessageStore((state) => state.isThinking);
     const setIsThinking = useMessageStore((state) => state.setIsThinking);
+
     const addMessage = useMessageStore((state) => state.addMessage);
+    const removeMessage = useMessageStore((state) => state.removeMessage);
 
     const addQuery = useChatStore((state) => state.addQuery);
     const currentQuery = useChatStore((state) => state.currentQuery);
@@ -43,7 +45,7 @@ export const useChatInputController = () => {
         setIsSending(true);
         setIsThinking(true);
         setInputValue('');
-        addMessage({
+        addMessage({ // Optimistic rendering for instant message display
             id: tempId,
             role: 'user',
             content: messageText,
@@ -76,6 +78,7 @@ export const useChatInputController = () => {
             setCurrentStatus(null);
             setInputValue(messageText);
             
+            removeMessage(tempId);
             console.error("Failed to send message:", err.message);
             showAlert(false, "Failed to send message. Try again later!");
         } finally {
@@ -91,13 +94,13 @@ export const useChatInputController = () => {
     ]);
 
     const handleCancelAnalysis = useCallback(async () => {
-        if (!currentQuery?.id || !currentJobId) return;
+        if (!currentJobId) return;
 
         setIsCanceling(true);
         try {
             await JobAPI.cancelJob(currentJobId);
 
-            setIsThinking(false);
+            isThinking && setIsThinking(false);
             setCurrentJobId(null);
             setCurrentStatus(null);
 
@@ -109,7 +112,6 @@ export const useChatInputController = () => {
             setIsCanceling(false);
         }
     }, [
-        currentQuery, 
         currentJobId, 
         setIsThinking, 
         setCurrentJobId, 

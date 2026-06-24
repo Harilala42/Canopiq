@@ -63,13 +63,13 @@ def compute_gee_analysis(
         end_date=end_time
     )
 
-    land_cover_percent = compute_landcover_composition(roi)
+    land_use_percent = compute_landcover_composition(roi)
     legend_data = generate_legend_intervals(vmin, vmax, palette)
 
     return {
         "hex_geojson": hex_gdf.__geo_interface__,
         "time_series": processed_ts,
-        "land_cover": land_cover_percent,
+        "land_use": land_use_percent,
         "area_ha": round(area_ha, 2),
         "legend": legend_data
     }
@@ -377,7 +377,7 @@ def compute_landcover_composition(roi, scale=10):
             continue
 
         results[class_info[class_id]["label"]] = {
-            "percent": round(v / total_pixels * 100, 2),
+            "value": round(v / total_pixels * 100, 2),
             "color": class_info[class_id]["color"]
         }
 

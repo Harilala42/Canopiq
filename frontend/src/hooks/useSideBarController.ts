@@ -18,7 +18,7 @@ export const useSideBarController = () => {
     const addQuery = useChatStore((state) => state.addQuery);
     
     const isOpen = useChatStore((state) => state.isOpen);
-    const openChat = useChatStore((state) => state.openChat);
+    const toggleSideBar = useChatStore((state) => state.toggleSideBar);
 
     const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
     const resetMessages = useMessageStore((state) => state.resetMessages);
@@ -65,7 +65,6 @@ export const useSideBarController = () => {
         try {
             const newQuery = await ChatAPI.create();
             if (newQuery && newQuery.chat) {
-                !isOpen && openChat();
                 addQuery(newQuery.chat);
                 handleSelectQuery(newQuery.chat);
                 showAlert(true, "New query created successfully.");
@@ -76,7 +75,7 @@ export const useSideBarController = () => {
         } finally {
             setIsCreating(false);
         }
-    }, [addQuery, isOpen, openChat, showAlert, handleSelectQuery]);
+    }, [addQuery, showAlert, handleSelectQuery]);
 
     useEffect(() => {
         fetchQueries();
@@ -110,9 +109,11 @@ export const useSideBarController = () => {
     return {
         queries,
         sortedChats,
+        isOpen,
         isLoading,
         isCreating,
         isCanceleded,
+        toggleSideBar,
         setIsCanceleded,
         createNewQuery,
         handleSelectQuery

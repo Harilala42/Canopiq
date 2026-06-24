@@ -17,7 +17,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
     return (
         <Box 
             position="absolute"
-            bottom="20px" right="20px"
+            bottom="25px" right="10px"
             bg={isDark ? "secondary" : "text"}
             p={3} gap={2} zIndex={1000}
             w="150px"

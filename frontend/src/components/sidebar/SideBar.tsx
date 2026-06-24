@@ -4,23 +4,19 @@ import { ThemeContext } from "@/contexts/themeContext";
 import { useSideBarController } from "@/hooks/useSideBarController";
 import { SideBarHeader, SideBarActions, SideBarQueryList } from "@/components/sidebar";
 
-interface SideBarProps
-{
-    isExpanded: boolean;
-    onToggle: () => void;
-}
-
-const SideBar = ({ isExpanded, onToggle }: SideBarProps) => {
+const SideBar = () => {
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
     const {
         queries,
         sortedChats,
+        isOpen,
         isLoading,
         isCreating,
         isCanceleded,
         setIsCanceleded,
+        toggleSideBar,
         createNewQuery,
         handleSelectQuery,
     } = useSideBarController();
@@ -35,26 +31,26 @@ const SideBar = ({ isExpanded, onToggle }: SideBarProps) => {
             borderRight="1px solid"
             borderColor={isDark ? "variantDark" : "variantLight"}
             minW="50px"
-            w={isExpanded ? "250px" : "50px"}
-            onClick={() => !isExpanded && onToggle()}
+            w={isOpen ? "250px" : "50px"}
+            onClick={() => !isOpen && toggleSideBar()}
             h="100%"
-            px={isExpanded ? 2 : 1}
+            px={isOpen ? 2 : 1}
             gap={5}
         >
             <SideBarHeader
-                isExpanded={isExpanded}
+                isExpanded={isOpen}
                 isCanceleded={isCanceleded}
-                onToggle={onToggle}
+                onToggle={toggleSideBar}
             />
 
             <SideBarActions
-                isExpanded={isExpanded}
+                isExpanded={isOpen}
                 isCreating={isCreating}
                 createNewQuery={createNewQuery}
             />
 
             <SideBarQueryList
-                isExpanded={isExpanded}
+                isExpanded={isOpen}
                 queries={queries}
                 sortedChats={sortedChats}
                 isLoading={isLoading}

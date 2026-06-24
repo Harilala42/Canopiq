@@ -1,11 +1,3 @@
-export interface TimeSeriesData
-{
-	year: string;
-	value: number;
-	color: string;
-	normalized: number;
-}
-
 export interface RangeTimesData
 {
     start: number;
@@ -14,23 +6,32 @@ export interface RangeTimesData
 
 export type datasetType = "carbon_density" | "tree_cover";
 
-export interface DatasetMetaData
+export interface TimeSeriesData
 {
-	legend: string;
-	description: string;
-	type: datasetType;
-	source: string;
-	unit: string;
+	year: string;
+	value: number;
+	color: string;
+	normalized: number;
 }
 
 export interface BiomeData
 {
 	category: string;
-	percent: number;
+	value: number;
 	color: string;
 }
 
-export interface LandCoverData
+export interface DatasetData
+{
+	legend: string;
+	description: string;
+	type: datasetType;
+	time_series: TimeSeriesData[];
+	source: string;
+	unit: string;
+}
+
+export interface LandUseData
 {
 	legend: string;
 	description: string;

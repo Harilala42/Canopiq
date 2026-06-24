@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react';
 import { useChartDonutController } from './useChartDonutController';
-import { LandCoverData } from '@/types/analysis';
+import { LandUseData } from '@/types/analysis';
 
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 jest.mock('@/stores/useAnalyticsStore');
 
 describe('useChartDonutController - donutData useMemo', () => {
-  const mockBaseLandCover: LandCoverData = {
+  const mockBaseLandCover: LandUseData = {
     legend: 'Land Cover Legend',
     description: 'Satellite analytical observations',
     source: 'Copernicus Sentinel Data',

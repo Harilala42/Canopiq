@@ -4,7 +4,6 @@ const initialState = {
   queries: [],
   currentQuery: null,
   isOpen: true,
-  isVisible: true,
 };
 
 export const mockSetQueries = jest.fn();

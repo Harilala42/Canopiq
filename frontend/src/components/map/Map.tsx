@@ -3,6 +3,7 @@ import {
     TileLayer, 
     Marker, 
     Popup, 
+    Pane,
     ZoomControl, 
     useMap
 } from "react-leaflet";
@@ -10,7 +11,7 @@ import { Box } from "@chakra-ui/react";
 import { useRef, useEffect, JSX } from "react";
 import { useMapController } from "@/hooks/useMapController";
 import { MapHexGrid, MapLegend } from "@/components/map/";
-import { Chat } from "@/components/chat/";
+import { ChartCard } from "@/components/analytics";
 import "leaflet/dist/leaflet.css";
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => { 
@@ -61,9 +62,16 @@ const Map = (): JSX.Element => {
                 <ZoomControl position="topright" />
 
                 <TileLayer
-                    attribution='&copy; OpenStreetMap'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 />
+
+                <Pane name="top-labels" style={{ zIndex: 501 }}>
+                    <TileLayer
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                        opacity={0.8}
+                    />
+                </Pane>
 
                 {map && map.features?.length > 0 && (
                     <MapHexGrid mapData={map} />
@@ -85,11 +93,9 @@ const Map = (): JSX.Element => {
                 )}
             </MapContainer>
 
-            <Chat />
+            <ChartCard />
 
-            {legend && (
-                <MapLegend legend={legend} />
-            )}
+            {legend && (<MapLegend legend={legend} />)}
         </Box>
     );
 };

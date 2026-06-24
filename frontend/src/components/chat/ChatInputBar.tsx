@@ -1,13 +1,8 @@
-import {
-	HStack,
-	Popover,
-	Textarea,
-	Spinner
-} from "@chakra-ui/react";
-import { LuSend, LuSquare } from "react-icons/lu";
 import { memo, JSX, useContext } from "react";
-import { ThemeContext } from "@/contexts/themeContext";
+import { LuSend, LuSquare } from "react-icons/lu";
+import { HStack, Textarea, Spinner, Box } from "@chakra-ui/react";
 import { useChatInputController } from "@/hooks/useChatInputController";
+import { ThemeContext } from "@/contexts/themeContext";
 import { IconButton } from "@/components/IconButton";
 
 const ChatInputBar = memo((): JSX.Element => {
@@ -27,12 +22,12 @@ const ChatInputBar = memo((): JSX.Element => {
 	} = useChatInputController();
 
 	return (
-		<Popover.Footer  
+        <Box 
+            w="100%" px={2} py={5}
             borderTop="1px solid" 
             borderColor={isDark ? "variantDark" : "variantLight"}
-            px={2} py={3}
         >
-            <HStack 
+            <HStack
                 bg={isDark ? "variantDark" : "variantLight"} 
                 borderRadius={15} overflow="hidden"
                 w="100%" p={1}
@@ -70,21 +65,22 @@ const ChatInputBar = memo((): JSX.Element => {
                         (isLoading && !isThinking) ||
                         (!isThinking && !inputValue.trim())
                     }
+                    color={isDark ? "text" : "text"}
                     bg={isDark ? "primary" : "secondary"}
-                    borderRadius="full" size="md"
+                    borderRadius={15} size="md"
                 >
                     { 
                         isThinking ? (
                             <LuSquare />
                         ) : isSending ? (
-                            <Spinner color={isDark ? "text" : "secondary"} />
+                            <Spinner color={isDark ? "text" : "text"} size="sm" />
                         ) : (
                             <LuSend />
                         )
                     }
                 </IconButton>
             </HStack>
-        </Popover.Footer>
+        </Box>
 	);
 });
 

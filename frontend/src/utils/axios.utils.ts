@@ -6,6 +6,17 @@ export const apiClient = axios.create({
     timeout: 30000,
 });
 
+const ERROR_MESSAGES: Record<string | number, string> = {
+    400: "The request was invalid. Please check your input and try again.",
+    403: "You don't have permission to perform this action.",
+    404: "The requested resource could not be found.",
+    429: "Too many requests. Please slow down and try again in a moment.",
+    500: "Our servers are having trouble right now. Please try again later.",
+
+    "INVALID_CREDENTIALS": "The email or password you entered is incorrect.",
+    "EMAIL_ALREADY_USED": "An account with this email already exists."
+};
+
 // Interceptor to handle token refresh and error formatting
 apiClient.interceptors.response.use(
     (response) => response,
@@ -24,7 +35,7 @@ apiClient.interceptors.response.use(
             } catch (refreshError) {
                 try {
                     await apiClient.post(import.meta.env.VITE_API_AUTH_LOGOUT);
-                } catch (_) {
+                } catch (err: any) {
                     // ignore logout errors
                 }
 
@@ -35,17 +46,16 @@ apiClient.interceptors.response.use(
         }
         
         // 2. Handle API Errors
-        const detail: any = err.response?.data?.detail;
-        let errorMessage = 'Something went wrong';
+        let errorMessage = 'Something went wrong. Please try again later.';
+        if (status && ERROR_MESSAGES[status]) {
+            errorMessage = ERROR_MESSAGES[status];
+        } else if (code && ERROR_MESSAGES[code]) {
+            errorMessage = ERROR_MESSAGES[code];
+        } else if (err.message?.includes('Network Error')) {
+            errorMessage = "Network error. Please check your internet connection.";
+        }
 
-        if (typeof detail === "object" && detail?.message)
-            errorMessage = detail.message;
-        else if (Array.isArray(detail) && detail[0]?.msg)
-            errorMessage = "Invalid input provided";
-        else if (err.message)
-            errorMessage = err.message;
-
-        err.formattedMessage = errorMessage;
+        err.message = errorMessage; 
         return Promise.reject(err);
     }
 );

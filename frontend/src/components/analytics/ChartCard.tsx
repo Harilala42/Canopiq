@@ -14,6 +14,7 @@ import {
 	LuTreePine,
 	LuCloud
 } from "react-icons/lu";
+import useMapStore from "@/stores/useMapStore";
 import useAnalyticsStore from "@/stores/useAnalyticsStore";
 import { ThemeContext } from "@/contexts/themeContext";
 
@@ -35,36 +36,30 @@ const StatsCard =({
 }: StatsCardProps): JSX.Element => {
 	const { theme } = useContext(ThemeContext);
 	const isDark = theme === "dark";
+	const brandColor = isDark ? "text" : "secondary"
 
 	return (
 		<Stat.Root
-			w="100%"
-			bg={isDark ? "variantDark" : "variantLight"}
-			p={5}
-			borderRadius="xl"
+			w="100%" h="100%"
+			alignItems="flex-start" justifyContent="center"
+			bg={isDark ? "secondary" : "text"}
+			borderRadius="xl" p={5}
 		>
 			<HStack gap={4}>
-				<Icon color={isDark ? "text" : "secondary"} size="2xl">
+				<Icon color={brandColor} size="2xl">
 					{icon}
 				</Icon>
 
-				<VStack flex={1} align="flex-start" gap={1}>
+				<VStack flex={1} align="flex-start" gap={2} px={2}>
 					<Stat.Label>
-						<Text
-							fontSize="md"
-							fontWeight="bold"
-							color={isDark ? "text" : "secondary"}
-						>
+						<Text className="text-styles" color={brandColor} fontSize="md" fontWeight="bold">
 							{label}
 						</Text>
 					</Stat.Label>
 
 					<HStack>
 						<Stat.ValueText>
-							<Text
-								fontSize="2xl"
-								color={isDark ? "text" : "secondary"}
-							>
+							<Text className="title-styles" color={brandColor} fontSize="2xl">
 								{value}
 							</Text>
 						</Stat.ValueText>
@@ -79,10 +74,7 @@ const StatsCard =({
 
 					{helpText && (
 						<Stat.HelpText>
-							<Text
-								fontWeight="bold" fontSize="sm"
-								color={isDark ? "text" : "secondary"}
-							>
+							<Text className="text-styles" color={brandColor} fontWeight="bold" fontSize="sm">
 								{helpText}
 							</Text>
 						</Stat.HelpText>
@@ -93,23 +85,27 @@ const StatsCard =({
 	);
 }
 
-const ChartStats = memo((): JSX.Element => {
-	const datasetMetaData = useAnalyticsStore((state) => state.dataset);
-	const datasetValue = useAnalyticsStore((state) => state.global_average);
+const ChartCard = memo((): JSX.Element | null => {
+	const location = useMapStore((state) => state.location);
+	const dataset = useAnalyticsStore((state) => state.dataset);
+	const averageValue = useAnalyticsStore((state) => state.global_average);
 	const areaCoverage = useAnalyticsStore((state) => state.area_coverage);
 	const totalChange = useAnalyticsStore((state) => state.total_change);
 	const rangeTimes = useAnalyticsStore((state) => state.range_times);
 
+	if (!dataset) return null;
+	const { type, legend, unit } = dataset;
 	return (
-		<>
+		<VStack 
+			w="fit-content"
+			position="absolute"
+			top="20px" left="20px"
+			gap={2} zIndex={1000}
+		>
 			<StatsCard
-				icon={
-					datasetMetaData.type !== "tree_cover"
-						? <LuCloud />
-						: <LuTreePine />
-				}
-				label={datasetMetaData.legend}
-				value={`${datasetValue} ${datasetMetaData.unit}`}
+				label={legend}
+				value={`${averageValue} ${unit}`}
+				icon={type !== "tree_cover" ? <LuCloud /> : <LuTreePine />}
 				helpText={`Between ${rangeTimes.start} - ${rangeTimes.end}`}
 				badgeValue={totalChange}
 			/>
@@ -118,9 +114,10 @@ const ChartStats = memo((): JSX.Element => {
 				icon={<LuMap />}
 				label="Area Coverage"
 				value={`${Math.round(areaCoverage / 100)} km²`}
+				helpText={`In ${location}`}
 			/>
-		</>
+		</VStack>
 	);
 });
 
-export default ChartStats;
+export default ChartCard;

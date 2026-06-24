@@ -9,7 +9,7 @@ const initialState = {
   global_average: 0,
   total_change: 0,
   dataset_time_series: [],
-  land_cover: null,
+  land_use_distribution: null,
 };
 
 export const mockOpenChart = jest.fn();
@@ -22,7 +22,7 @@ export const mockSetAreaCoverage = jest.fn();
 export const mockSetGlobalAverage = jest.fn();
 export const mockSetTotalChange = jest.fn();
 export const mockSetDatasetTimeSeries = jest.fn();
-export const mockSetLandCover = jest.fn();
+export const mocksetLandUse = jest.fn();
 export const mockSetAnalyticsData = jest.fn();
 export const mockResetAnalyticsData = jest.fn();
 
@@ -38,7 +38,7 @@ let mockState = {
     setGlobalAverage: mockSetGlobalAverage,
     setTotalChange: mockSetTotalChange,
     setDatasetTimeSeries: mockSetDatasetTimeSeries,
-    setLandCover: mockSetLandCover,
+    setLandUse: mocksetLandUse,
     setAnalyticsData: mockSetAnalyticsData,
     resetAnalyticsData: mockResetAnalyticsData,
   };

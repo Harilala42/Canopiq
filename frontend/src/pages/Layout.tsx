@@ -1,18 +1,16 @@
 import useChatStore from '@/stores/useChatStore';
-import useAnalyticsStore from '@/stores/useAnalyticsStore';
-import { useState, useContext, lazy, Suspense, JSX } from 'react';
+import { useContext, lazy, Suspense, JSX } from 'react';
 import { Grid, GridItem, Spinner, VStack } from '@chakra-ui/react';
 import { ThemeContext } from '@/contexts/themeContext';
 import { FullScreen } from '@/components/FullScreen';
-import { Chart } from '@/components/analytics/';
 import { SideBar } from '@/components/sidebar';
 import { Header } from '@/components/Header';
+import { Chat } from '@/components/chat/';
 
 const Map = lazy(() => import('@/components/map/Map'));
 
 function Layout(): JSX.Element {
-	const isChartOpen = useAnalyticsStore((state) => state.isChartOpen);
-	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+	const isOpen = useChatStore((state) => state.isOpen);
 	const { theme } = useContext(ThemeContext);
 	const isDark = theme === "dark";
 
@@ -25,35 +23,15 @@ function Layout(): JSX.Element {
 				overflow="hidden"
 			>
 				<GridItem as="aside" rowSpan={2} colSpan={1}>
-					<SideBar 
-						isExpanded={isSidebarOpen}
-            			onToggle={() => setIsSidebarOpen(prev => !prev)}
-					/>
+					<SideBar />
 				</GridItem>
 
-				<GridItem 
-					as="header" 
-					rowSpan={1} colSpan={4} 
-					ml={!isSidebarOpen ? "-200px" : "none"} 
-					h="60px"
-				>
+				<GridItem as="header" rowSpan={1} colSpan={4} ml={!isOpen ? "-200px" : "none"} h="60px">
 					<Header />
 				</GridItem>
 
-				<GridItem 
-					as="main" 
-					rowSpan={1} colSpan={4}
-					ml={!isSidebarOpen ? "-200px" : "none"}
-				>
-					<Grid 
-						templateColumns={
-							isChartOpen 
-							? "repeat(3, 1fr) 400px" 
-							: "repeat(3, 1fr) 50px"
-						} 
-						transition="grid-template-columns 0.3s ease-in-out"
-						h="100%"
-					>
+				<GridItem as="main" rowSpan={1} colSpan={4} ml={!isOpen ? "-200px" : "none"}>
+					<Grid templateColumns= "repeat(3, 1fr) minmax(400px, 30%)" h="100%">
 						<GridItem as="section" colSpan={3}>
 							<Suspense fallback={
 								<VStack h="100%" justify="center">
@@ -65,7 +43,7 @@ function Layout(): JSX.Element {
 						</GridItem>
 
 						<GridItem as="section" colSpan={1}>
-							<Chart />
+							<Chat />
 						</GridItem>
 					</Grid>
 				</GridItem>

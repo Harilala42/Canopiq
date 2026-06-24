@@ -3,7 +3,7 @@ import {
   TimeSeriesData, 
   RangeTimesData, 
   DatasetMetaData, 
-  LandCoverData, 
+  LandUseData, 
   BiomeData, 
   datasetType 
 } from '@/types/analysis';
@@ -46,7 +46,7 @@ describe('useAnalyticsStore', () => {
     unit: 'percentage',
   };
 
-  const mockLandCover: LandCoverData = {
+  const mockLandCover: LandUseData = {
     ...mockLandCoverMetaData,
     categories: mockBiomeData,
   };

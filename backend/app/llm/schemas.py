@@ -49,5 +49,5 @@ class EnvironmentalReport(BaseModel):
 	title: str = Field(description="Short environmental report title")
 	report_markdown: str = Field(
 		max_length=5000,
-		description="Objective environmental analysis summary under 500 characters"
+		description="Objective environmental analysis summary under 5000 characters"
 	)

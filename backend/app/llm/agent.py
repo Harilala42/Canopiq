@@ -150,7 +150,7 @@ def extract_geospatial_params(user_prompt: str, recent_context: list = None) -> 
         print("ERROR: Failed to analyse user request:", str(err))
         raise Exception(err)
 
-def generate_environmental_report(geo_analysis_id: str) -> dict:
+def generate_environmental_report(geo_analysis_id: str, recent_context: list = None) -> dict:
     report_agent = create_agent(
         model, 
         tools=[normalizeGeoAnalysisData],
@@ -158,65 +158,80 @@ def generate_environmental_report(geo_analysis_id: str) -> dict:
     )
 
     prompt = f"""
-        You are an environmental analysis reporting AI.
-        You MUST call the tool `normalizeGeoAnalysisData` before generating the report.
-        Return ONLY valid JSON matching the schema.
-
-        CURRENT TIME CALENDAR BASELINE: {date.today().strftime("%Y-%m-%d")}
+        You are an environmental GIS reporting AI for Canopiq.
+        You MUST call `normalizeGeoAnalysisData` tool with geo_analysis_id="{geo_analysis_id}" before writing anything.
+        Return ONLY valid JSON matching the EnvironmentalReport schema.
 
         ---
 
         🏷️ TITLE RULES:
-        - Format:
-            - "<Dataset Label> in <Location> from <Start Time> to <End Time>" for a specific timesframe.
-            - "<Dataset Label> in <Location> since <Start Time>" for a period until today.
-        - Examples:
-            "Urban Forest in Singapore since 2020"
-            "Carbon Density in KL, Malaysia from 2016 to 2024"
+        - "<Dataset Label> in <Location> from <Start Year> to <End Year>"  → specific timeframe
+        - "<Dataset Label> in <Location> since <Start Year>"               → period running to today
+        - Examples: "Urban Forest in Singapore since 2020"
+                    "Carbon Density in Kuala Lumpur from 2016 to 2024"
 
         ---
 
-        📋 REPORT STRUCTURE RULES:
-        The `report_markdown` field MUST be structured exactly like this template:
+        📋 REPORT STRUCTURE — follow this template exactly, in this order:
 
-        ## GIS Analysis:
-        - **Location:** [Insert location]
-        - **Dataset:** [Insert dataset]
-        - **Period:** [Insert period]
+        [2–3 sentence introduction grounded in the user's original request and conversation 
+        context. Start with a friendly, true-assistant greeting, such as "Yes, I can certainly 
+        help you with that...". Name the location, what was measured, and why it matters ecologically.]
 
-        ## Temporal Changes:
-        - **Total Change:** [Insert total_change_percent]
-        - **Global Average Comparison:** [Insert global_average]
-        - **Total Area Coverage:** [Insert area_coverage_km2]
+        ```biomass_trends
+            {{"geo_analysis_id": "{geo_analysis_id}"}}
+        ```
 
-        ## Land-Use Distribution:
-        | Dominant Land Cover Class | Percent Area Coverage |
-        | :--- | :--- |
-        | [Main Land Cover Type 1] | [X]% |
-        | [Main Land Cover Type 2] | [Y]% |
-        | [Main Land Cover Type 3] | [Z]% |
+        [3–5 sentences interpreting the normalized stats ONLY. Do NOT describe what the
+        chart looks like — it is already visible above. Focus on:
+        - Overall trajectory: total_change_percent across area_coverage_km2
+        - Magnitude: latest_value vs peak_value with their units
+        - Ecological significance of that delta (gain, loss, or stability)
+        - One sentence linking the trend to a likely driver (land-use pressure, policy,
+        climate) if the data supports it — no speculation beyond the numbers.]
 
-        ## Summary:
-        [Insert a concise, objective paragraph under 500 characters highlighting the trend, major change, and ecological significance.]
+        ```land_use_distribution
+            {{"geo_analysis_id": "{geo_analysis_id}"}}
+        ```
+
+        [1 sentence describing what the donut chart above represents — what the slices
+        encode and what unit they are expressed in.]
+
+        | Dominant Land Cover Class (dominant_land_use["category"]) 
+        | Biome Description | Percent Area Coverage (dominant_land_use["percent"]) |
+        | :--- | :--- | :--- |
+        | [Land Cover 1] | [Biome description] | [X]% |
+        | [Land Cover 2] | [Biome description] | [Y]% |
+        | [Land Cover 3] | [Biome description] | [Z]% |
+
+        [1–2 sentences on what the dominant class implies for carbon sequestration
+        potential or biodiversity, without restating the percentages. Finally, provide a 
+        relevant suggestion for a follow-up GIS analysis in the report, phrased as a question.]
 
         ---
 
         🚫 SCIENTIFIC CONSTRAINT RULES:
-        - Use scientific and neutral tone
-        - Mention important trends and percentages
+        - Scientific, neutral tone throughout.
         - Order the rows in the Land-Use Distribution table from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.
-        - Keep environmental report under 5000 characters
+        - Do NOT describe chart visuals (colors, shapes, axes) — charts render inline.
+        - The two fenced blocks (biomass_trends, land_use_distribution) must appear
+        verbatim with the exact geo_analysis_id. Never alter or omit them.
+        - Total report_markdown under 5000 characters.
     """
+
+    messages = [SystemMessage(prompt)]
+    
+    if recent_context:
+        for msg in recent_context:
+            if msg.get("role") == "user":
+                messages.append(HumanMessage(msg.get("content", "")))
+            else:
+                messages.append(AIMessage(msg.get("content", "")))
 
     try:
         ai_response = report_agent.invoke({
-            "messages": [
-                SystemMessage(prompt),
-                HumanMessage(f"""
-                    Environmental geospatial analysis ID: {geo_analysis_id}
-                """)
-            ]
+            "messages": messages
         })
 
         output = ai_response["structured_response"]
