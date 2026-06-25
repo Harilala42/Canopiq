@@ -76,7 +76,13 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
         chat_history = chat_models.get_chat_message(chat_id, user_id)
         recent_context = chat_history[-3:] if chat_history else []
 
-        chat_models.save_chat_message(chat_id, user_id, "user", payload.message)
+        chat_models.save_chat_message(
+            chat_id=chat_id, 
+            user_id=user_id, 
+            role="user", 
+            content=payload.message, 
+            message_id=payload.message_id
+        )
 
         route = llm.classify_user_request(payload.message, recent_context)
         if route in ["conversational", "impossible_request"]:

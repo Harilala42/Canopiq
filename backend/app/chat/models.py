@@ -14,16 +14,26 @@ def get_chat_message(chat_id: str, user_id: str):
     
     return messages_list.data if messages_list and messages_list.data else []
 
-def save_chat_message(chat_id: str, user_id: str, role: str, content: str):
+def save_chat_message(
+    chat_id: str, 
+    user_id: str, 
+    role: str, 
+    content: str, 
+    message_id: str = None
+):
     client = supabase()
 
-    response = client.table("messages") \
-        .insert({
-            "chat_id": str(chat_id),
-            "user_id": str(user_id),
-            "role": role,
-            "content": content
-        }).execute()
+    payload = {
+        "chat_id": str(chat_id),
+        "user_id": str(user_id),
+        "role": role,
+        "content": content
+    }
+
+    if not message_id is None: 
+        payload["id"] = str(message_id);
+
+    response = client.table("messages").upsert(payload).execute()
 
     return response.data if response and response.data else None
 

@@ -39,18 +39,20 @@ export const useChatInputController = () => {
     const handleSendMessage = useCallback(async () => {
         if (!inputValue.trim()) return;
 
-        const messageText = inputValue;
-        const tempId = `temp-${Date.now()}`;
+        const newMessageText = inputValue;
+        const newMessageId = crypto.randomUUID();
 
         setIsSending(true);
-        setIsThinking(true);
-        setInputValue('');
-        addMessage({ // Optimistic rendering for instant message display
-            id: tempId,
+
+        addMessage({    // Optimistic rendering for instant message display
+            id: `temp-${newMessageId}`,
             role: 'user',
-            content: messageText,
-            created_at: new Date().toISOString(),
-        })
+            content: newMessageText,
+            created_at: new Date().toISOString()
+        });
+
+        setInputValue('');
+        setIsThinking(true);
 
         try {
             let query = currentQuery;
@@ -59,11 +61,11 @@ export const useChatInputController = () => {
                 if (!newQuery?.chat) throw new Error("Query creation failed");
 
                 addQuery(newQuery.chat);
-                setCurrentQuery(newQuery.chat);
+                setCurrentQuery({ ...newQuery.chat, isNew: true });
                 query = newQuery.chat;
             }
 
-            const newMessage = await MessageAPI.send(query.id, inputValue);
+            const newMessage = await MessageAPI.send(query.id, newMessageId, newMessageText);
             if (newMessage?.job_id) {
                 setCurrentStatus("queued");
                 setCurrentJobId(newMessage.job_id);
@@ -76,9 +78,9 @@ export const useChatInputController = () => {
         } catch (err: any) {
             setIsThinking(false);
             setCurrentStatus(null);
-            setInputValue(messageText);
+            setInputValue(newMessageText);
             
-            removeMessage(tempId);
+            removeMessage(`temp-${newMessageId}`);
             console.error("Failed to send message:", err.message);
             showAlert(false, "Failed to send message. Try again later!");
         } finally {

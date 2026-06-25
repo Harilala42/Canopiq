@@ -23,22 +23,13 @@ const SideBarHeader = memo(({
 			h="60px"
 			w="100%"
 		>
-			{isCanceleded && !isExpanded ? (
-				<IconButton aria-label="Expand sidebar">
-					<LuPanelLeft />
-				</IconButton>
-			) : (
-				<Image src={logo} alt="Canopiq logo" boxSize="30px" />
-			)}
+			{isExpanded || !isCanceleded
+				? <Image src={logo} alt="Canopiq logo" boxSize="30px" />
+				: <IconButton aria-label="Expand sidebar"><LuPanelLeft /></IconButton>
+			}
 
 			{isExpanded && (
-				<IconButton
-					aria-label="Collapse sidebar"
-					onClick={(e) => {
-						e.stopPropagation();
-						onToggle();
-					}}
-				>
+				<IconButton aria-label="Collapse sidebar" onClick={onToggle}>
 					<LuPanelRight />
 				</IconButton>
 			)}

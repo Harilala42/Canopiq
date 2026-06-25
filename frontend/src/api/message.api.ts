@@ -8,9 +8,9 @@ export const MessageAPI = {
         return response.data;
     },
 
-    send: async (chatId: string, content: string) => {
+    send: async (chatId: string, messageId: string, content: string) => {
         const url = import.meta.env.VITE_API_CHAT_MESSAGE.replace("{chat_id}", chatId);
-        const response = await apiClient.post(url, { message: content });
+        const response = await apiClient.post(url, { message_id: messageId, message: content });
         return response.data;
     }
 };

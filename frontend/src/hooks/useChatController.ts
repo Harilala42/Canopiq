@@ -12,10 +12,11 @@ import { MessageData } from '@/types/chat';
 export const useChatController = () => {
     const currentQuery = useChatStore((state) => state.currentQuery);
     
-    const isThinking = useMessageStore((state) => state.isThinking);
     const setMessages = useMessageStore((state) => state.setMessages);
     const setIsLoading = useMessageStore((state) => state.setIsLoading);
+
     const addMessage = useMessageStore((state) => state.addMessage);
+    const removeMessage = useMessageStore((state) => state.removeMessage);
 
     const setDataset = useAnalyticsStore((state) => state.setDataset);
     const setLandUse = useAnalyticsStore((state) => state.setLandUse);
@@ -30,28 +31,22 @@ export const useChatController = () => {
     const { showAlert } = useContext(AlertContext);
 
     const retrieveChatMessages = useCallback(async () => {
-        if (!currentQuery?.id || isThinking) return;
+        if (!currentQuery?.id || currentQuery?.isNew) return;
+
         setMessages([]);
         setIsLoading(true);
 
         try {
             const messageList = await MessageAPI.getAll(currentQuery.id);
-            if (messageList && messageList?.messages) {
+            if (messageList && messageList?.messages)
                 setMessages(messageList.messages);
-            }
         } catch (err: any) {
             console.error("Failed to load chat messages:", err.message);
             showAlert(false, "Failed to load chat messages. Try again later!");
         } finally {
             setIsLoading(false);
         }
-    }, [
-        currentQuery?.id,
-        isThinking,
-        setMessages, 
-        setIsLoading, 
-        showAlert
-    ]);
+    }, [currentQuery?.id, setMessages, setIsLoading, showAlert]);
 
     const applyAnalysisData = useCallback((data: any) => {
 		const {
@@ -95,7 +90,7 @@ export const useChatController = () => {
 	]);
 
     const fetchGeoAnalysisData = useCallback(async () => {
-        if (!currentQuery?.id || isThinking) return;
+        if (!currentQuery?.id || currentQuery?.isNew) return;
 
         try {
             const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
@@ -112,8 +107,7 @@ export const useChatController = () => {
             showAlert(false, "Failed to retrieve insight. Please try again later.");
         }
     }, [
-        currentQuery?.id, 
-        isThinking,
+        currentQuery?.id,
         resetAnalyticsData,
         applyAnalysisData,
         clearMap,
@@ -135,7 +129,7 @@ export const useChatController = () => {
                 },
                 (payload: any) => {
                     const { id, role, content, created_at } = payload.new;
-                    if (role === 'user') return; // message already displays
+                    if (role === 'user') removeMessage(`temp-${id}`);    // replace temporary message
 
                     const newMessage: MessageData = { id, role, content, created_at };
                     addMessage(newMessage);

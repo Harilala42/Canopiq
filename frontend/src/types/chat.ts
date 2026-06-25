@@ -6,6 +6,7 @@ export interface ChatData
     title: string;
     created_at: string;
     is_pinned: boolean;
+    isNew?: boolean;
 }
 
 export interface MessageData

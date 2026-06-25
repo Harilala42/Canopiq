@@ -53,7 +53,7 @@ const ChartContainer = ({
             </HStack>
 
             {/* Core Visualization Data */}
-            <Box w="100%" minW="100%">
+            <Box w="100%">
                 {children}
             </Box>
 
@@ -62,7 +62,7 @@ const ChartContainer = ({
                 <Icon color={brandColor} size="md">
                     <LuInfo />
                 </Icon>
-                <Text className="text-styles" fontSize="sm" color={brandColor}>
+                <Text className="text-styles" fontSize="sm" color={brandColor} textAlign="left" maxW="80%">
                     <Span fontWeight="semibold" textDecoration="underline">
                         Source:
                     </Span>{" "}
