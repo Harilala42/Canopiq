@@ -3,7 +3,6 @@ import app.job.models as job_model
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from app.dependencies import check_auth, rate_limiter
 from app.worker import celery_app
-from uuid import UUID
 
 router = APIRouter(dependencies=[
     Depends(check_auth),

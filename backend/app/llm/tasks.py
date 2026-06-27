@@ -1,54 +1,46 @@
-import app.llm.agent as llm
 import app.chat.models as chat
 from app.worker import celery_app
+from app.llm.graph.pipeline import graph
 from app.job.models import update_job_progress
+from langchain_core.runnables import RunnableConfig
 
-@celery_app.task(bind=True, max_retries=3)
-def analyze_gis_intent(
+@celery_app.task(bind=True)
+def run_geospatial_pipeline(
 	self,
 	job_id: str,
 	user_id: str,
 	chat_id: str,
 	prompt: str
-) -> dict:
-	update_job_progress(job_id, user_id, "analyzing_prompt")
-
-	try:
-		chat_history = chat.get_chat_message(chat_id, user_id)
-		recent_context = chat_history[-3:] if chat_history else []
-
-		query = llm.extract_geospatial_params(prompt, recent_context)
-
-		return { "query": query	}
-	except Exception as e:
-		if self.request.retries >= self.max_retries:
-			update_job_progress(job_id, user_id, "failed", str(e))
-		raise self.retry(exc=e, countdown=2 ** self.request.retries)
-
-@celery_app.task(bind=True, max_retries=3)
-def generate_environmental_report(
-	self, 
-	gis_results,
-	job_id: str,
-	user_id: str,
-	chat_id: str
 ):
-	update_job_progress(job_id, user_id, "generating_report")
-
 	try:
+		update_job_progress(job_id, user_id, "queued")
+
 		chat_history = chat.get_chat_message(chat_id, user_id)
 		recent_context = chat_history[-3:] if chat_history else []
 
-		report = llm.generate_environmental_report(
-			geo_analysis_id=gis_results["geo_analysis_id"],
-			recent_context=recent_context
-		)
+		initial_state = {
+			"user_prompt": prompt,
+			"recent_context": recent_context,
 
-		chat.rename_chat(chat_id, user_id, report["title"])
-		chat.save_chat_message(chat_id, user_id, "model", report["report_markdown"])
+			"geo_params": None,
+			"geo_analysis_id": None,
+			"gee_error": None,
 
-		update_job_progress(job_id, user_id, "completed")
+			"report": None,
+
+			"recovery_reply": None
+		}
+
+		config = RunnableConfig(
+            configurable={
+				"thread_id": job_id,
+                "user_id": user_id,
+                "job_id": job_id,
+                "chat_id": chat_id,
+            }
+        )
+
+		graph.invoke(initial_state, config)
 	except Exception as e:
-		if self.request.retries >= self.max_retries:
-			update_job_progress(job_id, user_id, "failed", str(e))
-		raise self.retry(exc=e, countdown=2 ** self.request.retries)
+		update_job_progress(job_id, user_id, "failed", str(e))
+		raise

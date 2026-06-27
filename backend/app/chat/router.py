@@ -1,14 +1,12 @@
 import uuid
-import app.llm.agent as llm
 import app.gee.tasks as gee_task
 import app.llm.tasks as llm_task
+import app.llm.agent.agents as llm
 import app.chat.models as chat_models
-from app.job.models import update_job_progress
 from fastapi import APIRouter, HTTPException, Request, Depends
 from app.chat.schemas import MessageCreate, ChatRename, ChatPinToggle
 from app.dependencies import check_auth, rate_limiter
 from fastapi.responses import JSONResponse
-from celery import chain
 
 router = APIRouter(dependencies=[
     Depends(check_auth),
@@ -85,12 +83,11 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
         )
 
         route = llm.classify_user_request(payload.message, recent_context)
-        if route in ["conversational", "impossible_request"]:
+        if route in ["conversational", "impossible_request", "error"]:
             reply = llm.generate_conversational_reply(
-                chat_id=chat_id, 
-                user_id=user_id, 
-                user_prompt=payload.message, 
-                is_impossible=(route == "impossible_request")
+                prompt=payload.message, 
+                mode=route,
+                recent_context=recent_context
             )
 
             chat_models.save_chat_message(chat_id, user_id, "model", reply)
@@ -102,25 +99,12 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
             }
         elif route == "geospatial_analysis":
             job_id = str(uuid.uuid4())
-            update_job_progress(job_id, user_id, "queued")
 
-            chain(
-                llm_task.analyze_gis_intent.s(
-                    job_id=job_id, 
-                    user_id=user_id, 
-                    chat_id=chat_id, 
-                    prompt=payload.message
-                ),
-                gee_task.compute_gis_dataset.s(
-                    job_id=job_id,
-                    user_id=user_id,
-                    chat_id=chat_id
-                ),
-                llm_task.generate_environmental_report.s(
-                    job_id=job_id, 
-                    user_id=user_id, 
-                    chat_id=chat_id
-                )
+            llm_task.run_geospatial_pipeline.s(
+                job_id=job_id,
+                user_id=user_id,
+                chat_id=chat_id,
+                prompt=payload.message
             ).apply_async(task_id=job_id)
 
             return JSONResponse(

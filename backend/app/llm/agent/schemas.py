@@ -3,11 +3,11 @@ from typing import List, Literal
 from datetime import date
 
 class RequestClassification(BaseModel):
-    """Classifies the entry intent of a user prompt."""
+	"""Classifies the entry intent of a user prompt."""
 	
-    route: Literal["geospatial_analysis", "conversational", "impossible_request"] = Field(
-        description="Categorize the user intent before execution mapping."
-    )
+	route: Literal["geospatial_analysis", "conversational", "impossible_request", "error"] = Field(
+		description="Categorize the user intent before execution mapping."
+	)
 
 class GeoSpatialQuery(BaseModel): 
 	"""Query for GIS data of a location."""

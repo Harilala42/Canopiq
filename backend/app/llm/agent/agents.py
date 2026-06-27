@@ -3,8 +3,8 @@ import app.chat.models as chat
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.messages import HumanMessage, SystemMessage, AIMessage
-from app.llm.schemas import GeoSpatialQuery, EnvironmentalReport, RequestClassification
-from app.llm.tools import search_location, normalizeGeoAnalysisData
+from app.llm.agent.schemas import GeoSpatialQuery, EnvironmentalReport, RequestClassification
+from app.llm.agent.tools import search_location, normalizeGeoAnalysisData
 from datetime import date
 
 model = ChatGoogleGenerativeAI(
@@ -13,34 +13,67 @@ model = ChatGoogleGenerativeAI(
     temperature=0.2
 )
 
-def classify_user_request(user_prompt: str, recent_context: list = None) -> str:
+def build_agent_messages(system_prompt: str, prompt: str = None, recent_context: list = None) -> list:
+    """
+    Constructs a structured LangChain message list containing a system instruction,
+    historical context, and an optional concluding user prompt.
+    """
+    messages = [SystemMessage(system_prompt)]
+    
+    if recent_context:
+        for msg in recent_context:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            
+            if role == "user":
+                messages.append(HumanMessage(content))
+            else:
+                messages.append(AIMessage(content))
+                
+    if prompt:
+        messages.append(HumanMessage(prompt))
+        
+    return messages
+
+
+def classify_user_request(prompt: str, recent_context: list = None) -> str:
     classification_agent = create_agent(
         model, 
         response_format=RequestClassification
     )
 
-    prompt = """
+    system_instruction = """
         You are an intent classifier for Canopiq, an environmental satellite analytics app.
-        
+
         ---
 
         🎯 OBJECTIVE:
         Categorize incoming text to exactly one route:
-        1. 'conversational': Greetings, casual questions, or follow-up explanations about a previous map output.
-        2. 'impossible_request': Requests for non-Earth locations (Moon, Mars) or years before Sentinel-2 satellite launch (anything before 2015 like 'France in 1520').
-        3. 'geospatial_analysis': Direct commands to analyze or map environmental factors (tree cover, carbon density) on real Earth spots.
+
+        1. 'conversational':
+        Greetings, casual questions, general discussion, or follow-up explanations about a previous map output.
+
+        2. 'impossible_request':
+        Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g. "France in 1520").
+
+        3. 'geospatial_analysis':
+        Direct requests to analyze or map environmental variables (tree cover, carbon density, land cover, NDVI, etc.) over a valid real-world Earth location and time period.
+
+        4. 'error':
+        The request is malformed, incomplete, or technically invalid. Or unexpected error occured during the GIS analysis.
+
+        Return ONLY one of:
+        - conversational
+        - impossible_request
+        - geospatial_analysis
+        - error
     """
 
-    messages = [SystemMessage(prompt)]
-    
-    if recent_context:
-        for msg in recent_context:
-            if msg.get("role") == "user":
-                messages.append(HumanMessage(msg.get("content", "")))
-            else:
-                messages.append(AIMessage(msg.get("content", "")))
-                
-    messages.append(HumanMessage(user_prompt))
+    messages = build_agent_messages(
+        system_prompt=system_instruction,
+        prompt=prompt,
+        recent_context=recent_context
+    )
 
     try:
         ai_response = classification_agent.invoke({
@@ -54,14 +87,15 @@ def classify_user_request(user_prompt: str, recent_context: list = None) -> str:
         print("ERROR: Failed to classify user request:", str(err))
         raise Exception(err)
 
-def extract_geospatial_params(user_prompt: str, recent_context: list = None) -> dict:
+
+def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
     geo_analysis_agent = create_agent(
         model, 
         tools=[search_location],
         response_format=GeoSpatialQuery
     )
 
-    prompt = f"""
+    system_instruction = f"""
         You are a geospatial AI planner for an environmental analysis platform.
         Your role is to extract structured information from a natural language request related to geographic environmental analysis.
         You MUST return a valid JSON object and nothing else.
@@ -127,16 +161,11 @@ def extract_geospatial_params(user_prompt: str, recent_context: list = None) -> 
         - If uncertain, set fields to null
     """
 
-    messages = [SystemMessage(prompt)]
-    
-    if recent_context:
-        for msg in recent_context:
-            if msg.get("role") == "user":
-                messages.append(HumanMessage(msg.get("content", "")))
-            else:
-                messages.append(AIMessage(msg.get("content", "")))
-                
-    messages.append(HumanMessage(user_prompt))
+    messages = build_agent_messages(
+        system_prompt=system_instruction,
+        prompt=prompt,
+        recent_context=recent_context
+    )
 
     try:
         ai_response = geo_analysis_agent.invoke({
@@ -150,6 +179,7 @@ def extract_geospatial_params(user_prompt: str, recent_context: list = None) -> 
         print("ERROR: Failed to analyse user request:", str(err))
         raise Exception(err)
 
+
 def generate_environmental_report(geo_analysis_id: str, recent_context: list = None) -> dict:
     report_agent = create_agent(
         model, 
@@ -157,7 +187,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         response_format=EnvironmentalReport
     )
 
-    prompt = f"""
+    system_instruction = f"""
         You are an environmental GIS reporting AI for Canopiq.
         You MUST call `normalizeGeoAnalysisData` tool with geo_analysis_id="{geo_analysis_id}" before writing anything.
         Return ONLY valid JSON matching the EnvironmentalReport schema.
@@ -219,15 +249,11 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         verbatim with the exact geo_analysis_id. Never alter or omit them.
         - Total report_markdown under 5000 characters.
     """
-
-    messages = [SystemMessage(prompt)]
     
-    if recent_context:
-        for msg in recent_context:
-            if msg.get("role") == "user":
-                messages.append(HumanMessage(msg.get("content", "")))
-            else:
-                messages.append(AIMessage(msg.get("content", "")))
+    messages = build_agent_messages(
+        system_prompt=system_instruction,
+        recent_context=recent_context
+    )
 
     try:
         ai_response = report_agent.invoke({
@@ -241,25 +267,38 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         print("ERROR: Failed to write environmental report:", str(err))
         raise Exception(err)
 
-def generate_conversational_reply(
-    chat_id: str, 
-    user_id: str, 
-    user_prompt: str,
-    is_impossible: bool = False
-) -> str:    
+
+def generate_conversational_reply(prompt: str, mode: str = "conversational", recent_context: list = None) -> str:    
     conversational_agent = create_agent(model)
 
-    if is_impossible:
+    if mode == "impossible_request":
         mode_instruction = """
             ⚠️ MODE: IMPOSSIBLE REQUEST REJECTION
             The user has requested parameters that are physically or historically impossible to process. 
-            Politely explain the platform boundaries using these exact criteria:
+            Politely explain why the request cannot be fulfilled based on the platform boundaries below. Then suggest a relevant alternative request.
             
+            Platform limits:
             - SPATIAL BOUNDS: Canopiq only analyzes locations existing on planet Earth (not the Moon, Mars, exoplanets, etc.).
             - TEMPORAL BOUNDS: We only support time ranges since the Sentinel-2 satellite launch date on 23 June 2015. Deep historical requests (e.g., "France in 1520") cannot be analyzed because Sentinel-2 imagery data did not exist before then.
-            - DATASET BOUNDS: We strictly process environmental metrics related to 'carbon_density' and 'tree_cover'.
+            - DATASET BOUNDS: We strictly process environmental metrics related to 'biomass carbon density', 'tree cover', and 'land-use distribution'.
             
             Tone: Academic, helpful, and direct. Guide them to rephrase using valid parameters.
+        """
+    elif mode == "error":
+        mode_instruction = """
+            💥 MODE: GEOSPATIAL ANALYSIS FAILURE
+            A backend Google Earth Engine (GEE) or data computation error occurred.
+            Your primary task is to translate the provided 'Technical reason' into a plain-English, supportive explanation.
+            
+            Guidelines:
+            - Acknowledge clearly that the requested satellite analysis could not be completed.
+            - Infer the reason from the technical log provided in the prompt (e.g., if it mentions 'cloud cover', 'no imagery available', or 'computation timed out'). 
+            - Never expose raw Python tracebacks, exception names, database terminology, or JSON code structures to the user.
+            - If it's an ambiguous system/worker failure, apologize for the technical issue without giving details.
+            - Provide one highly specific, constructive workaround the researcher can apply right now (e.g., narrowing the time frame, choosing a different dataset, or selecting a smaller bounding box).
+            - Keep your reply short under 500 characters.
+
+            Tone: Highly professional, empathetic to academic deadlines, and scientifically grounded.
         """
     else:
         mode_instruction = """
@@ -267,14 +306,14 @@ def generate_conversational_reply(
             Address the user's input based entirely on the provided chat history context.
             - If they are greeting you ("Hello", "Hi"), greet them back warmly, acknowledge your role, and ask what region they want to analyze.
             - If they are asking follow-up questions about a report or an analysis outcome shown above in the history (e.g., "Why did the forest drop?", "What causes carbon loss?"), provide a clear, scientifically accurate explanation using your general ecological knowledge.
-            
+
             Tone: Professional, supportive, and scientifically grounded.
         """
 
-    prompt = f"""
+    system_instruction = f"""
         You are the voice of Canopiq, an expert conversational AI collaborator.
         User prompt will be below:
-        {user_prompt}
+        {prompt}
         
         ---
 
@@ -296,18 +335,13 @@ def generate_conversational_reply(
         - Always maintain a professional and scientifically accurate tone.
     """
 
+    messages = build_agent_messages(
+        system_prompt=system_instruction,
+        prompt=prompt,
+        recent_context=recent_context
+    )
+
     try:
-        chat_history = chat.get_chat_message(chat_id, user_id)
-
-        messages = [SystemMessage(prompt)]
-        for msg in chat_history or []:
-            if msg["role"] == "user":
-                messages.append(HumanMessage(msg["content"]))
-            else:
-                messages.append(AIMessage(msg["content"]))
-
-        messages.append(HumanMessage(user_prompt))
-
         ai_response = conversational_agent.invoke({
             "messages": messages
         })

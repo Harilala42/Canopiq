@@ -69,8 +69,8 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: st
             "h3_grid_map_id": h3_grid_map[0]["id"],
             "location": query['location'],
             "dataset": query['data_set'],
-            "start_year": query["start_time"].isoformat(),
-            "end_year": query["end_time"].isoformat(),
+            "start_year": query["start_time"] if isinstance(query["start_time"], str) else query["start_time"].isoformat(),
+            "end_year": query["end_time"] if isinstance(query["end_time"], str) else query["end_time"].isoformat(),
             "boundary": wkt_boundary,
             "coordinates": wkt_center,
             "analytics": {

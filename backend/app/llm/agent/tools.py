@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from app.llm.schemas import GeoSpatialQuery
+from app.llm.agent.schemas import GeoSpatialQuery
 from app.dependencies import get_supabase as supabase
 from langchain.tools import tool
 

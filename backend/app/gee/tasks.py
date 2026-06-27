@@ -1,38 +1,46 @@
 import app.gee.models as gee
-from app.worker import celery_app
-from app.job.models import update_job_progress
+from celery import shared_task
+from app.llm.agent.schemas import GeoSpatialQuery
 from app.geo_analysis.models import save_geo_analysis
+from langgraph.types import Command
 
-@celery_app.task(bind=True, max_retries=3)
-def compute_gis_dataset(
-	self, 
-	gis_intent, 
-	job_id: str,
-	user_id: str,
-	chat_id: str
-) -> dict:
-	update_job_progress(job_id, user_id, "computing_gee")
+@shared_task(bind=True, max_retries=3, soft_time_limit=180, time_limit=190)
+def compute_gis_dataset(self, query: dict, config: dict):
+	from app.llm.graph.pipeline import graph
+
+	resume_config = {
+        "configurable": {
+            "thread_id": config["job_id"], 
+            "user_id": config["user_id"],
+			"chat_id": config["chat_id"],
+            "job_id": config["job_id"]
+        }
+    }
 
 	try:
-		query = gis_intent["query"]
-
 		gis_analysis = gee.compute_gee_analysis(
 			bbox=query["bbox"],
-			start_time=str(query["start_time"]),
-			end_time=str(query["end_time"]),
-			dataset_type=query["data_set"]
+            start_time=str(query["start_time"]),
+            end_time=str(query["end_time"]),
+            dataset_type=query["data_set"]
 		)
 
-		result = save_geo_analysis(
-			query=query,
-			gis_analysis=gis_analysis,
-			user_id=user_id,
-			chat_id=chat_id,
-			job_id=job_id
-		)
+		saved = save_geo_analysis(
+            query=query,
+            gis_analysis=gis_analysis,
+            user_id=config["user_id"],
+            chat_id=config["chat_id"],
+            job_id=config["job_id"]
+        )
 
-		return { "geo_analysis_id": result[0]["id"] }
+		graph.invoke(
+			Command(resume={"geo_analysis_id": saved[0]["id"]}),
+			resume_config
+		)
 	except Exception as e:
 		if self.request.retries >= self.max_retries:
-			update_job_progress(job_id, user_id, "failed", str(e))
+			graph.invoke(
+				Command(resume={"gee_error": str(e)}),
+				resume_config
+			)
 		raise self.retry(exc=e, countdown=2 ** self.request.retries)
