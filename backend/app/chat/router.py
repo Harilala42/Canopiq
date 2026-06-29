@@ -1,5 +1,4 @@
 import uuid
-import app.gee.tasks as gee_task
 import app.llm.tasks as llm_task
 import app.llm.agent.agents as llm
 import app.chat.models as chat_models

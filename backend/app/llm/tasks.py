@@ -1,3 +1,4 @@
+import asyncio
 import app.chat.models as chat
 from app.worker import celery_app
 from app.llm.graph.pipeline import graph
@@ -33,14 +34,15 @@ def run_geospatial_pipeline(
 
 		config = RunnableConfig(
             configurable={
-				"thread_id": job_id,
                 "user_id": user_id,
                 "job_id": job_id,
                 "chat_id": chat_id,
             }
         )
 
-		graph.invoke(initial_state, config)
+		asyncio.run(
+            graph.ainvoke(initial_state, config)
+        )
 	except Exception as e:
 		update_job_progress(job_id, user_id, "failed", str(e))
 		raise

@@ -85,7 +85,7 @@ def classify_user_request(prompt: str, recent_context: list = None) -> str:
         return result.route
     except Exception as err:
         print("ERROR: Failed to classify user request:", str(err))
-        raise Exception(err)
+        raise
 
 
 def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
@@ -177,7 +177,7 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
         return result.model_dump()
     except Exception as err:
         print("ERROR: Failed to analyse user request:", str(err))
-        raise Exception(err)
+        raise
 
 
 def generate_environmental_report(geo_analysis_id: str, recent_context: list = None) -> dict:
@@ -265,7 +265,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         return result.model_dump()
     except Exception as err:
         print("ERROR: Failed to write environmental report:", str(err))
-        raise Exception(err)
+        raise
 
 
 def generate_conversational_reply(prompt: str, mode: str = "conversational", recent_context: list = None) -> str:    
@@ -349,4 +349,4 @@ def generate_conversational_reply(prompt: str, mode: str = "conversational", rec
         return ai_response["messages"][-1].text
     except Exception as err:
         print("ERROR: Failed to execute contextual chat:", str(err))
-        raise Exception(err)
+        raise

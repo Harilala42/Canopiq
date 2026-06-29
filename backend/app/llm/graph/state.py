@@ -1,7 +1,12 @@
 from uuid import UUID
-from typing import Annotated, Optional
-from typing_extensions import TypedDict
+from enum import Enum
+from typing_extensions import TypedDict, NotRequired
 from app.llm.agent.schemas import GeoSpatialQuery
+
+class PipelineStage(str, Enum):
+    LLM_EXTRACT = "analyzing_prompt"
+    GEE_COMPUTE = "computing_gee"
+    LLM_REPORT  = "generating_report"
 
 class CanopiqState(TypedDict):
     # Inputs by FastAPI before invoking
@@ -9,14 +14,13 @@ class CanopiqState(TypedDict):
     recent_context: list
 
     # Extracted GIS paramerters from query
-    geo_params: Optional[GeoSpatialQuery]
+    geo_params: NotRequired[GeoSpatialQuery]
 
     # GEE computation results
-    geo_analysis_id: Optional[UUID]
-    gee_error: Optional[str]
+    geo_analysis_id: NotRequired[UUID]
 
-    # Final generated envrionmental report
-    report: Optional[str]
+    # Final generated environmental report
+    report: NotRequired[str]
 
-    # recovery output in case of failure
-    recovery_reply:  Optional[str]
+    recovery_reply: NotRequired[str]       # recovery message in case of failure
+    pipeline_stage: NotRequired[PipelineStage]

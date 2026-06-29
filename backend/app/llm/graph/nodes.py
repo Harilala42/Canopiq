@@ -1,51 +1,66 @@
-import json
-import app.gee.tasks as gee
+import asyncio
+import app.gee.models as gee
 import app.chat.models as chat
 import app.llm.agent.agents as llm
-from app.llm.graph.state import CanopiqState
 from app.job.models import update_job_progress
+from app.llm.graph.state import CanopiqState, PipelineStage
 from app.geo_analysis.models import save_geo_analysis
 from langchain_core.runnables import RunnableConfig
-from langgraph.types import interrupt
+from langgraph.errors import NodeError
+from langgraph.types import Command
+from langgraph.graph import END
 
 # ── Node 1: parses GIS parameters from user's prompt ──────────────
-def extract_params_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
+async def extract_params_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "analyzing_prompt")
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.LLM_EXTRACT.value)
 
-    query = llm.extract_geospatial_params(
+    query = await asyncio.to_thread(
+        llm.extract_geospatial_params,
         prompt=state["user_prompt"],
-        recent_context=state["recent_context"]
+        recent_context=state["recent_context"],
     )
-    return { "geo_params": query }
+
+    return {
+        "geo_params": query,
+        "pipeline_stage": PipelineStage.LLM_EXTRACT
+    }
 
 
 # ── Node 2: runs heavy-lifting GEE computation in background ─────────────
-def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
+async def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "computing_gee")
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.GEE_COMPUTE.value)
 
     query = state["geo_params"]
-    sanitized_query = json.loads(json.dumps(query, default=str))
-    sanitized_cfg = json.loads(json.dumps(cfg, default=str))
+    gis_analysis = await asyncio.to_thread(
+        gee.compute_gee_analysis,
+        bbox=query["bbox"],
+        start_time=str(query["start_time"]),
+        end_time=str(query["end_time"]),
+        dataset_type=query["data_set"]
+    )
 
-    gee.compute_gis_dataset.delay(sanitized_query, sanitized_cfg)
-    result = interrupt("awaiting_gee")
-
-    if result.get("gee_error"):
-        return { "gee_error": result["gee_error"] }
+    saved = save_geo_analysis(
+        query=query,
+        gis_analysis=gis_analysis,
+        user_id=cfg["user_id"],
+        chat_id=cfg["chat_id"],
+        job_id=cfg["job_id"]
+    )
 
     return {
-        "geo_analysis_id": result["geo_analysis_id"],
-        "gee_error": None
+        "geo_analysis_id": saved[0]["id"],
+        "pipeline_stage": PipelineStage.GEE_COMPUTE
     }
 
 # ── Node 3: generates final mardown environmental report ───
-def generate_report_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
+async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "generating_report")
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.LLM_REPORT.value)
 
-    report = llm.generate_environmental_report(
+    report = await asyncio.to_thread(
+        llm.generate_environmental_report,
         geo_analysis_id=state["geo_analysis_id"],
         recent_context=state["recent_context"]
     )
@@ -54,23 +69,53 @@ def generate_report_node(state: CanopiqState, config: RunnableConfig) -> Canopiq
     chat.save_chat_message(cfg["chat_id"], cfg["user_id"], "model", report["report_markdown"])
     update_job_progress(cfg["job_id"], cfg["user_id"], "completed")
 
-    return { "report": report }
+    return { 
+        "report": report,
+        "pipeline_stage": PipelineStage.LLM_REPORT
+    }
 
-
-# ── Node 4: Gemini writes a friendly GEE failure message ──
-def gee_recovery_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
+# ── Handler Error Recorery: Gemini writes a friendly GEE failure message ──
+def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: NodeError) -> Command:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "failed", state["gee_error"])
+    update_job_progress(cfg["job_id"], cfg["user_id"], "failed", str(error.error))
 
-    recovery_prompt = f"""
-        A satellite data request failed after multiple retries.
-        Craft an environmental analysis recovery response based on these attributes:
+    query = state.get("geo_params", {})
+    stage = state.get("pipeline_stage", PipelineStage.LLM_EXTRACT)
+
+    prompt_templates = {
+        PipelineStage.LLM_EXTRACT: f"""
+            The AI failed to understand or process the user's geospatial request.
+            Write a short, friendly message asking the user to rephrase their request.
+            Technical reason: {error.error}
+        """,
         
-        Location: {state["geo_params"].get("location")}
-        Dataset: {state["geo_params"].get("data_set")}
-        Period: {state["geo_params"].get("start_time")} → {state["geo_params"].get("end_time")}
-        Technical reason: {state["gee_error"]}
-    """
+        PipelineStage.GEE_COMPUTE: f"""
+            A satellite data request failed after multiple retries.
+            Craft an environmental analysis recovery response based on these attributes:
+            
+            Location: {query["location"]}
+            Dataset: {query["data_set"]}
+            Period: {query["start_time"]} → {query["end_time"]}
+            Technical reason: {str(error.error)}
+        """,
+        
+        PipelineStage.LLM_REPORT: f"""
+            The AI successfully retrieved satellite data but failed to generate
+            the final environmental report due to a technical error.
+
+            The geo analysis ID is: {state["geo_analysis_id"]}
+            Location: {query["location"]}
+            Dataset: {query["data_set"]}
+            Period: {query["start_time"]} → {query["end_time"]}
+            Technical reason: {error.error}
+
+            Write a short, friendly message informing the user that their satellite
+            data was retrieved successfully, but the report could not be generated.
+            Encourage them to retry later.
+        """
+    }
+
+    recovery_prompt = prompt_templates.get(stage)
 
     reply = llm.generate_conversational_reply(
         prompt=recovery_prompt,
@@ -79,5 +124,4 @@ def gee_recovery_node(state: CanopiqState, config: RunnableConfig) -> CanopiqSta
     )
 
     chat.save_chat_message(cfg["chat_id"], cfg["user_id"], "model", reply)
-
-    return { "recovery_reply": reply }
+    return Command(update={"recovery_reply": reply}, goto=END)

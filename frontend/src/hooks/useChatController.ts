@@ -99,6 +99,8 @@ export const useChatController = () => {
                 return;
             }
 
+            console.log(oldAnalysis.geo_analysis)
+
             clearMap();
             applyAnalysisData(oldAnalysis.geo_analysis[0]);
         } catch (err: any) {
