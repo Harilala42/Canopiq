@@ -1,5 +1,4 @@
 from collections import defaultdict
-from app.dependencies import get_supabase as supabase
 
 def compute_global_average(time_series: list[dict]) -> float:
 	if not time_series: return 0.0

@@ -97,21 +97,18 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
                 "reply": reply
             }
         elif route == "geospatial_analysis":
-            job_id = str(uuid.uuid4())
-
-            llm_task.run_geospatial_pipeline.s(
-                job_id=job_id,
+            task = llm_task.run_geospatial_pipeline.s(
                 user_id=user_id,
                 chat_id=chat_id,
                 prompt=payload.message
-            ).apply_async(task_id=job_id)
+            ).apply_async()
 
             return JSONResponse(
                 status_code=202, 
                 content={ 
                     "status": "accepted", 
                     "type": "geospatial", 
-                    "job_id": job_id
+                    "job_id": task.id
                 }
             )
             

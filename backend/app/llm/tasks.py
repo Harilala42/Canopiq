@@ -6,13 +6,9 @@ from app.job.models import update_job_progress
 from langchain_core.runnables import RunnableConfig
 
 @celery_app.task(bind=True)
-def run_geospatial_pipeline(
-	self,
-	job_id: str,
-	user_id: str,
-	chat_id: str,
-	prompt: str
-):
+def run_geospatial_pipeline(self, user_id: str, chat_id: str, prompt: str):
+	job_id = self.request.id
+
 	try:
 		update_job_progress(job_id, user_id, "queued")
 
@@ -22,13 +18,10 @@ def run_geospatial_pipeline(
 		initial_state = {
 			"user_prompt": prompt,
 			"recent_context": recent_context,
-
 			"geo_params": None,
 			"geo_analysis_id": None,
 			"gee_error": None,
-
 			"report": None,
-
 			"recovery_reply": None
 		}
 

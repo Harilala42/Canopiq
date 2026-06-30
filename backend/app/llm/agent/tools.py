@@ -1,11 +1,10 @@
 import httpx
 from typing import List, Dict, Any
-from app.llm.agent.schemas import GeoSpatialQuery
 from app.dependencies import get_supabase as supabase
 from langchain.tools import tool
 
 @tool
-def search_location(location: str) -> GeoSpatialQuery:
+def search_location(location: str) -> dict:
 	"""
 	Search the geographic coordinates (latitude and longitude) for a given location
 	"""
@@ -32,15 +31,12 @@ def search_location(location: str) -> GeoSpatialQuery:
 	lon, lat = feature["geometry"]["coordinates"]
 	name: str = feature["properties"]["display_name"]
 
-	return GeoSpatialQuery(
-		location=name,
-		latitude=lat,
-		longitude=lon,
-		bbox=bbox,
-		start_time=None,
-		end_time=None,
-		data_set = None
-	)
+	return {
+		"location": name,
+		"latitude": lat,
+		"longitude": lon,
+		"bbox": bbox
+	}
 
 @tool
 def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:

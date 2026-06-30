@@ -54,8 +54,9 @@ def classify_user_request(prompt: str, recent_context: list = None) -> str:
         Greetings, casual questions, general discussion, or follow-up explanations about a previous map output.
 
         2. 'impossible_request':
-        Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g. "France in 1520").
-
+        - Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g. "France in 1520").
+        - Comparison of multiple datasets, or queries about datasets excluding tree cover, carbon density, and land-use distribution.
+        
         3. 'geospatial_analysis':
         Direct requests to analyze or map environmental variables (tree cover, carbon density, land cover, NDVI, etc.) over a valid real-world Earth location and time period.
 
@@ -108,8 +109,8 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
 
         Extract:
         1. location (human-readable geographic area)
-        3. time range (start and end dates)
-        4. analysis intent (short label)
+        2. dataset (analysis intent — see ANALYSIS INTENT below)
+        3. time range (start and end dates) — ONLY for "tree_cover" and "carbon_density"
 
         ---
 
@@ -117,30 +118,37 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
 
         - Always return a "location" string.
         - Prefer specific natural locations (e.g., "mangroves near Mahajanga", "Amazon rainforest in Brazil").
-        - If vague (e.g., "this area"), return null.
+        - If the location is vague (e.g., 'this area'), infer it from the recent context; otherwise, return null.
+        
+        ---
+
+        🧠 ANALYSIS INTENT
+
+        Map the user request to exactly one of:
+        - "tree_cover"
+        - "carbon_density"
+        - "land_use_distribution"
+
+        "land_use_distribution" is a SNAPSHOT analysis (current land cover composition only).
+        It has no time-series component — it does NOT use a date range at all.
 
         ---
 
         📅 TIME RANGE RULES
 
+        ⚠️ These rules apply ONLY when dataset is "tree_cover" or "carbon_density".
+        ⚠️ If dataset is "land_use_distribution", you MUST set start_time and end_time to null,
+           even if the user mentions a year, a duration, or any time expression. Any time
+           reference in a land-use request should be ignored for the purposes of this field —
+           do not infer, default, or carry over dates from context for this dataset.
+
+        For "tree_cover" / "carbon_density":
         - Convert relative expressions:
-        - "last 5 years" → start = today - 5 years, end = today
-        - "since 2018" → start = 2018-01-01, end = today
-        - "in 2020" → start = 2020-01-01, end = 2020-12-31
-
-        - If no time is provided:
-        - default to last 3 years
-
-        - Always return ISO format:
-        YYYY-MM-DD
-
-        ---
-
-        🧠 ANALYSIS INTENT
-
-        Map user request to one of:
-        - "carbon_density"
-        - "tree_cover"
+          - "last 5 years" → start = today - 5 years, end = today
+          - "since 2018" → start = 2018-01-01, end = today
+          - "in 2020" → start = 2020-01-01, end = 2020-12-31
+        - If no time is provided, default to last 3 years.
+        - Always return ISO format: YYYY-MM-DD
 
         ---
 
@@ -148,8 +156,9 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
 
         The user's prompt may be a shorthand follow-up containing pronoun substitutions or relative references based on the provided conversation history context.
         - If the user uses a location pronoun (e.g., "there", "that region", "in this city", "what about", etc), look at the previous messages in the history to find the missing context (e.g., matching the implied time range or parameter intent from the prior turn).
-        - If the user uses a time shorthand (e.g., "in the same period", "during those years", "back then"), scan the chat history to extract the exact start and end dates previously calculated or mentioned, and map them to this new request.
-        - Prioritize the latest explicit parameters mentioned in the chat history to fill in any gaps left blank in the newest user prompt.
+        - If the user uses a time shorthand (e.g., "in the same period", "during those years", "back then") AND the resolved dataset is "tree_cover" or "carbon_density", scan the chat history to extract the exact start and end dates previously calculated or mentioned, and map them to this new request.
+        - If the resolved dataset is "land_use_distribution", ignore all time shorthand from history — start_time and end_time stay null regardless of what was discussed previously.
+        - Prioritize the latest explicit parameters mentioned in the chat history to fill in any gaps left blank in the newest user prompt (location and dataset intent only — not dates for land_use_distribution).
 
         ---
 
@@ -159,6 +168,7 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
         - Do NOT add text outside JSON
         - Do NOT define coordinates
         - If uncertain, set fields to null
+        - For dataset = "land_use_distribution": start_time and end_time MUST be null, no exceptions
     """
 
     messages = build_agent_messages(
@@ -242,6 +252,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
 
         🚫 SCIENTIFIC CONSTRAINT RULES:
         - Scientific, neutral tone throughout.
+        - ALWAYS wrap chart output in Markdown code blocks.
         - Order the rows in the Land-Use Distribution table from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.
         - Do NOT describe chart visuals (colors, shapes, axes) — charts render inline.
@@ -281,6 +292,7 @@ def generate_conversational_reply(prompt: str, mode: str = "conversational", rec
             - SPATIAL BOUNDS: Canopiq only analyzes locations existing on planet Earth (not the Moon, Mars, exoplanets, etc.).
             - TEMPORAL BOUNDS: We only support time ranges since the Sentinel-2 satellite launch date on 23 June 2015. Deep historical requests (e.g., "France in 1520") cannot be analyzed because Sentinel-2 imagery data did not exist before then.
             - DATASET BOUNDS: We strictly process environmental metrics related to 'biomass carbon density', 'tree cover', and 'land-use distribution'.
+            - SINGLE REGION BOUNDS: Each request must target a single geographic region. Multi-region or cross-country comparisons in a single query are not supported.
             
             Tone: Academic, helpful, and direct. Guide them to rephrase using valid parameters.
         """

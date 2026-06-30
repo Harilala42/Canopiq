@@ -1,12 +1,15 @@
 import os
 import ee
 import h3
+from enum import Enum
+from typing import Any
 from h3 import LatLngPoly
 from google.oauth2 import service_account
 
 service_account = os.environ.get("SERVICE_ACCOUNT")
 private_key = os.environ.get("SERVICE_ACCOUNT_FILE")
 
+# Authenticate GEE via service account
 def authenticate_gee():
     try:
         credentials = ee.ServiceAccountCredentials(service_account, private_key)
@@ -18,20 +21,45 @@ def authenticate_gee():
 
 authenticate_gee()
 
-def compute_gee_analysis(
-    bbox, 
-    start_time, end_time, 
-    dataset_type="tree_cover"
-):
+
+# GEE Datasets currently supported
+class GEEDataset(str, Enum):
+    TREE_COVER = "tree_cover"
+    CARBON_DENSITY = "carbon_density"
+    LAND_USE_DISTRIBUTION = "land_use_distribution"
+
+    def execute(self, q: dict[str, Any]):
+        match self:
+            case GEEDataset.LAND_USE_DISTRIBUTION:
+                return compute_land_use_distribution(bbox=q["bbox"])
+            case GEEDataset.CARBON_DENSITY | GEEDataset.TREE_COVER:
+                return compute_biomass_trend(
+                    dataset_type=self,
+                    bbox=q["bbox"],
+                    start_time=str(q["start_time"]),
+                    end_time=str(q["end_time"]),
+                )
+
+
+# ── Cover Vegetation & Biomass Carbon Sequestration ─────────────
+def compute_biomass_trend(dataset_type, bbox, start_time, end_time):
+    """
+    Unified analysis for continuous variables (Tree Cover & Carbon Density):
+    Sentinel-2 NDVI linear-fitted against a reference image dataset baseline,
+    aggregated to an H3 hex grid, plus a monthly linear-fitted NDVI time series.
+    """
     roi = ee.Geometry.Rectangle(bbox)
     area_ha = roi.area().divide(10000).getInfo()
 
-    h3_resolution, scale = get_dynamic_h3_resolution_and_scale(area_ha)
-    h3_vector_col = generate_gee_h3_grid(bbox, h3_resolution)
-    
-    ts_col, median_ndvi = get_sentinel_ndvi(roi, start_time, end_time)
-    ref_img, palette = get_dataset_col(dataset_type, start_time, end_time, roi)
+    # 1. Resolve dynamic H3 scaling
+    h3_resolution, scale = _get_dynamic_h3_resolution_and_scale(area_ha)
+    h3_vector_col = _generate_gee_h3_grid(bbox, h3_resolution)
 
+    # 2. Get Sentinel collection metrics & dataset-specific configuration
+    ts_col, median_ndvi = _get_sentinel_ndvi(roi, start_time, end_time)
+    ref_img, palette = _get_dataset_col(dataset_type, start_time, end_time, roi)
+
+    # 3. Fit Sentinel NDVI against the chosen reference layer
     fit_stats = median_ndvi.addBands(ref_img).reduceRegion(
         reducer=ee.Reducer.linearFit(),
         geometry=roi,
@@ -46,35 +74,38 @@ def compute_gee_analysis(
         .add(offset_factor) \
         .updateMask(median_ndvi.gt(0)) \
         .rename('biomass')
-    
-    vmin, vmax, hex_gdf = extract_gee_image_to_h3_grid(
-        predicted_img=predicted_img, 
+
+    # 4. Reduce predicted raster values to H3 hexagonal collection
+    vmin, vmax, hex_gdf = _extract_gee_image_to_h3_grid(
+        predicted_img=predicted_img,
         roi=roi, scale=scale,
-        h3_vector_col=h3_vector_col, 
+        h3_vector_col=h3_vector_col,
         palette=palette
     )
 
-    processed_ts = compute_time_series(
-        collection=ts_col, 
-        roi=roi, 
-        scale=scale_factor, 
-        offset=offset_factor, 
-        start_date=start_time, 
+    # 5. Extract calibrated continuous historical timeline data
+    processed_ts = _compute_time_series(
+        collection=ts_col,
+        roi=roi,
+        scale=scale_factor,
+        offset=offset_factor,
+        start_date=start_time,
         end_date=end_time
     )
 
-    land_use_percent = compute_landcover_composition(roi)
-    legend_data = generate_legend_intervals(vmin, vmax, palette)
+    # 5. Generate dynamic legends for the map
+    legend_data = _generate_legend_intervals(vmin, vmax, palette)
 
     return {
         "hex_geojson": hex_gdf.__geo_interface__,
         "time_series": processed_ts,
-        "land_use": land_use_percent,
         "area_ha": round(area_ha, 2),
         "legend": legend_data
     }
 
-def get_sentinel_ndvi(roi, start_time, end_time):
+
+# ── Biomass Trend Helper Functions ─────────────
+def _get_sentinel_ndvi(roi, start_time, end_time):
     """
     Fetches and masks Sentinel-2 collection,
     returning the time series collection and a median NDVI.
@@ -108,7 +139,7 @@ def get_sentinel_ndvi(roi, start_time, end_time):
     median_ndvi = sen2_col.median().normalizedDifference(['B8', 'B4']).rename('ndvi')
     return ts_col, median_ndvi
 
-def get_dataset_col(dataset_type, start_time, end_time, roi):
+def _get_dataset_col(dataset_type, start_time, end_time, roi):
     """
     Returns the reference image and specific visualization parameters.
     """
@@ -132,7 +163,7 @@ def get_dataset_col(dataset_type, start_time, end_time, roi):
 
     return ref_img, palette
 
-def generate_legend_intervals(min_val, max_val, palette):
+def _generate_legend_intervals(min_val, max_val, palette):
     """
     Splits the min/max range into even steps matching the palette size.
     """
@@ -146,12 +177,12 @@ def generate_legend_intervals(min_val, max_val, palette):
 
         legend.append({
             "color": palette[i],
-            "range": f"{max(0, round(start))} - {max(0, round(end))}"
+            "label": f"{max(0, round(start))} - {max(0, round(end))}"
         })
 
     return legend
 
-def get_dynamic_h3_resolution_and_scale(area_ha):
+def _get_dynamic_h3_resolution_and_scale(area_ha):
     """
     Determines H3 resolution and corresponding GEE extraction scale 
     based on area size to balance detail and performance.
@@ -168,7 +199,7 @@ def get_dynamic_h3_resolution_and_scale(area_ha):
 
     return h3_resolution, current_scale
 
-def generate_gee_h3_grid(bbox, h3_resolution=8):
+def _generate_gee_h3_grid(bbox, h3_resolution=8):
     """
     Generates H3 hex IDs for a bounding box and converts them 
     directly into an Earth Engine FeatureCollection.
@@ -195,7 +226,7 @@ def generate_gee_h3_grid(bbox, h3_resolution=8):
         
     return ee.FeatureCollection(ee_features)
 
-def extract_gee_image_to_h3_grid(
+def _extract_gee_image_to_h3_grid(
     predicted_img,
     roi, scale,
     h3_vector_col,
@@ -241,7 +272,7 @@ def extract_gee_image_to_h3_grid(
 
     return vmin, vmax, hex_gdf
 
-def compute_time_series(
+def _compute_time_series(
     collection, 
     roi,
     scale, offset, 
@@ -303,62 +334,48 @@ def compute_time_series(
 
     return [f['properties'] for f in clean_fc.getInfo()['features']]
 
-def compute_landcover_composition(roi, scale=10):
-    """
-    Aggregates ESA WorldCover v200 land cover classes over a ROI
-    and computes normalized class distribution based on pixel frequency.
-    """
 
+# ── Land-Use Distribution ─────────────
+LAND_COVER_CLASSES = {
+    10: {"label": "Tree cover", "color": "#287662"},
+    20: {"label": "Shrubland", "color": "#afce56"},
+    30: {"label": "Grassland", "color": "#4c8f7f"},
+    40: {"label": "Cropland", "color": "#534ab7"},
+    50: {"label": "Built-up", "color": "#a34b3c"},
+    60: {"label": "Bare/sparse vegetation", "color": "#7A728F"},
+    70: {"label": "Snow and ice", "color": "#cbdff6"},
+    80: {"label": "Permanent water", "color": "#4a82b7"},
+    90: {"label": "Herbaceous wetland", "color": "#2C7A7B"},
+    95: {"label": "Mangroves", "color": "#2FBF9B"},
+    100: {"label": "Moss and lichen", "color": "#8F87D6"},
+}
+
+def compute_land_use_distribution(bbox):
+    """
+    Land-use distribution analysis: ESA WorldCover v200 class composition
+    over the ROI (region-wide percentages for a donut chart), plus the same
+    classes aggregated to an H3 hex grid for the map, each hex colored by
+    its dominant land-cover class. This is a single-snapshot analysis with
+    no time-series component.
+    """
+    roi = ee.Geometry.Rectangle(bbox)
+    area_ha = roi.area().divide(10000).getInfo()
+
+    # 1. Resolve dynamic H3 scaling
+    h3_resolution, scale = _get_dynamic_h3_resolution_and_scale(area_ha)
+    h3_vector_col = _generate_gee_h3_grid(bbox, h3_resolution)
+
+    # 2.Fetch the categorical reference land cover dataset
     ref_col = ee.ImageCollection("ESA/WorldCover/v200")
     ref_img = ref_col.first().clip(roi)
+    ref_bands = ref_img.bandNames().getInfo()
+    if not ref_bands:
+        raise Exception(
+            f"The land-cover dataset contains no valid data "
+            f"within the selected region bounding box."
+        )
 
-    class_info = {
-        10: {
-            "label": "Tree cover",
-            "color": "#287662"
-        },
-        20: {
-            "label": "Shrubland",
-            "color": "#afce56"
-        },
-        30: {
-            "label": "Grassland",
-            "color": "#4c8f7f"
-        },
-        40: {
-            "label": "Cropland",
-            "color": "#534ab7"
-        },
-        50: {
-            "label": "Built-up",
-            "color": "#a34b3c"
-        },
-        60: {
-            "label": "Bare/sparse vegetation",
-            "color": "#7A728F"
-        },
-        70: {
-            "label": "Snow and ice",
-            "color": "#cbdff6"
-        },
-        80: {
-            "label": "Permanent water",
-            "color": "#4a82b7"
-        },
-        90: {
-            "label": "Herbaceous wetland",
-            "color": "#2C7A7B"
-        },
-        95: {
-            "label": "Mangroves",
-            "color": "#2FBF9B"
-        },
-        100: {
-            "label": "Moss and lichen",
-            "color": "#8F87D6"
-        }
-    }
-
+    #3. Compute region-wide class frequency distribution for global metrics
     histogram = ref_img.reduceRegion(
         reducer=ee.Reducer.frequencyHistogram(),
         geometry=roi,
@@ -366,19 +383,86 @@ def compute_landcover_composition(roi, scale=10):
         bestEffort=True
     ).getInfo()
 
+    # 4. Reduce categorical raster values to H3 grid via majority voting
+    hex_gdf = _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale)
+
+    # 5. Extract chart distribution percentages and build the interactive map legend
+    land_use_percent, legend_data = _generate_legend_classes(histogram)
+
+    return {
+        "hex_geojson": hex_gdf.__geo_interface__,
+        "land_use": land_use_percent,
+        "area_ha": round(area_ha, 2),
+        "legend": legend_data
+    }
+
+
+# ── Land-Use Distribution Helper Funtions ─────────────
+def _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale):
+    """
+    Reduces the categorical WorldCover image into the H3 grid. Land cover
+    classes are categorical (10, 20, 30...), so per-hex aggregation uses
+    frequencyHistogram (not mean) and each hex is colored/labeled by its
+    dominant class.
+    """
+    reduced_hex = ref_img.reduceRegions(
+        collection=h3_vector_col,
+        reducer=ee.Reducer.frequencyHistogram(),
+        scale=scale,
+        tileScale=4
+    )
+
+    hex_gdf = ee.data.computeFeatures({
+        'expression': reduced_hex,
+        'fileFormat': 'GEOPANDAS_GEODATAFRAME'
+    })
+    hex_gdf.crs = 'EPSG:4326'
+
+    dominant_labels = []
+    dominant_colors = []
+    for histogram in hex_gdf.get("histogram", []):
+        class_id = int(max(histogram, key=histogram.get)) if histogram else None
+        info = LAND_COVER_CLASSES.get(class_id)
+        if info is None:
+            dominant_labels.append(None)
+            dominant_colors.append(None)
+        else:
+            dominant_labels.append(info["label"])
+            dominant_colors.append(info["color"])
+
+    hex_gdf["dominant_class"] = dominant_labels
+    hex_gdf["color"] = dominant_colors
+    hex_gdf = hex_gdf[hex_gdf["dominant_class"].notna()]
+
+    return hex_gdf
+
+def _generate_legend_classes(histogram):
+    """
+    Computes region-wide land cover class percentages and maps them 
+    to their corresponding colors and labels for the legend.
+    """
     pixel_counts = histogram.get('Map', {})
     total_pixels = sum(pixel_counts.values())
-    if total_pixels == 0: return {}
-    
-    results = {}
-    for k, v in pixel_counts.items():
-        class_id = int(k)
-        if class_id not in class_info:
-            continue
 
-        results[class_info[class_id]["label"]] = {
-            "value": round(v / total_pixels * 100, 2),
-            "color": class_info[class_id]["color"]
+    land_use_percent = {}
+    for class_id_str, count in pixel_counts.items():
+        class_id = int(class_id_str)
+        info = LAND_COVER_CLASSES.get(class_id)
+        if not info: continue
+            
+        label = info["label"]
+        color = info["color"]
+        percentage = round((count / total_pixels) * 100, 2)
+
+        land_use_percent[label] = {
+            "value": percentage,
+            "color": color
         }
+        
+    legend_data = [
+        {"color": info["color"], "label": info["label"]}
+        for info in LAND_COVER_CLASSES.values()
+        if info["label"] in land_use_percent
+    ]
 
-    return results
+    return land_use_percent, legend_data

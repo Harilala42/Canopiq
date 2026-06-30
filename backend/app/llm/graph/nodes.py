@@ -1,8 +1,8 @@
 import asyncio
-import app.gee.models as gee
 import app.chat.models as chat
 import app.llm.agent.agents as llm
 from app.job.models import update_job_progress
+from app.geo_analysis.services import GEEDataset
 from app.llm.graph.state import CanopiqState, PipelineStage
 from app.geo_analysis.models import save_geo_analysis
 from langchain_core.runnables import RunnableConfig
@@ -33,13 +33,9 @@ async def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) 
     update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.GEE_COMPUTE.value)
 
     query = state["geo_params"]
-    gis_analysis = await asyncio.to_thread(
-        gee.compute_gee_analysis,
-        bbox=query["bbox"],
-        start_time=str(query["start_time"]),
-        end_time=str(query["end_time"]),
-        dataset_type=query["data_set"]
-    )
+    dataset = GEEDataset(query["dataset"])
+
+    gis_analysis = await asyncio.to_thread(dataset.execute, query)
 
     saved = save_geo_analysis(
         query=query,
@@ -53,6 +49,7 @@ async def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) 
         "geo_analysis_id": saved[0]["id"],
         "pipeline_stage": PipelineStage.GEE_COMPUTE
     }
+
 
 # ── Node 3: generates final mardown environmental report ───
 async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
@@ -74,6 +71,7 @@ async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> C
         "pipeline_stage": PipelineStage.LLM_REPORT
     }
 
+
 # ── Handler Error Recorery: Gemini writes a friendly GEE failure message ──
 def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: NodeError) -> Command:
     cfg = config.get("configurable", {})
@@ -94,7 +92,7 @@ def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: No
             Craft an environmental analysis recovery response based on these attributes:
             
             Location: {query["location"]}
-            Dataset: {query["data_set"]}
+            Dataset: {query["dataset"]}
             Period: {query["start_time"]} → {query["end_time"]}
             Technical reason: {str(error.error)}
         """,
@@ -105,7 +103,7 @@ def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: No
 
             The geo analysis ID is: {state["geo_analysis_id"]}
             Location: {query["location"]}
-            Dataset: {query["data_set"]}
+            Dataset: {query["dataset"]}
             Period: {query["start_time"]} → {query["end_time"]}
             Technical reason: {error.error}
 
