@@ -9,18 +9,19 @@ import {
     ResponsiveContainer
 } from "recharts";
 import useAnalyticsStore from "@/stores/useAnalyticsStore";
+import { AnalyticsMetadata, TimeSeriesInsight } from "@/types/analysis";
 import { ChartContainer, ChartTooltip } from "@/components/analytics";
 import { ThemeContext } from "@/contexts/themeContext";
 import { LuChartNoAxesColumn } from "react-icons/lu";
-import { Box, Skeleton } from "@chakra-ui/react";
+import { Skeleton } from "@chakra-ui/react";
 
 interface ChartBarProps
 {
-    GISAnalysisId?: string;
+    analysisId?: string;
 }
 
-const ChartBar = memo(({ GISAnalysisId }: ChartBarProps): JSX.Element => {
-    const barData = useAnalyticsStore((state) => state.dataset);
+const ChartBar = memo(({ analysisId }: ChartBarProps): JSX.Element => {
+    const barData = useAnalyticsStore((state) => state.analyses[analysisId]);
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
@@ -32,8 +33,9 @@ const ChartBar = memo(({ GISAnalysisId }: ChartBarProps): JSX.Element => {
             />
         )
 
-    const { time_series: data = [], legend = "", unit = "", source = "" } = barData || {};
-    const themeColor = isDark ? "#cecbf6" : "#1a1535";
+    const data = barData.analytics.insights as TimeSeriesInsight[];
+    const { legend = "", unit = "", source = "" } = barData.analytics.metadata as AnalyticsMetadata;
+    const themeColor = isDark ? "#cecbf6" : "#010101ff";
 
     return (
         <ChartContainer 

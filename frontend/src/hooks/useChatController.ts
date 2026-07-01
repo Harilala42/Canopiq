@@ -7,6 +7,7 @@ import { AlertContext } from '@/contexts/alertContext';
 import { supabase } from '@/utils/supabase.utils';
 import { AnalysisAPI } from '@/api/analysis.api';
 import { MessageAPI } from '@/api/message.api';
+import { GeoAnalysis } from '@/types/analysis';
 import { MessageData } from '@/types/chat';
 
 export const useChatController = () => {
@@ -18,15 +19,13 @@ export const useChatController = () => {
     const addMessage = useMessageStore((state) => state.addMessage);
     const removeMessage = useMessageStore((state) => state.removeMessage);
 
-    const setDataset = useAnalyticsStore((state) => state.setDataset);
-    const setLandUse = useAnalyticsStore((state) => state.setLandUse);
-    const setAnalyticsData = useAnalyticsStore((state) => state.setAnalyticsData);
-	const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
+    const addAnalysis = useAnalyticsStore((state) => state.addAnalysis);
+    const setAnalyses = useAnalyticsStore((state) => state.setAnalyses);
+	const resetAnalyses = useAnalyticsStore((state) => state.resetAnalyses);
+    const setActiveAnalysis = useAnalyticsStore((state) => state.setActiveAnalysis);
 
+    const setActiveMap = useMapStore((state) => state.setActiveMap);
     const clearMap = useMapStore((state) => state.clearMap);
-    const setLocation = useMapStore((state) => state.setLocation);
-	const setCoords = useMapStore((state) => state.setCoords);
-	const setMapId = useMapStore((state) => state.setId);
 
     const { showAlert } = useContext(AlertContext);
 
@@ -39,7 +38,7 @@ export const useChatController = () => {
         try {
             const messageList = await MessageAPI.getAll(currentQuery.id);
             if (messageList && messageList?.messages)
-                setMessages(messageList.messages);
+                setMessages(messageList.messages as MessageData[]);
         } catch (err: any) {
             console.error("Failed to load chat messages:", err.message);
             showAlert(false, "Failed to load chat messages. Try again later!");
@@ -48,70 +47,31 @@ export const useChatController = () => {
         }
     }, [currentQuery?.id, setMessages, setIsLoading, showAlert]);
 
-    const applyAnalysisData = useCallback((data: any) => {
-		const {
-			id,
-			location,
-			coordinates,
-			start_year,
-			end_year,
-			analytics,
-			h3_grid_map_id
-		} = data;
-
-		setLocation(location);
-
-        setCoords([
-            coordinates.coordinates[1],
-            coordinates.coordinates[0],
-        ]);
-
-        setMapId(h3_grid_map_id);
-
-        setDataset(analytics.insights),
-
-        setLandUse(analytics.land_use_distribution),
-
-        setAnalyticsData({
-            geo_analysis_id: id,
-            range_times: {
-                start: new Date(start_year).getFullYear(),
-                end: new Date(end_year).getFullYear(),
-            },
-            area_coverage: analytics.stats.area_coverage_ha,
-            global_average: analytics.stats.global_average,
-            total_change: analytics.stats.total_change_percent
-        });
-	}, [
-		setLocation,
-		setCoords,
-        setMapId,
-		setAnalyticsData
-	]);
-
     const fetchGeoAnalysisData = useCallback(async () => {
         if (!currentQuery?.id || currentQuery?.isNew) return;
 
+        resetAnalyses();
+        clearMap();
+
         try {
-            const oldAnalysis = await AnalysisAPI.getAll(currentQuery.id);
-            if (!oldAnalysis?.geo_analysis || oldAnalysis.geo_analysis.length === 0) {
-                resetAnalyticsData();
-                return;
+            const result = await AnalysisAPI.getAll(currentQuery.id);
+            if (result && result?.geo_analysis) {
+                const oldAnalyses: GeoAnalysis[] = result.geo_analysis;
+
+                setAnalyses(oldAnalyses);
+                if (oldAnalyses.length > 0) {
+                    setActiveAnalysis(oldAnalyses[0]);
+                    setActiveMap(oldAnalyses[0].h3_grid_map_id);
+                }
             }
-
-            console.log(oldAnalysis.geo_analysis)
-
-            clearMap();
-            applyAnalysisData(oldAnalysis.geo_analysis[0]);
         } catch (err: any) {
-            resetAnalyticsData();
             console.error("Failed to retrieve insight:", err.message);
             showAlert(false, "Failed to retrieve insight. Please try again later.");
         }
     }, [
         currentQuery?.id,
-        resetAnalyticsData,
-        applyAnalysisData,
+        resetAnalyses,
+        addAnalysis,
         clearMap,
         showAlert
     ]);
@@ -130,10 +90,9 @@ export const useChatController = () => {
                     filter: `chat_id=eq.${currentQuery.id}`
                 },
                 (payload: any) => {
-                    const { id, role, content, created_at } = payload.new;
-                    if (role === 'user') removeMessage(`temp-${id}`);    // replace temporary message
-
-                    const newMessage: MessageData = { id, role, content, created_at };
+                    const newMessage: MessageData = payload.new;
+                    if (newMessage.role === 'user') 
+                        removeMessage(`temp-${newMessage.id}`);    // replace temporary message
                     addMessage(newMessage);
                 }
             )
@@ -150,8 +109,9 @@ export const useChatController = () => {
                     filter: `chat_id=eq.${currentQuery.id}`,
                 },
                 (payload: any) => {
-					clearMap();
-                    applyAnalysisData(payload.new);
+                    const newAnalysis: GeoAnalysis = payload.new;
+                    setActiveMap(newAnalysis.h3_grid_map_id);
+                    addAnalysis(newAnalysis);
                 }
             )
             .subscribe();
@@ -167,8 +127,8 @@ export const useChatController = () => {
         currentQuery?.id, 
         retrieveChatMessages, 
         fetchGeoAnalysisData,
-        applyAnalysisData,
-        addMessage, clearMap
+        addMessage,
+        clearMap
     ]);
 
     return { title: currentQuery?.title || "New Chat" }

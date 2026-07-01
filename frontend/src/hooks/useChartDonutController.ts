@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
-import { LandUseData, BiomeData } from '@/types/analysis';
+import { GeoAnalysis, BiomeInsight, AnalyticsMetadata } from '@/types/analysis';
 
-export const useChartDonutController = (landCover: LandUseData) => {
-    const donutData = useMemo<BiomeData[]>(() => {
-        if (!landCover?.categories || !Array.isArray(landCover.categories)) 
-            return [];
+export const useChartDonutController = (donutData: GeoAnalysis) => {
+    const data = donutData.analytics.insights as BiomeInsight[];
+    const meta = donutData.analytics.metadata as AnalyticsMetadata;
+
+    const landUse = useMemo<BiomeInsight[]>(() => {
+        if (!data || !Array.isArray(data)) return [];
 
         const threshold = 3;
-        const main = landCover.categories.filter((item) => item.value >= threshold);
-        const small = landCover.categories.filter((item) => item.value < threshold);
+        const main = data.filter((item) => item.value >= threshold);
+        const small = data.filter((item) => item.value < threshold);
         const otherPercent = small.reduce((sum, item) => sum + item.value, 0);
 
         if (otherPercent > 0) {
@@ -20,12 +22,12 @@ export const useChartDonutController = (landCover: LandUseData) => {
         }
 
         return main;
-    }, [landCover]);
+    }, [donutData]);
 
     return {
-        categories: donutData,
-        legend: landCover?.legend || "",
-        unit: landCover?.unit || "",
-        source: landCover?.source || "",
+        data: landUse ?? null,
+        legend: meta?.legend ?? "",
+        unit: meta?.unit ?? "",
+        source: meta?.source ?? "",
     };
 };

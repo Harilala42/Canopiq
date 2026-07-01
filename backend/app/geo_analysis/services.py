@@ -2,9 +2,11 @@ import os
 import ee
 import h3
 from enum import Enum
-from typing import Any
-from h3 import LatLngPoly
+from datetime import date
+from typing import Any, List, Dict, Tuple
 from google.oauth2 import service_account
+from h3 import LatLngPoly
+import geopandas as gpd
 
 service_account = os.environ.get("SERVICE_ACCOUNT")
 private_key = os.environ.get("SERVICE_ACCOUNT_FILE")
@@ -42,25 +44,30 @@ class GEEDataset(str, Enum):
 
 
 # ── Cover Vegetation & Biomass Carbon Sequestration ─────────────
-def compute_biomass_trend(dataset_type, bbox, start_time, end_time):
+def compute_biomass_trend(
+    dataset_type: str, 
+    bbox: List[float], 
+    start_time: date, 
+    end_time: date
+) -> Dict[str, Any]:
     """
     Unified analysis for continuous variables (Tree Cover & Carbon Density):
     Sentinel-2 NDVI linear-fitted against a reference image dataset baseline,
     aggregated to an H3 hex grid, plus a monthly linear-fitted NDVI time series.
     """
-    roi = ee.Geometry.Rectangle(bbox)
-    area_ha = roi.area().divide(10000).getInfo()
+    roi: ee.Geometry = ee.Geometry.Rectangle(bbox)
+    area_ha: float = roi.area().divide(10000).getInfo()
 
     # 1. Resolve dynamic H3 scaling
     h3_resolution, scale = _get_dynamic_h3_resolution_and_scale(area_ha)
-    h3_vector_col = _generate_gee_h3_grid(bbox, h3_resolution)
+    h3_vector_col: ee.FeatureCollection = _generate_gee_h3_grid(bbox, h3_resolution)
 
     # 2. Get Sentinel collection metrics & dataset-specific configuration
     ts_col, median_ndvi = _get_sentinel_ndvi(roi, start_time, end_time)
     ref_img, palette = _get_dataset_col(dataset_type, start_time, end_time, roi)
 
     # 3. Fit Sentinel NDVI against the chosen reference layer
-    fit_stats = median_ndvi.addBands(ref_img).reduceRegion(
+    fit_stats: ee.Dictionary = median_ndvi.addBands(ref_img).reduceRegion(
         reducer=ee.Reducer.linearFit(),
         geometry=roi,
         scale=scale,
@@ -69,7 +76,7 @@ def compute_biomass_trend(dataset_type, bbox, start_time, end_time):
     scale_factor = ee.Number(fit_stats.get('scale'))
     offset_factor = ee.Number(fit_stats.get('offset'))
 
-    predicted_img = median_ndvi \
+    predicted_img: ee.Image = median_ndvi \
         .multiply(scale_factor) \
         .add(offset_factor) \
         .updateMask(median_ndvi.gt(0)) \
@@ -93,7 +100,7 @@ def compute_biomass_trend(dataset_type, bbox, start_time, end_time):
         end_date=end_time
     )
 
-    # 5. Generate dynamic legends for the map
+    # 6. Generate dynamic legends for the map
     legend_data = _generate_legend_intervals(vmin, vmax, palette)
 
     return {
@@ -105,14 +112,19 @@ def compute_biomass_trend(dataset_type, bbox, start_time, end_time):
 
 
 # ── Biomass Trend Helper Functions ─────────────
-def _get_sentinel_ndvi(roi, start_time, end_time):
+def _get_sentinel_ndvi(
+    roi: ee.Geometry, 
+    start_time: date, 
+    end_time: date
+) -> Tuple[ee.ImageCollection, ee.Image]:
     """
     Fetches and masks Sentinel-2 collection,
     returning the time series collection and a median NDVI.
     """
     
-    def mask_s2(img):
-        qa = img.select('QA60')
+    def mask_s2(img):       
+        # Mask Sentinel-2 pixels using QA60 cloud mask bits
+        qa = img.select('QA60')         
         cloud = qa.bitwiseAnd(1 << 10).eq(0)
         cirrus = qa.bitwiseAnd(1 << 11).eq(0)
         return img.updateMask(cloud.And(cirrus)) 
@@ -125,11 +137,13 @@ def _get_sentinel_ndvi(roi, start_time, end_time):
             .select(['B2', 'B3', 'B4', 'B8', 'QA60'])
             .map(mask_s2))
 
-    boa_col = make_col("COPERNICUS/S2_SR_HARMONIZED")
+    # Sentinel-2 Level-2A Surface Reflectance (Bottom-of-Atmosphere)
+    boa_col = make_col("COPERNICUS/S2_SR_HARMONIZED")   
+    # Sentinel-2 Level-1C Top-of-Atmosphere reflectance.    
     toa_col = make_col("COPERNICUS/S2_HARMONIZED")
     sen2_col = boa_col if boa_col.size().getInfo() > 0 else toa_col
 
-    ts_col = toa_col
+    ts_col = toa_col        # Use the TOA collection as the source for the time series.
     if ts_col.size().getInfo() == 0:
         raise Exception(
             f"No Sentinel-2 imagery found "
@@ -139,7 +153,12 @@ def _get_sentinel_ndvi(roi, start_time, end_time):
     median_ndvi = sen2_col.median().normalizedDifference(['B8', 'B4']).rename('ndvi')
     return ts_col, median_ndvi
 
-def _get_dataset_col(dataset_type, start_time, end_time, roi):
+def _get_dataset_col(
+    dataset_type: str, 
+    start_time: date, 
+    end_time: date, 
+    roi: ee.Geometry
+) -> Tuple[ee.Image, List[str]]:
     """
     Returns the reference image and specific visualization parameters.
     """
@@ -163,7 +182,11 @@ def _get_dataset_col(dataset_type, start_time, end_time, roi):
 
     return ref_img, palette
 
-def _generate_legend_intervals(min_val, max_val, palette):
+def _generate_legend_intervals(
+    min_val: float, 
+    max_val: float, 
+    palette: List[str]
+) -> List[Dict[str, str]]:
     """
     Splits the min/max range into even steps matching the palette size.
     """
@@ -182,7 +205,7 @@ def _generate_legend_intervals(min_val, max_val, palette):
 
     return legend
 
-def _get_dynamic_h3_resolution_and_scale(area_ha):
+def _get_dynamic_h3_resolution_and_scale(area_ha: float) -> Tuple[int, int]:
     """
     Determines H3 resolution and corresponding GEE extraction scale 
     based on area size to balance detail and performance.
@@ -199,7 +222,10 @@ def _get_dynamic_h3_resolution_and_scale(area_ha):
 
     return h3_resolution, current_scale
 
-def _generate_gee_h3_grid(bbox, h3_resolution=8):
+def _generate_gee_h3_grid(
+    bbox: List[float], 
+    h3_resolution: int = 8
+) -> ee.FeatureCollection:
     """
     Generates H3 hex IDs for a bounding box and converts them 
     directly into an Earth Engine FeatureCollection.
@@ -227,11 +253,12 @@ def _generate_gee_h3_grid(bbox, h3_resolution=8):
     return ee.FeatureCollection(ee_features)
 
 def _extract_gee_image_to_h3_grid(
-    predicted_img,
-    roi, scale,
-    h3_vector_col,
-    palette
-):
+    predicted_img: ee.Image,
+    roi: ee.Geometry, 
+    scale: int,
+    h3_vector_col: ee.FeatureCollection,
+    palette: List[str]
+) -> Tuple[float, float, gpd.GeoDataFrame]:
     """
     Reduces imagery data directly inside the provided H3 FeatureCollection 
     and returns a clean, fully aggregated GeoPandas GeoDataFrame.
@@ -273,12 +300,14 @@ def _extract_gee_image_to_h3_grid(
     return vmin, vmax, hex_gdf
 
 def _compute_time_series(
-    collection, 
-    roi,
-    scale, offset, 
-    start_date, end_date,
-    roi_scale=1000
-):
+    collection: ee.ImageCollection, 
+    roi: ee.Geometry,
+    scale: ee.Number, 
+    offset: ee.Number, 
+    start_date: date, 
+    end_date: date,
+    roi_scale: int = 1000
+) -> List[Dict[str, Any]]:
     """
     Generates a monthly environmental time series from a Sentinel-2 image collection.
     """
@@ -350,7 +379,7 @@ LAND_COVER_CLASSES = {
     100: {"label": "Moss and lichen", "color": "#8F87D6"},
 }
 
-def compute_land_use_distribution(bbox):
+def compute_land_use_distribution(bbox: List[float]) -> Dict[str, Any]:
     """
     Land-use distribution analysis: ESA WorldCover v200 class composition
     over the ROI (region-wide percentages for a donut chart), plus the same
@@ -358,16 +387,16 @@ def compute_land_use_distribution(bbox):
     its dominant land-cover class. This is a single-snapshot analysis with
     no time-series component.
     """
-    roi = ee.Geometry.Rectangle(bbox)
-    area_ha = roi.area().divide(10000).getInfo()
+    roi: ee.Geometry = ee.Geometry.Rectangle(bbox)
+    area_ha: float = roi.area().divide(10000).getInfo()
 
     # 1. Resolve dynamic H3 scaling
     h3_resolution, scale = _get_dynamic_h3_resolution_and_scale(area_ha)
-    h3_vector_col = _generate_gee_h3_grid(bbox, h3_resolution)
+    h3_vector_col: ee.FeatureCollection = _generate_gee_h3_grid(bbox, h3_resolution)
 
-    # 2.Fetch the categorical reference land cover dataset
-    ref_col = ee.ImageCollection("ESA/WorldCover/v200")
-    ref_img = ref_col.first().clip(roi)
+    # 2. Fetch the categorical reference land cover dataset
+    ref_col: ee.ImageCollection = ee.ImageCollection("ESA/WorldCover/v200")
+    ref_img: ee.Image = ref_col.first().clip(roi)
     ref_bands = ref_img.bandNames().getInfo()
     if not ref_bands:
         raise Exception(
@@ -398,7 +427,11 @@ def compute_land_use_distribution(bbox):
 
 
 # ── Land-Use Distribution Helper Funtions ─────────────
-def _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale):
+def _extract_landcover_to_h3_grid(
+    ref_img: ee.Image, 
+    h3_vector_col: ee.FeatureCollection, 
+    scale: int
+) -> gpd.GeoDataFrame:
     """
     Reduces the categorical WorldCover image into the H3 grid. Land cover
     classes are categorical (10, 20, 30...), so per-hex aggregation uses
@@ -436,7 +469,9 @@ def _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale):
 
     return hex_gdf
 
-def _generate_legend_classes(histogram):
+def _generate_legend_classes(
+    histogram: Dict[str, Any]
+) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, str]]]:
     """
     Computes region-wide land cover class percentages and maps them 
     to their corresponding colors and labels for the legend.

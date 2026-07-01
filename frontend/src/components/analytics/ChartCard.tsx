@@ -14,8 +14,8 @@ import {
 	LuTreePine,
 	LuCloud
 } from "react-icons/lu";
-import useMapStore from "@/stores/useMapStore";
 import useAnalyticsStore from "@/stores/useAnalyticsStore";
+import { AnalyticsMetadata, AnalyticsStats } from "@/types/analysis";
 import { ThemeContext } from "@/contexts/themeContext";
 
 interface StatsCardProps
@@ -86,35 +86,35 @@ const StatsCard =({
 }
 
 const ChartCard = memo((): JSX.Element | null => {
-	const location = useMapStore((state) => state.location);
-	const dataset = useAnalyticsStore((state) => state.dataset);
-	const averageValue = useAnalyticsStore((state) => state.global_average);
-	const areaCoverage = useAnalyticsStore((state) => state.area_coverage);
-	const totalChange = useAnalyticsStore((state) => state.total_change);
-	const rangeTimes = useAnalyticsStore((state) => state.range_times);
+	const currentAnalysis = useAnalyticsStore((state) => state.activeAnalysis);
+	if (!currentAnalysis) return null;
 
-	if (!dataset) return null;
-	const { type, legend, unit } = dataset;
+	const meta = currentAnalysis.analytics.metadata as AnalyticsMetadata;
+	const stats = currentAnalysis.analytics.stats as AnalyticsStats;
 	return (
 		<VStack 
-			w="fit-content"
+			minW="300px"
 			position="absolute"
 			top="20px" left="20px"
 			gap={2} zIndex={1000}
 		>
-			<StatsCard
-				label={legend}
-				value={`${averageValue} ${unit}`}
-				icon={type !== "tree_cover" ? <LuCloud /> : <LuTreePine />}
-				helpText={`Between ${rangeTimes.start} - ${rangeTimes.end}`}
-				badgeValue={totalChange}
-			/>
+			{meta?.type != "land_use_distribution" && (
+				<StatsCard
+					label={meta?.legend}
+					value={`${stats?.global_average} ${meta?.unit}`}
+					icon={meta?.type !== "tree_cover" ? <LuCloud /> : <LuTreePine />}
+					helpText={
+						`Between ${currentAnalysis?.start_year.split("-")[0]} \ 
+						- ${currentAnalysis?.end_year.split("-")[0]}`}
+					badgeValue={stats?.total_change_percent}
+				/>
+			)}
 
 			<StatsCard
 				icon={<LuMap />}
 				label="Area Coverage"
-				value={`${Math.round(areaCoverage / 100)} km²`}
-				helpText={`In ${location}`}
+				value={`${Math.round(stats?.area_coverage_ha / 100)} km²`}
+				helpText={`In ${currentAnalysis?.location}`}
 			/>
 		</VStack>
 	);

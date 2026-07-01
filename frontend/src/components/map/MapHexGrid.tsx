@@ -13,7 +13,8 @@ interface HexagonalMapProps
 }
 
 const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
-    const datasetMetaData = useAnalyticsStore((state) => state.dataset);
+    const currentAnalysis = useAnalyticsStore((state) => state.activeAnalysis);
+    const meta = currentAnalysis ? currentAnalysis.analytics.metadata : null;
 
     const getHexStyle = useMemo(() => {
         return (feature: HexFeature) => {
@@ -30,9 +31,9 @@ const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
     const onEachHexagon = useMemo(() => {
         return (feature: HexFeature, layer: Layer) => {
             layer.bindTooltip(
-                `${datasetMetaData.legend}: \
+                `${meta?.legend}: \
                 ${Math.max(0, feature.properties?.biomass).toFixed(2)} \
-                ${datasetMetaData.unit}`,
+                ${meta?.unit}`,
                 {
                     sticky: true,
                     direction: "top",
@@ -55,7 +56,7 @@ const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
                 }
             });
         }
-    }, [datasetMetaData]);
+    }, [currentAnalysis]);
 
     return (
         <GeoJSON

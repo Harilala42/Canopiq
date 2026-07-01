@@ -54,12 +54,12 @@ const useChatStore = create<ChatState>((set, get) => ({
         const { currentQuery } = get();
         const { clearMap } = useMapStore.getState();
         const { resetMessages } = useMessageStore.getState();
-        const { resetAnalyticsData } = useAnalyticsStore.getState();
+        const { resetAnalyses } = useAnalyticsStore.getState();
 
         if (currentQuery?.id === id) {
             clearMap();
             resetMessages();
-            resetAnalyticsData();
+            resetAnalyses();
         }
 
         set((state) => ({

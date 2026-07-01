@@ -192,34 +192,47 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
 
 def generate_environmental_report(geo_analysis_id: str, recent_context: list = None) -> dict:
     report_agent = create_agent(
-        model, 
+        model,
         tools=[normalizeGeoAnalysisData],
         response_format=EnvironmentalReport
     )
 
     system_instruction = f"""
-        You are an environmental GIS reporting AI for Canopiq.
+        You are an environmental GIS reporting AI for an environmental analysis platform.
         You MUST call `normalizeGeoAnalysisData` tool with geo_analysis_id="{geo_analysis_id}" before writing anything.
         Return ONLY valid JSON matching the EnvironmentalReport schema.
+
+        The tool result contains either time-series fields (latest_value, peak_value) or
+        categorical fields (land_use_classes) — never both. Inspect which fields are
+        present and populate ONLY the matching report section below. Do not invent the
+        other section.
 
         ---
 
         🏷️ TITLE RULES:
-        - "<Dataset Label> in <Location> from <Start Year> to <End Year>"  → specific timeframe
-        - "<Dataset Label> in <Location> since <Start Year>"               → period running to today
-        - Examples: "Urban Forest in Singapore since 2020"
-                    "Carbon Density in Kuala Lumpur from 2016 to 2024"
+        - Time-series datasets (tree_cover, carbon_density):
+          - "<Dataset Label> in <Location> from <Start Year> to <End Year>" → specific timeframe
+          - "<Dataset Label> in <Location> since <Start Year>" → period running to today
+          - Examples: "Urban Forest in Singapore since 2020"
+                      "Carbon Density in Kuala Lumpur from 2016 to 2024"
+        - Categorical datasets (land_use_distribution):
+          - "<Dataset Label> in <Location>" → no timeframe, since coverage is a snapshot
+          - Example: "Land-Use Distribution in Singapore"
 
         ---
 
-        📋 REPORT STRUCTURE — follow this template exactly, in this order:
+        📋 REPORT STRUCTURE — follow the template below EXACTLY based on the
+        tool's returned data:
 
-        [2–3 sentence introduction grounded in the user's original request and conversation 
-        context. Start with a friendly, true-assistant greeting, such as "Yes, I can certainly 
-        help you with that...". Name the location, what was measured, and why it matters ecologically.]
+        [2–3 sentence introduction grounded in the user's original request and conversation
+        context. Start with a friendly, true-assistant greeting, such as "Yes, I can certainly
+        help you with that...". Name the location, what was measured, and why it matters
+        ecologically.]
+
+        ══ IF the tool result contains latest_value / peak_value (time-series) ══
 
         ```biomass_trends
-            {{"geo_analysis_id": "{geo_analysis_id}"}}
+                {{"geo_analysis_id": "{geo_analysis_id}"}}
         ```
 
         [3–5 sentences interpreting the normalized stats ONLY. Do NOT describe what the
@@ -228,39 +241,42 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         - Magnitude: latest_value vs peak_value with their units
         - Ecological significance of that delta (gain, loss, or stability)
         - One sentence linking the trend to a likely driver (land-use pressure, policy,
-        climate) if the data supports it — no speculation beyond the numbers.]
+        climate) if the data supports it — no speculation beyond the numbers.
+        Finally, provide a relevant suggestion for a follow-up GIS analysis, phrased as
+        a question.]
+
+        ══ IF the tool result contains land_use_classes (categorical) ══
 
         ```land_use_distribution
-            {{"geo_analysis_id": "{geo_analysis_id}"}}
+                {{"geo_analysis_id": "{geo_analysis_id}"}}
         ```
 
         [1 sentence describing what the donut chart above represents — what the slices
         encode and what unit they are expressed in.]
-
-        | Dominant Land Cover Class (dominant_land_use["category"]) 
-        | Biome Description | Percent Area Coverage (dominant_land_use["percent"]) |
+        | Dominant Land Cover Class (land_use_classes["biome"])
+        | Biome Description | Percent Area Coverage (land_use_classes["percent_area"]) |
         | :--- | :--- | :--- |
         | [Land Cover 1] | [Biome description] | [X]% |
         | [Land Cover 2] | [Biome description] | [Y]% |
         | [Land Cover 3] | [Biome description] | [Z]% |
-
         [1–2 sentences on what the dominant class implies for carbon sequestration
-        potential or biodiversity, without restating the percentages. Finally, provide a 
-        relevant suggestion for a follow-up GIS analysis in the report, phrased as a question.]
+        potential or biodiversity, without restating the percentages. Finally, provide a
+        relevant suggestion for a follow-up GIS analysis, phrased as a question.]
 
         ---
-
+        
         🚫 SCIENTIFIC CONSTRAINT RULES:
         - Scientific, neutral tone throughout.
-        - ALWAYS wrap chart output in Markdown code blocks.
-        - Order the rows in the Land-Use Distribution table from highest percentage to lowest.
+        - Include exactly ONE fenced chart block — biomass_trends OR land_use_distribution,
+        never both, matching the dataset kind returned by the tool.
+        - ALWAYS wrap the chart output in a Markdown code block, with the exact geo_analysis_id.
+        - Never alter, omit, or duplicate the fenced block.
+        - For categorical datasets, order table rows from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.
         - Do NOT describe chart visuals (colors, shapes, axes) — charts render inline.
-        - The two fenced blocks (biomass_trends, land_use_distribution) must appear
-        verbatim with the exact geo_analysis_id. Never alter or omit them.
         - Total report_markdown under 5000 characters.
     """
-    
+
     messages = build_agent_messages(
         system_prompt=system_instruction,
         recent_context=recent_context
@@ -270,7 +286,6 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         ai_response = report_agent.invoke({
             "messages": messages
         })
-
         output = ai_response["structured_response"]
         result = EnvironmentalReport.model_validate(output)
         return result.model_dump()

@@ -1,8 +1,11 @@
+from uuid import UUID
+import geopandas as gpd
+from typing import Dict, List, Any
 from shapely.geometry import box, Point
 from app.dependencies import get_supabase as supabase
 from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent
 
-def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
+def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | None:
     client = supabase()
     
     response = client.table("h3_grid_maps") \
@@ -14,7 +17,12 @@ def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
     
     return response.data if response and response.data else None
 
-def save_h3_grid_map(hex_geojson: dict, legend: list, job_id: str, user_id: str):
+def save_h3_grid_map(
+    hex_geojson: gpd.GeoDataFrame,
+    legend: List[Dict[str, int]],
+    user_id: UUID,
+    job_id: UUID
+) -> Dict[str, Any] | None:
     client = supabase()
 
     response = client.table("h3_grid_maps") \
@@ -28,11 +36,21 @@ def save_h3_grid_map(hex_geojson: dict, legend: list, job_id: str, user_id: str)
 
     return response.data if response and response.data else None
 
-def get_geo_analysis(chat_id: str, user_id: str):
+def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
     client = supabase()
 
     response = client.table("geo_analysis") \
-        .select("*") \
+        .select(
+            "id",
+            "location", 
+            "dataset", 
+            "boundary", 
+            "coordinates", 
+            "start_year", 
+            "end_year", 
+            "analytics", 
+            "h3_grid_map_id"
+        ) \
         .eq("chat_id", str(chat_id)) \
         .eq("user_id", str(user_id)) \
         .order("created_at", desc=True) \
@@ -40,7 +58,13 @@ def get_geo_analysis(chat_id: str, user_id: str):
     
     return response.data if response and response.data else []
 
-def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: str, job_id: str):
+def save_geo_analysis(
+    query: Dict[str, Any], 
+    gis_analysis: Dict[str, Any], 
+    user_id: UUID, 
+    chat_id: UUID, 
+    job_id: UUID
+) -> Dict[str, Any] | None:
     client = supabase()
     
     b = query['bbox']
@@ -79,7 +103,7 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: st
     }
 
     def _build_time_series_payload(gis_analysis: dict, meta: dict) -> dict:
-        """For tree_cover / carbon_density: yearly TimeSeriesData[] + scalar stats."""
+        """For tree_cover / carbon_density: yearly TimeSeriesInsights[] + scalar stats."""
         global_average = compute_global_average(gis_analysis["time_series"])
         yearly_average = compute_yearly_average(gis_analysis["time_series"])
         total_change_percent = compute_total_change_percent(yearly_average)
@@ -95,7 +119,7 @@ def save_geo_analysis(query: dict, gis_analysis: dict, user_id: str, chat_id: st
         }
     
     def _build_categorical_payload(gis_analysis: dict, meta: dict) -> dict:
-        """For land_use_distribution: BiomeData[] + area only (no time-series stats)."""
+        """For land_use_distribution: BiomeInsights[] + area only (no time-series stats)."""
         land_use = gis_analysis["land_use"]  # {label: {value, color}}
 
         biome_data = [

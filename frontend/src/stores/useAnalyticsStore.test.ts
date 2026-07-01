@@ -1,10 +1,10 @@
 import useAnalyticsStore from './useAnalyticsStore';
 import { 
-  TimeSeriesData, 
+  TimeSeriesInsights, 
   RangeTimesData, 
   DatasetMetaData, 
   LandUseData, 
-  BiomeData, 
+  BiomeInsights, 
   datasetType 
 } from '@/types/analysis';
 
@@ -27,13 +27,13 @@ describe('useAnalyticsStore', () => {
     end: 2023,
   };
 
-  const mockTimeSeriesData: TimeSeriesData[] = [
+  const mockTimeSeriesInsights: TimeSeriesInsights[] = [
     { year: '2015', value: 45.5, color: '#1f77b4', normalized: 0.5 },
     { year: '2018', value: 48.2, color: '#1f77b4', normalized: 0.7 },
     { year: '2023', value: 52.1, color: '#1f77b4', normalized: 1.0 },
   ];
 
-  const mockBiomeData: BiomeData[] = [
+  const mockBiomeInsights: BiomeInsights[] = [
     { category: 'Forest', percent: 65, color: '#2ca02c' },
     { category: 'Grassland', percent: 25, color: '#d62728' },
     { category: 'Water', percent: 10, color: '#1f77b4' },
@@ -48,7 +48,7 @@ describe('useAnalyticsStore', () => {
 
   const mockLandCover: LandUseData = {
     ...mockLandCoverMetaData,
-    categories: mockBiomeData,
+    categories: mockBiomeInsights,
   };
 
   beforeEach(() => {
@@ -157,13 +157,13 @@ describe('useAnalyticsStore', () => {
     });
 
     it('setDatasetTimeSeries should set dataset_time_series array', () => {
-      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesData);
-      expect(useAnalyticsStore.getState().dataset_time_series).toEqual(mockTimeSeriesData);
+      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesInsights);
+      expect(useAnalyticsStore.getState().dataset_time_series).toEqual(mockTimeSeriesInsights);
       expect(useAnalyticsStore.getState().dataset_time_series).toHaveLength(3);
     });
 
     it('setDatasetTimeSeries should handle empty array', () => {
-      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesData);
+      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesInsights);
       expect(useAnalyticsStore.getState().dataset_time_series).toHaveLength(3);
 
       useAnalyticsStore.getState().setDatasetTimeSeries([]);
@@ -209,7 +209,7 @@ describe('useAnalyticsStore', () => {
     });
 
     it('setLandCover should merge metadata with categories', () => {
-      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeData);
+      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeInsights);
       const landCover = useAnalyticsStore.getState().land_cover;
 
       expect(landCover).toEqual(mockLandCover);
@@ -218,12 +218,12 @@ describe('useAnalyticsStore', () => {
     });
 
     it('setLandCover should handle different category counts', () => {
-      const singleCategory: BiomeData[] = [{ category: 'Forest', percent: 100, color: '#2ca02c' }];
+      const singleCategory: BiomeInsights[] = [{ category: 'Forest', percent: 100, color: '#2ca02c' }];
 
       useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, singleCategory);
       expect(useAnalyticsStore.getState().land_cover?.categories).toHaveLength(1);
 
-      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeData);
+      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeInsights);
       expect(useAnalyticsStore.getState().land_cover?.categories).toHaveLength(3);
     });
   });
@@ -277,8 +277,8 @@ describe('useAnalyticsStore', () => {
     });
   });
 
-  // ========== RESETANALYTICSDATA TESTS ==========
-  describe('resetAnalyticsData', () => {
+  // ========== resetAnalyses TESTS ==========
+  describe('resetAnalyses', () => {
     it('should reset all analytics properties to initial state', () => {
       // Setup state with data
       useAnalyticsStore.getState().setGeoAnalysisId('analysis-123');
@@ -287,15 +287,15 @@ describe('useAnalyticsStore', () => {
       useAnalyticsStore.getState().setAreaCoverage(150);
       useAnalyticsStore.getState().setGlobalAverage(45);
       useAnalyticsStore.getState().setTotalChange(12);
-      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesData);
-      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeData);
+      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesInsights);
+      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeInsights);
 
       // Verify data is set
       expect(useAnalyticsStore.getState().geo_analysis_id).toBe('analysis-123');
       expect(useAnalyticsStore.getState().dataset).not.toBeNull();
 
       // Reset
-      useAnalyticsStore.getState().resetAnalyticsData();
+      useAnalyticsStore.getState().resetAnalyses();
 
       // Verify all reset
       expect(useAnalyticsStore.getState().dataset).toBeNull();
@@ -312,14 +312,14 @@ describe('useAnalyticsStore', () => {
       useAnalyticsStore.getState().openChart();
       useAnalyticsStore.getState().setAreaCoverage(150);
 
-      useAnalyticsStore.getState().resetAnalyticsData();
+      useAnalyticsStore.getState().resetAnalyses();
 
       expect(useAnalyticsStore.getState().isChartOpen).toBe(true);
       expect(useAnalyticsStore.getState().area_coverage).toBe(0);
     });
 
     it('should handle reset when state is already empty', () => {
-      useAnalyticsStore.getState().resetAnalyticsData();
+      useAnalyticsStore.getState().resetAnalyses();
 
       expect(useAnalyticsStore.getState().dataset).toBeNull();
       expect(useAnalyticsStore.getState().area_coverage).toBe(0);
@@ -343,8 +343,8 @@ describe('useAnalyticsStore', () => {
       useAnalyticsStore.getState().setTotalChange(15.3);
 
       // Set visualizations
-      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesData);
-      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeData);
+      useAnalyticsStore.getState().setDatasetTimeSeries(mockTimeSeriesInsights);
+      useAnalyticsStore.getState().setLandCover(mockLandCoverMetaData as any, mockBiomeInsights);
 
       // Verify all data
       const state = useAnalyticsStore.getState();
@@ -357,7 +357,7 @@ describe('useAnalyticsStore', () => {
       expect(state.land_cover?.categories).toHaveLength(3);
 
       // Reset
-      useAnalyticsStore.getState().resetAnalyticsData();
+      useAnalyticsStore.getState().resetAnalyses();
       expect(useAnalyticsStore.getState().geo_analysis_id).toBeNull();
       expect(useAnalyticsStore.getState().isChartOpen).toBe(true); // chart state preserved
     });

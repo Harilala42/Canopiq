@@ -20,7 +20,7 @@ export const useSideBarController = () => {
     const isOpen = useChatStore((state) => state.isOpen);
     const toggleSideBar = useChatStore((state) => state.toggleSideBar);
 
-    const resetAnalyticsData = useAnalyticsStore((state) => state.resetAnalyticsData);
+    const resetAnalyses = useAnalyticsStore((state) => state.resetAnalyses);
     const resetMessages = useMessageStore((state) => state.resetMessages);
     const clearMap = useMapStore((state) => state.clearMap);
 
@@ -38,12 +38,12 @@ export const useSideBarController = () => {
     }, [queries]);
 
     const handleSelectQuery = useCallback(async (query: ChatData) => {
-        resetAnalyticsData();
         resetMessages();
+        resetAnalyses();
         clearMap();
 
         setCurrentQuery(query);
-    }, [setCurrentQuery, resetAnalyticsData, resetMessages]);
+    }, [setCurrentQuery, resetAnalyses, resetMessages]);
 
     const fetchQueries = useCallback(async () => {
         setIsLoading(true);

@@ -1,5 +1,4 @@
 import uuid
-import app.chat.models as chat_models
 import app.geo_analysis.models as geo_analysis_model
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.dependencies import check_auth, rate_limiter

@@ -25,11 +25,14 @@ export interface HexGeoJSONData {
 export interface LegendData
 {
     color: string;
-    range: string;
+    label: string;
 }
 
-export interface MapData
+export interface GridMap
 {
+    id: string;
+    location: string;
+    coords: [number, number];
     hex_geojson: HexGeoJSONData;
     legend: LegendData[];
 }

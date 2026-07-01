@@ -38,71 +38,70 @@ def search_location(location: str) -> dict:
 		"bbox": bbox
 	}
 
+
 @tool
 def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
-	"""
-	Retrieve a geo analysis entry from Supabase and normalize
-	the raw GEE analytics data into a compact AI-friendly structure.
-	"""
+    """
+    Retrieve a geo analysis entry from Supabase and normalize
+    the raw GEE analytics data into a compact AI-friendly structure.
+    """
+    try:
+        client = supabase()
+        response = client.table("geo_analysis") \
+            .select("*") \
+            .eq("id", geo_analysis_id) \
+            .single() \
+            .execute()
+        data = response.data
+        if not data:
+            raise Exception("Geo analysis not found.")
 
-	try:
-		client = supabase()
+        analytics = data.get("analytics") or {}
+        stats = analytics.get("stats") or {}
+        metadata = analytics.get("metadata") or {}
+        insights = analytics.get("insights") or []
+        kind = metadata.get("kind")  # "categorical" | "time_series"
 
-		response = client.table("geo_analysis") \
-			.select("*") \
-			.eq("id", geo_analysis_id) \
-			.single() \
-			.execute()
+        start_year = data.get("start_year")
+        end_year = data.get("end_year")
+        period = (
+            f"{start_year[:4]}-{end_year[:4]}"
+            if start_year and end_year
+            else None
+        )
 
-		data = response.data
-		if not data: raise Exception("Geo analysis not found.")
+        area_ha = stats.get("area_coverage_ha")
+        area_coverage_km2 = round(area_ha / 100)
 
-		analytics = data.get("analytics", {})
-		stats = analytics.get("stats", {})
-		insights = analytics.get("insights", {})
-		land_use = analytics.get("land_use", {})
+        result = {
+            "location": data.get("location"),
+            "dataset": data.get("dataset") or metadata.get("type"),
+            "period": period,
+            "unit": metadata.get("unit"),
+            "total_change_percent": stats.get("total_change_percent"),
+            "global_average": stats.get("global_average"),
+            "area_coverage_km2": area_coverage_km2,
+        }
 
-		time_series = insights.get("time_series", [])
-		latest_value = None
-		peak_value = None
+        if kind == "categorical":
+            dominant_classes = sorted(
+                [
+                    {
+                        "biome": item.get("category"),
+                        "percent_area": item.get("value", 0),
+                    }
+                    for item in insights
+                ],
+                key=lambda item: item["percent_area"],
+                reverse=True,
+            )[:3]
+            result["land_use_classes"] = dominant_classes
+        elif kind == "time_series":
+            values = [item.get("value") for item in insights if item.get("value") is not None]
+            result["latest_value"] = insights[-1].get("value") if insights else None
+            result["peak_value"] = max(values) if values else None
 
-		if time_series:
-			latest_value = time_series[-1].get("value")
-
-			peak_value = max(
-				item.get("value", 0)
-				for item in time_series
-			)
-
-		distribution = land_use.get("distribution", {})
-
-		dominant_land_use: List[Dict[str, Any]] = sorted(
-			[
-				{
-					"biome": category,
-					"percent_area": values.get("percent", 0)
-				}
-				for category, values in distribution.items()
-			],
-			key=lambda item: item["percent"],
-			reverse=True
-		)[:3]
-
-		return {
-			"location": data.get("location"),
-			"dataset": data.get("dataset"),
-			"period": (
-				f"{data.get('start_year', '')[:4]}-"
-				f"{data.get('end_year', '')[:4]}"
-			),
-			"unit": insights.get("unit"),
-			"total_change_percent": stats.get("total_change_percent"),
-			"global_average": stats.get("global_average"),
-			"area_coverage_km2": round(stats.get("area_coverage_ha") / 100),
-			"land_use_classes": dominant_land_use,
-			"latest_value": latest_value,
-			"peak_value": peak_value
-		}
-	except Exception as err:
-		print(f"Failed to normalize geo analysis data: {str(err)}")
-		raise
+        return result
+    except Exception as err:
+        print(f"Failed to normalize geo analysis data: {str(err)}")
+        raise

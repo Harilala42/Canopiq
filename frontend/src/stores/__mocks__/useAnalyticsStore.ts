@@ -24,7 +24,7 @@ export const mockSetTotalChange = jest.fn();
 export const mockSetDatasetTimeSeries = jest.fn();
 export const mocksetLandUse = jest.fn();
 export const mockSetAnalyticsData = jest.fn();
-export const mockResetAnalyticsData = jest.fn();
+export const mockresetAnalyses = jest.fn();
 
 let mockState = {
     ...initialState,
@@ -40,7 +40,7 @@ let mockState = {
     setDatasetTimeSeries: mockSetDatasetTimeSeries,
     setLandUse: mocksetLandUse,
     setAnalyticsData: mockSetAnalyticsData,
-    resetAnalyticsData: mockResetAnalyticsData,
+    resetAnalyses: mockresetAnalyses,
   };
 
 const useAnalyticsStore = jest.fn((selector: any) => {

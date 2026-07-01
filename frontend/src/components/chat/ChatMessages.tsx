@@ -188,12 +188,12 @@ const ChatMessages = memo((): JSX.Element => {
 
 								if (className === "language-biomass_trends") {
 									const { geo_analysis_id } = JSON.parse(raw);
-									return <ChartBar GISAnalysisId={geo_analysis_id} />;
+									return <ChartBar analysisId={geo_analysis_id} />;
 								}
 
 								if (className === "language-land_use_distribution") {
 									const { geo_analysis_id } = JSON.parse(raw);
-									return <ChartDonut GISAnalysisId={geo_analysis_id} />;
+									return <ChartDonut analysisId={geo_analysis_id} />;
 								}
 
 								return <code className={className}>{children}</code>;

@@ -1,46 +1,48 @@
 import { create } from 'zustand';
-import { HexGeoJSONData, LegendData } from '@/types/map';
+import { GridMap } from '@/types/map';
+import { GeoAnalysis } from '@/types/analysis';
+import useAnalyticsStore from '@/stores/useAnalyticsStore';
 
 interface MapState
 {
-    id: string;
-    location: string | null;
-    map: HexGeoJSONData | null;
-    coords: [number, number] | null;
-    legend: LegendData[] | null;
+    activeMapId: string | null;
+    maps: Record<string, GridMap>;
 
-    setId: (id: string) => void;
-    setMap: (map: HexGeoJSONData) => void;
-    setCoords: (coords: [number, number]) => void;
-    setLocation: (location: string) => void;
-    setLegend: (legend: LegendData[]) => void;
-    clearMap: () => void;
+    addMap: (map: GridMap) => void;
+    setActiveMap: (id: string) => void;
+    getOwnerAnalysis: (mapId: string) => GeoAnalysis;
+    clearMap: (id?: string) => void;
 }
 
 const useMapStore = create<MapState>((set) => ({
-    id: null,
-    map: null,
-    coords: null,
-    location: null,
-    legend: null,
+    maps: {},
+    activeMapId: null,
 
-    setId: (id) => set({ id }),
+    addMap: (map) => set((state) => ({ 
+        maps: { ...state.maps, [map.id]: map }, 
+        activeMapId: map.id 
+    })),
 
-    setMap: (map) => set({ map }),
+    setActiveMap: (id) => set({ activeMapId: id }),
 
-    setCoords: (coords) => set({ coords }),
+    getOwnerAnalysis: (mapId) => {
+        const { analyses } = useAnalyticsStore.getState();
 
-    setLocation: (location) => set({ location }),
+        return Object.values(analyses).find(
+            (a) => a.h3_grid_map_id === mapId
+        );
+    },
 
-    setLegend: (legend) => set({ legend }),
+    clearMap: (id) =>
+        set((state) => {
+            if (!id) return { maps: {}, activeMapId: null };
 
-    clearMap: () => set({ 
-        id: null,
-        map: null, 
-        coords: null,
-        location: null,
-        legend: null
-    })
+            const { [id]: _, ...rest } = state.maps;
+            return { 
+                maps: rest, 
+                activeMapId: state.activeMapId === id ? null : state.activeMapId 
+            };
+        }),
 }));
 
 export default useMapStore;

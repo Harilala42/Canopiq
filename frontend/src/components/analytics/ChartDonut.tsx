@@ -8,7 +8,7 @@ import {
 import { LuLandPlot } from "react-icons/lu";
 import { memo, JSX, useContext } from "react";
 import { ThemeContext } from "@/contexts/themeContext";
-import { BiomeData, LandUseData } from "@/types/analysis";
+import { BiomeInsight, GeoAnalysis } from "@/types/analysis";
 import { ChartContainer, ChartTooltip } from "@/components/analytics";
 import { HStack, Box, SimpleGrid, Text, Skeleton } from "@chakra-ui/react";
 import { useChartDonutController } from "@/hooks/useChartDonutController";
@@ -16,7 +16,7 @@ import useAnalyticsStore from "@/stores/useAnalyticsStore";
 
 interface DonutLegendProps
 {
-    data: BiomeData[];
+    data: BiomeInsight[];
     tickColor: string;
 }
 
@@ -33,20 +33,20 @@ const DonutLegend = memo(({ data, tickColor }: DonutLegendProps): JSX.Element =>
 
 interface ChartDonutProps
 {
-    GISAnalysisId?: string;
+    analysisId?: string;
 }
 
-const ChartDonut = memo(({ GISAnalysisId }: ChartDonutProps): JSX.Element => {
-    const donutData = useAnalyticsStore((state) => state.land_use_distribution);
+const ChartDonut = memo(({ analysisId }: ChartDonutProps): JSX.Element => {
+    const donutData = useAnalyticsStore((state) => state.analyses[analysisId]);
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
     const { 
-        categories: data, 
+        data, 
         legend, 
         unit, 
         source
-    } = useChartDonutController(donutData || ({} as LandUseData));
+    } = useChartDonutController(donutData || ({} as GeoAnalysis));
     const tickColor = isDark ? "#cecbf6" : "#1a1535";
 
     if (!donutData) {

@@ -206,7 +206,7 @@ describe('useChatStore', () => {
       const mockClearMap = jest.fn();
       const mockResetMessages = jest.fn();
       const mockCloseChart = jest.fn();
-      const mockResetAnalyticsData = jest.fn();
+      const mockresetAnalyses = jest.fn();
 
       (useMapStore.getState as jest.Mock).mockReturnValue({
         clearMap: mockClearMap,
@@ -216,7 +216,7 @@ describe('useChatStore', () => {
       });
       (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
         closeChart: mockCloseChart,
-        resetAnalyticsData: mockResetAnalyticsData,
+        resetAnalyses: mockresetAnalyses,
       });
 
       useChatStore.getState().setQueries([mockQuery1, mockQuery2]);
@@ -226,14 +226,14 @@ describe('useChatStore', () => {
       expect(mockCloseChart).toHaveBeenCalled();
       expect(mockClearMap).toHaveBeenCalled();
       expect(mockResetMessages).toHaveBeenCalled();
-      expect(mockResetAnalyticsData).toHaveBeenCalled();
+      expect(mockresetAnalyses).toHaveBeenCalled();
     });
 
     it('should NOT call cleanup methods when deleting non-current query', () => {
       const mockClearMap = jest.fn();
       const mockResetMessages = jest.fn();
       const mockCloseChart = jest.fn();
-      const mockResetAnalyticsData = jest.fn();
+      const mockresetAnalyses = jest.fn();
 
       (useMapStore.getState as jest.Mock).mockReturnValue({
         clearMap: mockClearMap,
@@ -243,7 +243,7 @@ describe('useChatStore', () => {
       });
       (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
         closeChart: mockCloseChart,
-        resetAnalyticsData: mockResetAnalyticsData,
+        resetAnalyses: mockresetAnalyses,
       });
 
       useChatStore.getState().setQueries([mockQuery1, mockQuery2]);
@@ -253,7 +253,7 @@ describe('useChatStore', () => {
       expect(mockCloseChart).not.toHaveBeenCalled();
       expect(mockClearMap).not.toHaveBeenCalled();
       expect(mockResetMessages).not.toHaveBeenCalled();
-      expect(mockResetAnalyticsData).not.toHaveBeenCalled();
+      expect(mockresetAnalyses).not.toHaveBeenCalled();
     });
 
     it('should handle deleting from empty queries array', () => {
