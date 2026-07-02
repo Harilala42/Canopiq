@@ -1,92 +1,64 @@
 import { create } from 'zustand';
-import { DatasetData, RangeTimesData, LandUseData } from '@/types/analysis';
+import { GeoAnalysis } from '@/types/analysis';
 
 interface AnalyticsState
 {
-	geo_analysis_id: string;
-	range_times: RangeTimesData | null;
+	activeAnalysis: GeoAnalysis | null;
+	analyses: Record<string, GeoAnalysis>;
 
-	area_coverage: number;
-	global_average: number;
-	total_change: number;
+	setAnalyses: (analyses: GeoAnalysis[]) => void;
 
-	dataset: DatasetData | null;
-	land_use_distribution: LandUseData | null;
+	setActiveAnalysis: (analysis: GeoAnalysis) => void;
 
-	setGeoAnalysisId: (id: string) => void;
+	addAnalysis: (analysis: GeoAnalysis) => void;
 
-	setDataset: (dataset: DatasetData) => void;
+	updateAnalysis: (id: string, patch: Partial<GeoAnalysis>) => void;
 
-	setRangeTimes: (start: number, end: number) => void;
+	getAnalysisById: (id: string) => GeoAnalysis[];
 
-	setAreaCoverage: (value: number) => void;
-
-	setGlobalAverage: (value: number) => void;
-
-	setTotalChange: (value: number) => void;
-
-	setLandUse: (data: LandUseData) => void;
-
-	setAnalyticsData: (
-		data: Partial<AnalyticsState>
-	) => void;
-
-	resetAnalyticsData: () => void;
+	removeAnalysis: (id: string) => void;
+	
+	resetAnalyses: () => void;
 }
 
-const useAnalyticsStore = create<AnalyticsState>((set) => ({
-	dataset: null,
-	range_times: null,
-	geo_analysis_id: null,
+const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
+	analyses: {},
+	activeAnalysis: null,
 
-	area_coverage: 0,
-	global_average: 0,
-	total_change: 0,
-
-	land_use_distribution: null,
-
-	setGeoAnalysisId: (id) => set({ geo_analysis_id: id }),
-
-    setDataset: (dataset) => set({ dataset: dataset }),
-
-    setRangeTimes: (start, end) => set({
-        range_times: { start, end }
+	setAnalyses: (analyses) => set({
+        analyses: analyses.reduce((acc, analysis) => {
+            acc[analysis.id] = analysis;
+            return acc;
+        }, {} as Record<string, GeoAnalysis>)
     }),
 
-    setAreaCoverage: (value) => set({ area_coverage: value }),
+	setActiveAnalysis: (analysis) => set({ activeAnalysis: analysis }),
 
-	setGlobalAverage: (value) => set({ global_average: value }),
+	addAnalysis: (analysis) =>
+		set((state) => ({
+			analyses: { ...state.analyses, [analysis.id]: analysis },
+			activeAnalysis: analysis,
+		})),
 
-    setTotalChange: (value) => set({ total_change: value }),
+	updateAnalysis: (id, patch) =>
+		set((state) => ({
+			analyses: { ...state.analyses, [id]: { ...state.analyses[id], ...patch } },
+		})),
 
-	setLandUse: (data) => {
-		const landUseDistribution: LandUseData = {
-			...data,
-			categories: Object.entries(data.categories).map(
-				([categoryName, details]: [string, any]) => ({
-					category: categoryName,
-					value: details.value,
-					color: details.color
-				})
-			)
-		};
-
-		set({ land_use_distribution: landUseDistribution });
+	getAnalysisById: (id) => {
+		return Object.values(get().analyses).filter((a) => a.id === id);
 	},
 
-    setAnalyticsData: (data) => set((state) => ({
-        ...state, ...data
-    })),
+	removeAnalysis: (id) =>
+		set((state) => {
+			const { [id]: _, ...rest } = state.analyses;
+			return {
+				analyses: rest,
+				activeAnalysis: state.activeAnalysis.id === id ? null : state.activeAnalysis,
+			};
+		}),
 
-	resetAnalyticsData: () => set({
-		dataset: null,
-		range_times: null,
-		land_use_distribution: null,
-		area_coverage: 0,
-		global_average: 0,
-		total_change: 0,
-		geo_analysis_id: null
-	})
+	resetAnalyses: () => set({ analyses: {}, activeAnalysis: null }),
 }));
 
 export default useAnalyticsStore;

@@ -3,17 +3,18 @@ from typing import List, Literal
 from datetime import date
 
 class RequestClassification(BaseModel):
-    """Classifies the entry intent of a user prompt."""
+	"""Classifies the entry intent of a user prompt."""
 	
-    route: Literal["geospatial_analysis", "conversational", "impossible_request"] = Field(
-        description="Categorize the user intent before execution mapping."
-    )
+	route: Literal["geospatial_analysis", "conversational", "impossible_request", "error"] = Field(
+		description="Categorize the user intent before execution mapping."
+	)
+
 
 class GeoSpatialQuery(BaseModel): 
 	"""Query for GIS data of a location."""
 
 	location: str = Field(description="Short description for the location.")
-	data_set: Literal["carbon_density", "tree_cover"] | None = Field(description="Dataset to query for the analysis intent ('carbon_density' or 'tree_cover').")
+	dataset: Literal["carbon_density", "tree_cover", "land_use_distribution"] = Field(description="Dataset to query for the analysis intent ('carbon_density' or 'tree_cover' or 'land_use_distribution').")
 	latitude: float = Field(ge=-90, le=90, description="Latitude of the target location in decimal degrees (WGS84). Must be between -90 (south) and 90 (north).") 
 	longitude: float = Field(ge=-180, le=180, description="Longitude of the target location in decimal degrees (WGS84). Must be between -180 (west) and 180 (east).") 
 	bbox: list[float] = Field(description="Bounding box coordinates [min_lon, min_lat, max_lon, max_lat].")
@@ -37,11 +38,26 @@ class GeoSpatialQuery(BaseModel):
 		
 		return val 
 	
-	@model_validator(mode='after') 
-	def check_date_range(self) -> 'GeoSpatialQuery': 
-		if self.start_time and self.end_time and self.start_time >= self.end_time: 
-			raise ValueError("startTime must be earlier than endTime") 
+	@model_validator(mode='after')
+	def check_date_range(self) -> 'GeoSpatialQuery':
+		if self.dataset == "land_use_distribution":
+			if self.start_time or self.end_time:
+				raise ValueError(
+					"startTime and endTime aren't needed for dataset "
+					f"'{self.dataset}'"
+				)
+			return self
+
+		# A time range is required for carbon density and tree cover time-series.
+		if not self.start_time or not self.end_time:
+			raise ValueError(
+				"startTime and endTime are required for dataset "
+				f"'{self.dataset}'"
+			)
+		if self.start_time >= self.end_time:
+			raise ValueError("startTime must be earlier than endTime")
 		return self
+
 
 class EnvironmentalReport(BaseModel):
 	"""AI Environmental Report based on provided data from GEE"""

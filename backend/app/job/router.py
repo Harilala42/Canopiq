@@ -1,4 +1,3 @@
-import uuid
 import app.job.models as job_model
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from app.dependencies import check_auth, rate_limiter
@@ -11,7 +10,7 @@ router = APIRouter(dependencies=[
 ])
 
 @router.delete("/job/{job_id}", tags=["job"])
-async def cancel_running_job(job_id: uuid.UUID, request: Request):
+async def cancel_running_job(job_id: UUID, request: Request):
     try:
         user_id = request.state.user.id
 
@@ -34,7 +33,12 @@ async def cancel_running_job(job_id: uuid.UUID, request: Request):
                 }
             )
 
-        celery_app.control.revoke(job_id, terminate=True, signal='SIGTERM')
+        celery_app.control.revoke(
+            str(job_id), 
+            terminate=True, 
+            signal='SIGTERM',
+            reply=False
+        )
         job_model.update_job_progress(job_id, "cancelled")
 
         return { "message": "Successfully cancelled job" }

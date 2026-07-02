@@ -2,7 +2,8 @@ export interface HexProperties
 {
     color: string;
     hex_id: string;
-    biomass: number;
+    biomass?: number;
+    dominant_class?: string;
 }
 
 export interface GeoJSONFeature {
@@ -25,11 +26,14 @@ export interface HexGeoJSONData {
 export interface LegendData
 {
     color: string;
-    range: string;
+    label: string;
 }
 
-export interface MapData
+export interface GridMap
 {
+    id: string;
+    location: string;
+    coords: [number, number];
     hex_geojson: HexGeoJSONData;
     legend: LegendData[];
 }

@@ -25,8 +25,8 @@ const SideBar = () => {
         <VStack
             align="center"
             justify="flex-start"
-            onMouseEnter={() => setIsCanceleded(true)}
-            onMouseLeave={() => setIsCanceleded(false)}
+            onMouseEnter={() => !isCanceleded && setIsCanceleded(true)}
+            onMouseLeave={() => isCanceleded && setIsCanceleded(false)}
             bg={isDark ? "secondary" : "text"}
             borderRight="1px solid"
             borderColor={isDark ? "variantDark" : "variantLight"}
@@ -40,7 +40,10 @@ const SideBar = () => {
             <SideBarHeader
                 isExpanded={isOpen}
                 isCanceleded={isCanceleded}
-                onToggle={toggleSideBar}
+                onToggle={() => {
+                    toggleSideBar();
+                    isCanceleded && setIsCanceleded(false);
+                }}
             />
 
             <SideBarActions

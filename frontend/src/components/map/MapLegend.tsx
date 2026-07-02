@@ -10,7 +10,8 @@ interface MapLegendProps
 }
 
 const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
-    const datasetMetaData = useAnalyticsStore((state) => state.dataset);
+    const currentAnalysis = useAnalyticsStore((state) => state.activeAnalysis);
+    const meta = currentAnalysis ? currentAnalysis.analytics.metadata : null;
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
@@ -20,7 +21,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
             bottom="25px" right="10px"
             bg={isDark ? "secondary" : "text"}
             p={3} gap={2} zIndex={1000}
-            w="150px"
+            minW="150px"
         >
             <VStack align="start" gap={2}>
                 {legend.map((item, index) => (
@@ -37,7 +38,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
                             color={isDark ? "text" : "secondary"}
                             fontSize="md" fontWeight="semibold"
                         >
-                            {item.range}
+                            {item.label}
                         </Text>
                     </HStack>
                 ))}
@@ -47,7 +48,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
                     color={isDark ? "text" : "secondary"}
                     fontSize="sm" fontWeight="semibold"
                 >
-                    {`${datasetMetaData?.legend}: ${datasetMetaData?.unit}`}
+                    {`${meta?.legend}: ${meta?.unit}`}
                 </Text>
             </VStack>
         </Box>

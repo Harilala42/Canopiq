@@ -13,7 +13,7 @@ celery_app = Celery(
     'canopiq_worker',
     broker=os.getenv("UPSTASH_REDIS_URL"),
     backend=os.getenv("UPSTASH_REDIS_URL"),
-    include=["app.llm.tasks", "app.gee.tasks"]
+    include=["app.llm.tasks"]
 )
 
 celery_app.conf.update(
