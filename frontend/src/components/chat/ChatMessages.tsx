@@ -11,6 +11,7 @@ import {
 import remarkGfm from 'remark-gfm';
 import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
+import { ChatMessageContent } from "@/components/chat";
 import { ChartBar, ChartDonut } from "@/components/analytics";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
 import { ThemeContext } from "@/contexts/themeContext";
@@ -78,130 +79,7 @@ const ChatMessages = memo((): JSX.Element => {
 					maxW={msg.role === "user" ? "90%" : "100%"} 
 					p={msg.role === "user" ? 3 : 0}
 				>
-					<ReactMarkdown
-						remarkPlugins={[remarkGfm]}
-						components={{
-							h1: ({ children }) => (
-								<Heading 
-									as="h1" 
-									className="titles-styles" size="xl"
-									color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
-									textDecoration="underline"
-								>
-									{children}
-								</Heading>
-							),
-							h2: ({ children }) => (
-								<Heading 
-									as="h2"
-									className="titles-styles" size="lg" 
-									color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
-									textDecoration="underline"
-								>
-									{children}
-								</Heading>
-							),
-							h3: ({ children }) => (
-								<Heading 
-									as="h3"
-									className="titles-styles" size="md" 
-									color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
-									textDecoration="underline"
-								>
-									{children}
-								</Heading>
-							),
-							p: ({ children }) => (
-								<Text 
-									className="text-styles" fontSize="md"
-									wordBreak="break-word" whiteSpace="pre-wrap"
-									color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}  
-								>
-									{children}
-								</Text>
-							),
-							ul: ({ children }) => (
-								<Box as="ul"
-									pl={5} mt={2} mb={2}
-									style={{ listStyleType: "disc" }}
-								>
-									{children}
-								</Box>
-							),
-							li: ({ children }) => (
-								<Box as="li" mb={1}>
-									<Text
-										className="text-styles" fontSize="md"
-										wordBreak="break-word" whiteSpace="pre-wrap"
-									>
-										{children}
-									</Text>
-								</Box>
-							),
-							table: ({ children }) => (
-								<Box 
-									overflowX="auto" 
-									borderLeft="1px solid" borderRight="1px solid" 
-									borderColor={isDark ? "variantLight" : "variantDark" }
-									my={4} w="100%"
-								>
-									<Table.Root variant="line" size="sm">
-										{children}
-									</Table.Root>
-								</Box>
-							),
-							thead: ({ children }) => (
-								<Table.Header bg={isDark ? "variantLight" : "variantDark" }>
-									{children}
-								</Table.Header>
-							),
-							th: ({ children }) => (
-								<Table.ColumnHeader 
-									className="text-styles"
-									color={isDark ? "secondary" : "text"} 
-									borderColor={isDark ? "variantLight" : "variantDark" }
-									py={3}
-									px={4}
-									textAlign="left"
-								>
-									{children}
-								</Table.ColumnHeader>
-							),
-							td: ({ children }) => (
-								<Table.Cell 
-									className="text-styles"
-									color={msg.role !== "user" ? (isDark ? "text" : "secondary") : "text"}
-									borderColor={isDark ? "variantLight" : "variantDark" }
-									py={3}
-									px={4}
-								>
-									{children}
-								</Table.Cell>
-							),
-							pre: ({ children }) => (
-								<Box w="100%" display="block" my={2}>
-									{children}
-								</Box>
-							),
-							code: ({ className, children }) => {
-								const raw = String(children).trim();
-
-								if (className === "language-biomass_trends") {
-									const { geo_analysis_id } = JSON.parse(raw);
-									return <ChartBar analysisId={geo_analysis_id} />;
-								}
-
-								if (className === "language-land_use_distribution") {
-									const { geo_analysis_id } = JSON.parse(raw);
-									return <ChartDonut analysisId={geo_analysis_id} />;
-								}
-
-								return <code className={className}>{children}</code>;
-							}
-						}}
-					>
-						{msg.content}
-					</ReactMarkdown>
+					<ChatMessageContent content={msg.content} role={msg.role} isDark={isDark} />
 				</VStack>
 				))
 			)}

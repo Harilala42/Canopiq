@@ -28,7 +28,7 @@ const ChartBar = memo(({ analysisId }: ChartBarProps): JSX.Element => {
     if (!barData)
         return (
             <Skeleton 
-                flex={1} w="100%" borderRadius="xl" 
+                flex={1} w="100%" h="100px" borderRadius="xl" 
                 bg={isDark ? "variantDark" : "variantLight"}
             />
         )

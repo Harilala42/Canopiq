@@ -2,7 +2,8 @@ export interface HexProperties
 {
     color: string;
     hex_id: string;
-    biomass: number;
+    biomass?: number;
+    dominant_class?: string;
 }
 
 export interface GeoJSONFeature {

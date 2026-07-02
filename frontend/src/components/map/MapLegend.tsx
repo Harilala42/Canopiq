@@ -21,7 +21,7 @@ const MapLegend = memo(({ legend }: MapLegendProps): JSX.Element => {
             bottom="25px" right="10px"
             bg={isDark ? "secondary" : "text"}
             p={3} gap={2} zIndex={1000}
-            w="150px"
+            minW="150px"
         >
             <VStack align="start" gap={2}>
                 {legend.map((item, index) => (

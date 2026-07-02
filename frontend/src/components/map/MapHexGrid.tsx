@@ -30,16 +30,21 @@ const MapHexGrid = memo(({ mapData }: HexagonalMapProps) => {
 
     const onEachHexagon = useMemo(() => {
         return (feature: HexFeature, layer: Layer) => {
-            layer.bindTooltip(
-                `${meta?.legend}: \
-                ${Math.max(0, feature.properties?.biomass).toFixed(2)} \
-                ${meta?.unit}`,
-                {
-                    sticky: true,
-                    direction: "top",
-                    opacity: 0.9
-                }
-            );
+            let tooltipText = "feature.properties?.dominant_class";
+            
+            if (meta?.type === "land_use_distribution") {
+                const landUseClass = feature.properties?.dominant_class || "Unknown Land Cover";
+                tooltipText = `Class: ${landUseClass}`;
+            } else {
+                const biomassValue = Math.max(0, feature.properties?.biomass || 0).toFixed(2);
+                tooltipText = `${meta?.legend || "Value"}: ${biomassValue} ${meta?.unit || ""}`;
+            }
+
+            layer.bindTooltip(tooltipText, {
+                sticky: true,
+                direction: "top",
+                opacity: 0.9
+            });
 
             layer.on({
                 mouseover: (e: LeafletMouseEvent) => {

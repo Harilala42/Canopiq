@@ -37,7 +37,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 	addAnalysis: (analysis) =>
 		set((state) => ({
 			analyses: { ...state.analyses, [analysis.id]: analysis },
-			activeAnalysisId: analysis.id,
+			activeAnalysis: analysis,
 		})),
 
 	updateAnalysis: (id, patch) =>

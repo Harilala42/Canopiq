@@ -8,10 +8,9 @@ import {
 import { LuLandPlot } from "react-icons/lu";
 import { memo, JSX, useContext } from "react";
 import { ThemeContext } from "@/contexts/themeContext";
-import { BiomeInsight, GeoAnalysis } from "@/types/analysis";
+import { AnalyticsMetadata, BiomeInsight } from "@/types/analysis";
 import { ChartContainer, ChartTooltip } from "@/components/analytics";
 import { HStack, Box, SimpleGrid, Text, Skeleton } from "@chakra-ui/react";
-import { useChartDonutController } from "@/hooks/useChartDonutController";
 import useAnalyticsStore from "@/stores/useAnalyticsStore";
 
 interface DonutLegendProps
@@ -41,22 +40,18 @@ const ChartDonut = memo(({ analysisId }: ChartDonutProps): JSX.Element => {
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
-    const { 
-        data, 
-        legend, 
-        unit, 
-        source
-    } = useChartDonutController(donutData || ({} as GeoAnalysis));
-    const tickColor = isDark ? "#cecbf6" : "#1a1535";
-
     if (!donutData) {
         return (
             <Skeleton 
-                flex={1} w="100%" borderRadius="xl" 
+                flex={1} w="100%" h="100px" borderRadius="xl" 
                 bg={isDark ? "variantDark" : "variantLight"}
             />
         )
     }
+
+    const data = donutData.analytics.insights as BiomeInsight[];
+    const { legend = "", unit = "", source = "" } = donutData.analytics.metadata as AnalyticsMetadata;
+    const tickColor = isDark ? "#cecbf6" : "#1a1535";
 
     return (
         <ChartContainer 

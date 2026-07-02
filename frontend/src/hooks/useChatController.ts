@@ -110,8 +110,10 @@ export const useChatController = () => {
                 },
                 (payload: any) => {
                     const newAnalysis: GeoAnalysis = payload.new;
-                    setActiveMap(newAnalysis.h3_grid_map_id);
+
                     addAnalysis(newAnalysis);
+                    setActiveAnalysis(newAnalysis);
+                    setActiveMap(newAnalysis.h3_grid_map_id);
                 }
             )
             .subscribe();
@@ -128,6 +130,10 @@ export const useChatController = () => {
         retrieveChatMessages, 
         fetchGeoAnalysisData,
         addMessage,
+        removeMessage,
+        addAnalysis,
+        setActiveAnalysis,
+        setActiveMap,
         clearMap
     ]);
 

@@ -3,7 +3,7 @@ import geopandas as gpd
 from typing import Dict, List, Any
 from shapely.geometry import box, Point
 from app.dependencies import get_supabase as supabase
-from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent
+from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent, format_biome_insights
 
 def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | None:
     client = supabase()
@@ -73,7 +73,7 @@ def save_geo_analysis(
 
     DATASET_META = {
         "carbon_density": {
-            "legend": "Biomass Carbon Density",
+            "legend": "Carbon Density",
             "description": "Estimated above-ground carbon biomass",
             "source": "WCMC Biomass Carbon Density",
             "type": "carbon_density",
@@ -81,7 +81,7 @@ def save_geo_analysis(
             "unit": "tC/ha",
         },
         "tree_cover": {
-            "legend": "Percent Tree Cover",
+            "legend": "Tree Cover",
             "description": "Fraction of land covered by tree canopy",
             "source": "MOD44B Version 6.1 Vegetation Continuous Fields",
             "type": "tree_cover",
@@ -120,12 +120,7 @@ def save_geo_analysis(
     
     def _build_categorical_payload(gis_analysis: dict, meta: dict) -> dict:
         """For land_use_distribution: BiomeInsights[] + area only (no time-series stats)."""
-        land_use = gis_analysis["land_use"]  # {label: {value, color}}
-
-        biome_data = [
-            {"category": label, "value": stats["value"], "color": stats["color"]}
-            for label, stats in land_use.items()
-        ]
+        biome_data = format_biome_insights(gis_analysis["land_use"])
 
         return {
             "stats": {

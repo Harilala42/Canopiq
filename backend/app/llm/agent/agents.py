@@ -1,5 +1,4 @@
 import os
-import app.chat.models as chat
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.messages import HumanMessage, SystemMessage, AIMessage
@@ -44,29 +43,44 @@ def classify_user_request(prompt: str, recent_context: list = None) -> str:
 
     system_instruction = """
         You are an intent classifier for Canopiq, an environmental satellite analytics app.
+        Your classification MUST consider the recent conversation history, especially the latest assistant reply.
 
         ---
 
         🎯 OBJECTIVE:
         Categorize incoming text to exactly one route:
 
-        1. 'conversational':
-        Greetings, casual questions, general discussion, or follow-up explanations about a previous map output.
+        1. 'conversational'
+        - Greetings, casual discussion, general questions.
+        - Requests asking for explanations about previous GIS results.
+        - Messages that do not request a new GIS analysis.
+
+        2. 'geospatial_analysis'
+        - Direct requests for a GIS analysis.
+        - Follow-up requests that implicitly accept or refer to the latest assistant's suggested GIS analysis.
+        - Short contextual replies such as:
+        - "Yes"
+        - "Yes please"
+        - "Go ahead"
+        - "Do it"
+        - "Let's do that"
+        - "Sure"
+        - "Analyze it"
+        - "Show me"
+        when the latest assistant message proposed a new GIS analysis.
 
         2. 'impossible_request':
         - Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g. "France in 1520").
         - Comparison of multiple datasets, or queries about datasets excluding tree cover, carbon density, and land-use distribution.
-        
-        3. 'geospatial_analysis':
-        Direct requests to analyze or map environmental variables (tree cover, carbon density, land cover, NDVI, etc.) over a valid real-world Earth location and time period.
 
-        4. 'error':
-        The request is malformed, incomplete, or technically invalid. Or unexpected error occured during the GIS analysis.
+        4. 'error'
+        - The request is malformed, incomplete, or technically invalid.
+        - An unexpected GIS processing error occurred.
 
         Return ONLY one of:
         - conversational
-        - impossible_request
         - geospatial_analysis
+        - impossible_request
         - error
     """
 
@@ -99,6 +113,7 @@ def extract_geospatial_params(prompt: str, recent_context: list = None) -> dict:
     system_instruction = f"""
         You are a geospatial AI planner for an environmental analysis platform.
         Your role is to extract structured information from a natural language request related to geographic environmental analysis.
+        Your extraction MUST consider the recent conversation history, especially the latest assistant reply.
         You MUST return a valid JSON object and nothing else.
 
         CURRENT TIME CALENDAR BASELINE: {date.today().strftime("%Y-%m-%d")}
@@ -200,6 +215,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
     system_instruction = f"""
         You are an environmental GIS reporting AI for an environmental analysis platform.
         You MUST call `normalizeGeoAnalysisData` tool with geo_analysis_id="{geo_analysis_id}" before writing anything.
+        Your report MUST consider the recent conversation history, especially the latest assistant reply.
         Return ONLY valid JSON matching the EnvironmentalReport schema.
 
         The tool result contains either time-series fields (latest_value, peak_value) or
@@ -225,9 +241,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         tool's returned data:
 
         [2–3 sentence introduction grounded in the user's original request and conversation
-        context. Start with a friendly, true-assistant greeting, such as "Yes, I can certainly
-        help you with that...". Name the location, what was measured, and why it matters
-        ecologically.]
+        context. Describe clearly the actions you performed. Name the location, what was measured, and why it matters ecologically.]
 
         ══ IF the tool result contains latest_value / peak_value (time-series) ══
 
@@ -260,8 +274,22 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         | [Land Cover 2] | [Biome description] | [Y]% |
         | [Land Cover 3] | [Biome description] | [Z]% |
         [1–2 sentences on what the dominant class implies for carbon sequestration
-        potential or biodiversity, without restating the percentages. Finally, provide a
-        relevant suggestion for a follow-up GIS analysis, phrased as a question.]
+        potential or biodiversity, without restating the percentages.] 
+        
+        [1 follow-up question that suggests a relevant next GIS analysis based on the recent context.
+
+        The suggested analysis must focus on exactly one of:
+        - vegetation cover,
+        - biomass carbon sequestration (biomass carbon density), or
+        - land-use distribution,
+        choosing whichever is most relevant to the conversation.
+
+        The follow-up question must always respect Canopiq's platform limits:
+        - It must refer to a real location on Earth.
+        - It must request imagery from 23 June 2015 or later.
+        - It must use only supported datasets (tree cover, biomass carbon density, or land-use distribution).
+        - It must target exactly one geographic region (no comparisons between multiple regions, cities, countries, or continents).
+        - Do not suggest analyses outside these constraints.]
 
         ---
         
@@ -269,7 +297,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         - Scientific, neutral tone throughout.
         - Include exactly ONE fenced chart block — biomass_trends OR land_use_distribution,
         never both, matching the dataset kind returned by the tool.
-        - ALWAYS wrap the chart output in a Markdown code block, with the exact geo_analysis_id.
+        - ALWAYS wrap the chart output in a Markdown code block (`land_use_distribution` or `biomass_trends`), with the exact geo_analysis_id.
         - Never alter, omit, or duplicate the fenced block.
         - For categorical datasets, order table rows from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.
@@ -345,9 +373,11 @@ def generate_conversational_reply(prompt: str, mode: str = "conversational", rec
         ---
 
         🗺️ ABOUT CANOPIQ
-        Canopiq bridges the gap between complex geospatial data and academic insights. 
-        Built specifically for researchers and academic students, this platform allows users to query specific geographic locations using natural language. 
-        It orchestrates Gemini AI with the Google Earth Engine (GEE) API to process natural environmental queries and deliver comprehensive biomass and carbon sequestration reports.
+
+        Canopiq is a GeoAI agent powered by large language models and Google Earth Engine, designed to make satellite and geospatial data accessible through natural language.
+        It enables scientists, researchers, and students to query any geographic location on Earth and retrieve satellite-derived insights without requiring GIS expertise or coding.
+        By translating natural language requests into geospatial workflows, Canopiq democratizes access to Earth observation data and supports analysis of key environmental variables, including biomass carbon sequestration, vegetation cover, and land-use distribution.
+        The platform combines the reasoning capabilities of LLMs with the analytical power of Google Earth Engine to generate scalable, data-driven environmental insights for research and academic applications.
 
         ---
 

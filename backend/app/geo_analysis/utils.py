@@ -57,3 +57,26 @@ def compute_total_change_percent(yearly_data: list[dict]) -> float:
 	change_percent = ((last_year_val - first_year_val) / first_year_val) * 100
 	
 	return round(change_percent, 2)
+
+def format_biome_insights(land_use: dict, threshold: float = 3.0) -> list:
+	main_biomes = []
+	others_total_value = 0.0
+	for label, stats in land_use.items():
+		value = stats["value"]
+		if value >= threshold:
+			main_biomes.append({
+				"category": label, 
+				"value": value, 
+				"color": stats["color"]
+			})
+		else:
+			others_total_value += value
+
+	if others_total_value > 0:
+		main_biomes.append({
+			"category": "Others",
+			"value": round(others_total_value),
+			"color": "#807bb8"
+		})
+
+	return main_biomes
