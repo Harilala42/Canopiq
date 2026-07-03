@@ -218,7 +218,7 @@ async def refresh_access_token(
 @public_router.get("/auth/google", tags=["auth"])
 async def login_with_google():
 	try:
-		result = auth_models.login_with_google()
+		result, code_verifier = auth_models.login_with_google()
 		if not result or not result.url:
 			raise HTTPException(
 				status_code=400,
@@ -227,8 +227,19 @@ async def login_with_google():
 					"message": "Missing redirect url"
 				}
 			)
+		
+		redirect = RedirectResponse(url=result.url)
+		
+		redirect.set_cookie(
+			key="pkce_verifier",
+			value=code_verifier,
+			httponly=True,
+			samesite="lax",
+			secure=False,
+			max_age=600
+		)
 
-		return RedirectResponse(url=result.url)
+		return redirect
 	except HTTPException:
 		raise
 	except Exception as err:
@@ -243,8 +254,9 @@ async def login_with_google():
 		)
 
 @public_router.get("/auth/google/callback", tags=["auth"])
-async def google_callback(code: str):
-	if not code:
+async def google_callback(code: str, request: Request):
+	code_verifier = request.cookies.get("pkce_verifier")
+	if not code or not code_verifier:
 		raise HTTPException(
 			status_code=401,
 			detail={
@@ -254,7 +266,7 @@ async def google_callback(code: str):
 		)
 
 	try:
-		result = auth_models.handle_google_callback(code)
+		result = auth_models.handle_google_callback(code, code_verifier)
 		if not result or not result.session:
 			raise HTTPException(
 				status_code=400,

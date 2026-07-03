@@ -1,26 +1,27 @@
 import os
 from typing import Annotated
 from dotenv import load_dotenv
-from supabase import create_client, Client
-from fastapi import HTTPException, Cookie, Request, Depends
 from redis.asyncio import Redis
+from supabase import create_client
+from fastapi import HTTPException, Cookie, Request
 
 load_dotenv()
-
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
 
 redis_url = os.environ.get("UPSTASH_REDIS_URL")
 redis_client = Redis.from_url(redis_url, decode_responses=True)
 
 def get_supabase():
-    return supabase
+    return create_client(
+        supabase_url=os.environ.get("SUPABASE_URL"),
+        supabase_key=os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
 
 async def check_auth(
     request: Request,
     access_token: Annotated[str | None, Cookie()] = None
 ):
+    client = get_supabase()
+
     if not access_token:
         raise HTTPException(
             status_code=401, 
@@ -31,7 +32,7 @@ async def check_auth(
         )
 
     try:
-        response = supabase.auth.get_user(access_token)
+        response = client.auth.get_user(access_token)
         if not response or not response.user:
             raise Exception("Invalid or expired session")
 

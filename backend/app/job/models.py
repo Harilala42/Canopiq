@@ -1,10 +1,10 @@
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 
 def get_job_by_task_id(job_id: str, user_id: str):
     """
 	Retrieve the job status by task_id.
 	"""
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("jobs") \
         .select("id", "status", "err_message") \
@@ -15,11 +15,11 @@ def get_job_by_task_id(job_id: str, user_id: str):
     
     return response.data if response and response.data else None
 
-def update_job_progress(job_id: str, user_id: str, status: str, err_msg: str = None):
+def update_job_progress(job_id: str, user_id: str, status: str, err_msg: str=None):
 	"""
 	Updates the realtime jobs table with the current status milestone.
 	"""
-	client = supabase()
+	client = get_supabase()
 		
 	client.table("jobs") \
 		.upsert({

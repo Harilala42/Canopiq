@@ -128,7 +128,7 @@ const ChartCard = memo((): JSX.Element | null => {
 
 	return (
 		<VStack 
-            w="300px"
+            w="350px"
             position="absolute"
             top="20px" left="20px"
             gap={2} zIndex={1000}

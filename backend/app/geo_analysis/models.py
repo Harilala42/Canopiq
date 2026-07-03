@@ -1,12 +1,10 @@
-from uuid import UUID
 import geopandas as gpd
-from typing import Dict, List, Any
 from shapely.geometry import box, Point
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent, format_biome_insights
 
-def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | None:
-    client = supabase()
+def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
+    client = get_supabase()
     
     response = client.table("h3_grid_maps") \
         .select("hex_geojson, legend") \
@@ -19,11 +17,11 @@ def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | Non
 
 def save_h3_grid_map(
     hex_geojson: gpd.GeoDataFrame,
-    legend: List[Dict[str, int]],
-    user_id: UUID,
-    job_id: UUID
-) -> Dict[str, Any] | None:
-    client = supabase()
+    legend: list[dict[str, int]],
+    user_id: str,
+    job_id: str
+):
+    client = get_supabase()
 
     response = client.table("h3_grid_maps") \
         .upsert({
@@ -36,8 +34,8 @@ def save_h3_grid_map(
 
     return response.data if response and response.data else None
 
-def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
-    client = supabase()
+def get_geo_analysis(chat_id: str, user_id: str):
+    client = get_supabase()
 
     response = client.table("geo_analysis") \
         .select(
@@ -59,13 +57,13 @@ def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
     return response.data if response and response.data else []
 
 def save_geo_analysis(
-    query: Dict[str, Any], 
-    gis_analysis: Dict[str, Any], 
-    user_id: UUID, 
-    chat_id: UUID, 
-    job_id: UUID
-) -> Dict[str, Any] | None:
-    client = supabase()
+    query: dict, 
+    gis_analysis: dict, 
+    user_id: str, 
+    chat_id: str, 
+    job_id: str
+):
+    client = get_supabase()
     
     b = query['bbox']
     boundary = box(b[0], b[1], b[2], b[3]).wkt

@@ -38,7 +38,7 @@ CREATE TABLE public.geo_analysis (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   location text NOT NULL,
-  dataset text CHECK (dataset = ANY (ARRAY['tree_cover'::text, 'carbon_density'::text])),
+  dataset text CHECK (dataset = ANY (ARRAY['carbon_density'::text, 'tree_cover'::text, 'land_use_distribution'::text])),
   boundary USER-DEFINED,
   coordinates USER-DEFINED,
   created_at timestamp with time zone DEFAULT now(),
@@ -55,17 +55,6 @@ CREATE TABLE public.geo_analysis (
   CONSTRAINT geo_analysis_h3_grid_maps_id_fkey FOREIGN KEY (h3_grid_map_id) REFERENCES public.h3_grid_maps(id)
 );
 
-CREATE TABLE public.h3_grid_maps (
-  user_id uuid NOT NULL,
-  hex_geojson jsonb NOT NULL,
-  legend jsonb,
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  job_id uuid NOT NULL UNIQUE,
-  CONSTRAINT h3_grid_maps_pkey PRIMARY KEY (id),
-  CONSTRAINT h3_grid_maps_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT h3_grid_maps_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
-);
-
 CREATE TABLE public.jobs (
   status USER-DEFINED NOT NULL DEFAULT 'queued'::job_status_type,
   err_message text,
@@ -75,4 +64,15 @@ CREATE TABLE public.jobs (
   user_id uuid NOT NULL,
   CONSTRAINT jobs_pkey PRIMARY KEY (id),
   CONSTRAINT jobs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.h3_grid_maps (
+  user_id uuid NOT NULL,
+  hex_geojson jsonb NOT NULL,
+  legend jsonb,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_id uuid NOT NULL UNIQUE,
+  CONSTRAINT h3_grid_maps_pkey PRIMARY KEY (id),
+  CONSTRAINT h3_grid_maps_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT h3_grid_maps_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
 );

@@ -17,8 +17,8 @@ const SideBar = () => {
         isCanceleded,
         setIsCanceleded,
         toggleSideBar,
-        createNewQuery,
         handleSelectQuery,
+        createNewQuery
     } = useSideBarController();
 
     return (

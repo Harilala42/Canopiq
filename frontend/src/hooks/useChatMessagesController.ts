@@ -28,7 +28,7 @@ export const useChatMessagesController = () => {
     useEffect(() => {
         if (!currentJobId) return;
 
-        const channel = supabase
+        const jobChannel = supabase
             .channel(`job-status-${currentJobId}`)
             .on(
                 'postgres_changes',
@@ -55,7 +55,7 @@ export const useChatMessagesController = () => {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(jobChannel);
         };
     }, [
         currentJobId, 

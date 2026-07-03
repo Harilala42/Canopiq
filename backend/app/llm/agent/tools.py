@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 from langchain.tools import tool
 
 @tool
@@ -46,7 +46,7 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
     the raw GEE analytics data into a compact AI-friendly structure.
     """
     try:
-        client = supabase()
+        client = get_supabase()
         response = client.table("geo_analysis") \
             .select("*") \
             .eq("id", geo_analysis_id) \
