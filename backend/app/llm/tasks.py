@@ -37,5 +37,6 @@ def run_geospatial_pipeline(self, user_id: str, chat_id: str, prompt: str):
             graph.ainvoke(initial_state, config)
         )
 	except Exception as e:
+		print(f"Failed to run geospatial pipeline for {job_id}: {str(e)}")
 		update_job_progress(job_id, user_id, "failed", str(e))
 		raise
