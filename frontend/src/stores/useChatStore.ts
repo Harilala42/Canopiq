@@ -36,7 +36,7 @@ const useChatStore = create<ChatState>((set, get) => ({
     
     setCurrentQuery: (query) => {
         set((state) => ({ 
-            currentQuery: state.currentQuery?.id !== query.id ? query : state.currentQuery 
+            currentQuery: state.currentQuery?.id !== query?.id ? query : state.currentQuery 
         }));
     },
 

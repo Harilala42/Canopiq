@@ -132,5 +132,5 @@ Canopiq is architected as a production-ready monorepo consisting of a decoupled 
 # 📖 Services Documentation
 
 For more details about technical implementations specific to each service, explore their dedicated documentation hubs: 
-- **[Frontend Architecture](./frontend/README.md)**: Explains the MVC-based pattern using Zustand and custom React Hooks controllers, alongside the Jest unit testing.
-- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangGraph agentic pipeline, Google Earth Engine (GEE) satellite computing, and Uber H3 grid indexing with GeoPandas.
+- **[Frontend Architecture](./frontend/README.md)**: Explains the MVC-based pattern using Zustand stores (Models) and React custom-hook (Controllers), alongside real-time Supabase sync, heavy GeoJSON rendering on a 2D Leaflet map and React Markdown reports with embedded charts via Recharts components.
+- **[Backend & GeoAI Agent](./backend/README.md)**: Dives into the asynchronous LangGraph agentic pipeline, Google Earth Engine (GEE) satellite computing for carbon accounting methodology, and Uber's H3 grid indexing with GeoPandas.

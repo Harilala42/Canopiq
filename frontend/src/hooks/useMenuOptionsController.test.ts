@@ -36,7 +36,7 @@ describe('useMenuOptionsController', () => {
     expect(result.current.isUpdating).toBe(false);
   });
 
-  // ========== DELETEQUERY TESTS ==========
+  // ========== DELETE QUERY TESTS ==========
   describe('deleteQuery', () => {
     it('should delete a query successfully, update the store, and show a success alert', async () => {
       (ChatAPI.delete as jest.Mock).mockResolvedValue({ success: true });
@@ -83,7 +83,7 @@ describe('useMenuOptionsController', () => {
     });
   });
 
-  // ========== TOGGLEPIN TESTS ==========
+  // ========== TOGGLE PIN TESTS ==========
   describe('togglePin', () => {
     it('should optimistically pin a query, execute the API call, and synchronize with the store', async () => {
       (ChatAPI.togglePin as jest.Mock).mockResolvedValue({ success: true });

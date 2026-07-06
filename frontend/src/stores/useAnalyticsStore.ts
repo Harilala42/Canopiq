@@ -54,7 +54,7 @@ const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 			const { [id]: _, ...rest } = state.analyses;
 			return {
 				analyses: rest,
-				activeAnalysis: state.activeAnalysis.id === id ? null : state.activeAnalysis,
+				activeAnalysis: state.activeAnalysis?.id === id ? null : state.activeAnalysis,
 			};
 		}),
 

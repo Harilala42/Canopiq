@@ -44,9 +44,15 @@ export interface GeoAnalysis
 {
 	id: string;
 	location: string;
-	boundary: string;
 	dataset: DatasetType;
-	coordinates: [number, number];
+	bbox: {
+        type: "Polygon";
+        coordinates: number[][][];
+    };
+	coordinates: {
+        type: "Point";
+        coordinates: [number, number];
+    };
 	analytics: AnalyticsPayload;
 	start_year: string | null;
 	end_year: string | null;

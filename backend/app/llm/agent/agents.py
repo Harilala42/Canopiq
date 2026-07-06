@@ -267,6 +267,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
 
         [1 sentence describing what the donut chart above represents — what the slices
         encode and what unit they are expressed in.]
+
         | Dominant Land Cover Class (land_use_classes["biome"])
         | Biome Description | Percent Area Coverage (land_use_classes["percent_area"]) |
         | :--- | :--- | :--- |
@@ -295,9 +296,8 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         
         🚫 SCIENTIFIC CONSTRAINT RULES:
         - Scientific, neutral tone throughout.
-        - Include exactly ONE fenced chart block — biomass_trends OR land_use_distribution,
-        never both, matching the dataset kind returned by the tool.
-        - ALWAYS wrap the chart output in a Markdown code block (`land_use_distribution` or `biomass_trends`), with the exact geo_analysis_id.
+        - Include EXACTLY ONE fenced chart block — biomass_trends OR land_use_distribution, never both, matching the dataset kind returned by the tool.
+        - Always WRAP the embedded chart (land_use_distribution or biomass_trends) in a Markdown code block using the exact geo_analysis_id.
         - Never alter, omit, or duplicate the fenced block.
         - For categorical datasets, order table rows from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.

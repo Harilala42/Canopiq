@@ -1,445 +1,191 @@
 import useMapStore from './useMapStore';
-import { HexGeoJSONData, GeoJSONFeature, LegendData } from '@/types/map';
+import useAnalyticsStore from '@/stores/useAnalyticsStore';
+import { GridMap, HexGeoJSONData, LegendData } from '@/types/map';
+import { GeoAnalysis } from '@/types/analysis';
+
+// Mock the cross-store dependency
+jest.mock('@/stores/useAnalyticsStore');
 
 describe('useMapStore', () => {
-  // Mock data
-  const mockHexFeature1: GeoJSONFeature = {
-    type: 'Feature',
-    id: 'hex-1',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [0, 0],
-          [1, 0],
-          [1, 1],
-          [0, 1],
-          [0, 0],
-        ],
-      ],
-    },
-    properties: {
-      color: '#2ca02c',
-      hex_id: 'hex-1',
-      biomass: 45.5,
-    },
-  };
-
-  const mockHexFeature2: GeoJSONFeature = {
-    type: 'Feature',
-    id: 'hex-2',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [
-        [
-          [1, 0],
-          [2, 0],
-          [2, 1],
-          [1, 1],
-          [1, 0],
-        ],
-      ],
-    },
-    properties: {
-      color: '#d62728',
-      hex_id: 'hex-2',
-      biomass: 52.3,
-    },
-  };
-
+  // Mock child data structures to form GridMap
   const mockGeoJSONData: HexGeoJSONData = {
     type: 'FeatureCollection',
-    features: [mockHexFeature1, mockHexFeature2],
+    features: [
+      {
+        type: 'Feature',
+        id: 'hex-1',
+        geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] },
+        properties: { color: '#2ca02c', hex_id: 'hex-1', biomass: 45.5 },
+      },
+    ],
   };
 
-  const mockCoords: [number, number] = [51.505, -0.09];
-
   const mockLegendData: LegendData[] = [
-    { color: '#2ca02c', range: '0-30 tons/ha' },
-    { color: '#1f77b4', range: '30-60 tons/ha' },
-    { color: '#d62728', range: '60+ tons/ha' },
+    { color: '#2ca02c', label: '0-30 tons/ha' },
   ];
+
+  // Complete GridMap entities
+  const mockMap1: GridMap = {
+    id: 'map-1',
+    location: 'Singapore',
+    coords: [1.35, 103.82],
+    hex_geojson: mockGeoJSONData,
+    legend: mockLegendData,
+  };
+
+  const mockMap2: GridMap = {
+    id: 'map-2',
+    location: 'Amazon Rainforest',
+    coords: [-3.46, -62.21],
+    hex_geojson: mockGeoJSONData,
+    legend: mockLegendData,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset store state before each test
+    // Reset store state to match updated interface specifications
     useMapStore.setState({
-      location: null,
-      map: null,
-      coords: null,
-      legend: null,
+      maps: {},
+      activeMapId: null,
     });
   });
 
   // ========== INITIAL STATE TESTS ==========
   describe('Initial state', () => {
-    it('should have correct initial state values', () => {
-      useMapStore.setState({
-        location: null,
-        map: null,
-        coords: null,
-        legend: null,
-      });
+    it('should initialize with an empty maps record and null activeMapId', () => {
+      const state = useMapStore.getState();
+      expect(state.maps).toEqual({});
+      expect(state.activeMapId).toBeNull();
+    });
+  });
+
+  // ========== ADDMAP TESTS ==========
+  describe('addMap', () => {
+    it('should add a new map to the record using its id and automatically make it active', () => {
+      useMapStore.getState().addMap(mockMap1);
 
       const state = useMapStore.getState();
-      expect(state.location).toBeNull();
-      expect(state.map).toBeNull();
-      expect(state.coords).toBeNull();
-      expect(state.legend).toBeNull();
+      expect(state.maps['map-1']).toEqual(mockMap1);
+      expect(state.activeMapId).toBe('map-1');
+    });
+
+    it('should preserve existing items when adding supplementary map instances', () => {
+      useMapStore.getState().addMap(mockMap1);
+      useMapStore.getState().addMap(mockMap2);
+
+      const state = useMapStore.getState();
+      expect(Object.keys(state.maps)).toHaveLength(2);
+      expect(state.maps['map-1']).toBeDefined();
+      expect(state.maps['map-2']).toBeDefined();
+      expect(state.activeMapId).toBe('map-2'); // Latest map should become active
     });
   });
 
-  // ========== SETMAP TESTS ==========
-  describe('setMap', () => {
-    it('should set map data', () => {
-      useMapStore.getState().setMap(mockGeoJSONData);
-      expect(useMapStore.getState().map).toEqual(mockGeoJSONData);
+  // ========== SETACTIVEMAP TESTS ==========
+  describe('setActiveMap', () => {
+    it('should set the activeMapId reference', () => {
+      useMapStore.setState({ maps: { 'map-1': mockMap1, 'map-2': mockMap2 } });
+      
+      useMapStore.getState().setActiveMap('map-2');
+      expect(useMapStore.getState().activeMapId).toBe('map-2');
     });
+  });
 
-    it('should set map with correct feature collection structure', () => {
-      useMapStore.getState().setMap(mockGeoJSONData);
-      const map = useMapStore.getState().map;
-
-      expect(map?.type).toBe('FeatureCollection');
-      expect(map?.features).toHaveLength(2);
-      expect(map?.features[0].id).toBe('hex-1');
-      expect(map?.features[1].id).toBe('hex-2');
-    });
-
-    it('should replace existing map data', () => {
-      useMapStore.getState().setMap(mockGeoJSONData);
-      expect(useMapStore.getState().map?.features).toHaveLength(2);
-
-      const newMapData: HexGeoJSONData = {
-        type: 'FeatureCollection',
-        features: [mockHexFeature1],
+  // ========== GETOWNERANALYSIS TESTS ==========
+  describe('getOwnerAnalysis', () => {
+    it('should select and return the parent GeoAnalysis matching the cross-store key connection', () => {
+      const mockAnalysis: Partial<GeoAnalysis> = {
+        id: 'analysis-xyz',
+        h3_grid_map_id: 'map-1',
+        location: 'Singapore',
       };
 
-      useMapStore.getState().setMap(newMapData);
-      expect(useMapStore.getState().map?.features).toHaveLength(1);
-      expect(useMapStore.getState().map?.features[0].id).toBe('hex-1');
-    });
-
-    it('should preserve other state properties when setting map', () => {
-      useMapStore.getState().setLocation('London');
-      useMapStore.getState().setCoords(mockCoords);
-
-      useMapStore.getState().setMap(mockGeoJSONData);
-
-      expect(useMapStore.getState().location).toBe('London');
-      expect(useMapStore.getState().coords).toEqual(mockCoords);
-      expect(useMapStore.getState().map).toEqual(mockGeoJSONData);
-    });
-
-    it('should handle map with empty features array', () => {
-      const emptyMapData: HexGeoJSONData = {
-        type: 'FeatureCollection',
-        features: [],
-      };
-
-      useMapStore.getState().setMap(emptyMapData);
-      expect(useMapStore.getState().map?.features).toHaveLength(0);
-    });
-  });
-
-  // ========== SETCOORDS TESTS ==========
-  describe('setCoords', () => {
-    it('should set coordinates', () => {
-      useMapStore.getState().setCoords(mockCoords);
-      expect(useMapStore.getState().coords).toEqual(mockCoords);
-    });
-
-    it('should set valid latitude and longitude', () => {
-      const coords: [number, number] = [40.7128, -74.006];
-      useMapStore.getState().setCoords(coords);
-
-      const stored = useMapStore.getState().coords;
-      expect(stored?.[0]).toBe(40.7128); // latitude
-      expect(stored?.[1]).toBe(-74.006); // longitude
-    });
-
-    it('should replace existing coordinates', () => {
-      useMapStore.getState().setCoords([10, 20]);
-      expect(useMapStore.getState().coords).toEqual([10, 20]);
-
-      useMapStore.getState().setCoords([30, 40]);
-      expect(useMapStore.getState().coords).toEqual([30, 40]);
-    });
-
-    it('should handle negative coordinates', () => {
-      const negativeCoords: [number, number] = [-51.505, -0.09];
-      useMapStore.getState().setCoords(negativeCoords);
-      expect(useMapStore.getState().coords).toEqual(negativeCoords);
-    });
-
-    it('should preserve other state properties when setting coords', () => {
-      useMapStore.getState().setLocation('Paris');
-      useMapStore.getState().setMap(mockGeoJSONData);
-
-      useMapStore.getState().setCoords(mockCoords);
-
-      expect(useMapStore.getState().location).toBe('Paris');
-      expect(useMapStore.getState().map).toEqual(mockGeoJSONData);
-      expect(useMapStore.getState().coords).toEqual(mockCoords);
-    });
-  });
-
-  // ========== SETLOCATION TESTS ==========
-  describe('setLocation', () => {
-    it('should set location string', () => {
-      useMapStore.getState().setLocation('London, UK');
-      expect(useMapStore.getState().location).toBe('London, UK');
-    });
-
-    it('should handle different location formats', () => {
-      const locations = [
-        'London',
-        'London, UK',
-        'City: London, Country: United Kingdom',
-        '51.5074° N, 0.1278° W',
-      ];
-
-      locations.forEach((loc) => {
-        useMapStore.getState().setLocation(loc);
-        expect(useMapStore.getState().location).toBe(loc);
+      // Mock output of useAnalyticsStore.getState()
+      (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
+        analyses: { 'analysis-xyz': mockAnalysis },
       });
+
+      const result = useMapStore.getState().getOwnerAnalysis('map-1');
+      expect(result).toEqual(mockAnalysis);
     });
 
-    it('should replace existing location', () => {
-      useMapStore.getState().setLocation('London');
-      expect(useMapStore.getState().location).toBe('London');
+    it('should return undefined if no associated analytics item corresponds to the mapId', () => {
+      (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
+        analyses: {},
+      });
 
-      useMapStore.getState().setLocation('Paris');
-      expect(useMapStore.getState().location).toBe('Paris');
-    });
-
-    it('should handle empty location string', () => {
-      useMapStore.getState().setLocation('');
-      expect(useMapStore.getState().location).toBe('');
-    });
-
-    it('should preserve other state properties when setting location', () => {
-      useMapStore.getState().setCoords(mockCoords);
-      useMapStore.getState().setMap(mockGeoJSONData);
-
-      useMapStore.getState().setLocation('Test Location');
-
-      expect(useMapStore.getState().coords).toEqual(mockCoords);
-      expect(useMapStore.getState().map).toEqual(mockGeoJSONData);
-      expect(useMapStore.getState().location).toBe('Test Location');
-    });
-  });
-
-  // ========== SETLEGEND TESTS ==========
-  describe('setLegend', () => {
-    it('should set legend data', () => {
-      useMapStore.getState().setLegend(mockLegendData);
-      expect(useMapStore.getState().legend).toEqual(mockLegendData);
-      expect(useMapStore.getState().legend).toHaveLength(3);
-    });
-
-    it('should set legend with correct structure', () => {
-      useMapStore.getState().setLegend(mockLegendData);
-      const legend = useMapStore.getState().legend;
-
-      expect(legend?.[0].color).toBe('#2ca02c');
-      expect(legend?.[0].range).toBe('0-30 tons/ha');
-      expect(legend?.[1].color).toBe('#1f77b4');
-      expect(legend?.[2].color).toBe('#d62728');
-    });
-
-    it('should replace existing legend', () => {
-      useMapStore.getState().setLegend(mockLegendData);
-      expect(useMapStore.getState().legend).toHaveLength(3);
-
-      const newLegend: LegendData[] = [
-        { color: '#ff0000', range: 'High' },
-        { color: '#0000ff', range: 'Low' },
-      ];
-
-      useMapStore.getState().setLegend(newLegend);
-      expect(useMapStore.getState().legend).toHaveLength(2);
-      expect(useMapStore.getState().legend).toEqual(newLegend);
-    });
-
-    it('should handle single legend item', () => {
-      const singleLegend: LegendData[] = [{ color: '#00ff00', range: '0-100' }];
-      useMapStore.getState().setLegend(singleLegend);
-
-      expect(useMapStore.getState().legend).toHaveLength(1);
-      expect(useMapStore.getState().legend?.[0].color).toBe('#00ff00');
-    });
-
-    it('should handle empty legend array', () => {
-      useMapStore.getState().setLegend(mockLegendData);
-      useMapStore.getState().setLegend([]);
-
-      expect(useMapStore.getState().legend).toEqual([]);
-      expect(useMapStore.getState().legend).toHaveLength(0);
-    });
-
-    it('should preserve other state properties when setting legend', () => {
-      useMapStore.getState().setMap(mockGeoJSONData);
-      useMapStore.getState().setCoords(mockCoords);
-
-      useMapStore.getState().setLegend(mockLegendData);
-
-      expect(useMapStore.getState().map).toEqual(mockGeoJSONData);
-      expect(useMapStore.getState().coords).toEqual(mockCoords);
-      expect(useMapStore.getState().legend).toEqual(mockLegendData);
+      const result = useMapStore.getState().getOwnerAnalysis('map-999');
+      expect(result).toBeUndefined();
     });
   });
 
   // ========== CLEARMAP TESTS ==========
   describe('clearMap', () => {
-    it('should clear all map-related data', () => {
-      // Setup state with all data
-      useMapStore.getState().setMap(mockGeoJSONData);
-      useMapStore.getState().setCoords(mockCoords);
-      useMapStore.getState().setLocation('London');
-      useMapStore.getState().setLegend(mockLegendData);
+    it('should wipe out all maps and nullify active selection when called without arguments', () => {
+      useMapStore.setState({
+        maps: { 'map-1': mockMap1, 'map-2': mockMap2 },
+        activeMapId: 'map-1',
+      });
 
-      // Verify data is set
-      expect(useMapStore.getState().map).not.toBeNull();
-      expect(useMapStore.getState().coords).not.toBeNull();
-      expect(useMapStore.getState().location).not.toBeNull();
-      expect(useMapStore.getState().legend).not.toBeNull();
-
-      // Clear
-      useMapStore.getState().clearMap();
-
-      // Verify all cleared
-      expect(useMapStore.getState().map).toBeNull();
-      expect(useMapStore.getState().coords).toBeNull();
-      expect(useMapStore.getState().location).toBeNull();
-      expect(useMapStore.getState().legend).toBeNull();
-    });
-
-    it('should handle clear when state is already empty', () => {
-      expect(useMapStore.getState().map).toBeNull();
-      expect(useMapStore.getState().coords).toBeNull();
-
-      useMapStore.getState().clearMap();
-
-      expect(useMapStore.getState().map).toBeNull();
-      expect(useMapStore.getState().coords).toBeNull();
-    });
-
-    it('should clear map while preserving nothing (all properties cleared)', () => {
-      useMapStore.getState().setMap(mockGeoJSONData);
       useMapStore.getState().clearMap();
 
       const state = useMapStore.getState();
-      expect(state.map).toBeNull();
-      expect(state.coords).toBeNull();
-      expect(state.location).toBeNull();
-      expect(state.legend).toBeNull();
+      expect(state.maps).toEqual({});
+      expect(state.activeMapId).toBeNull();
+    });
+
+    it('should remove a specified map by id and leave other records untouched', () => {
+      useMapStore.setState({
+        maps: { 'map-1': mockMap1, 'map-2': mockMap2 },
+        activeMapId: 'map-2',
+      });
+
+      useMapStore.getState().clearMap('map-1');
+
+      const state = useMapStore.getState();
+      expect(state.maps['map-1']).toBeUndefined();
+      expect(state.maps['map-2']).toBeDefined();
+      expect(state.activeMapId).toBe('map-2'); // Active selection should remain unchanged
+    });
+
+    it('should nullify activeMapId if the explicitly targeted map parameter was currently active', () => {
+      useMapStore.setState({
+        maps: { 'map-1': mockMap1, 'map-2': mockMap2 },
+        activeMapId: 'map-1',
+      });
+
+      useMapStore.getState().clearMap('map-1');
+
+      const state = useMapStore.getState();
+      expect(state.activeMapId).toBeNull();
     });
   });
 
   // ========== INTEGRATION TESTS ==========
   describe('Integration scenarios', () => {
-    it('should handle complete map setup flow', () => {
-      useMapStore.getState().setLocation('Amazon Rainforest');
-      useMapStore.getState().setCoords([-3.4653, -62.2159]);
-      useMapStore.getState().setMap(mockGeoJSONData);
-      useMapStore.getState().setLegend(mockLegendData);
+    it('should maintain data state safety across dynamic data additions and removals', () => {
+      // Step 1: Add Map
+      useMapStore.getState().addMap(mockMap1);
+      expect(useMapStore.getState().activeMapId).toBe('map-1');
 
-      const state = useMapStore.getState();
-      expect(state.location).toBe('Amazon Rainforest');
-      expect(state.coords).toEqual([-3.4653, -62.2159]);
-      expect(state.map?.features).toHaveLength(2);
-      expect(state.legend).toHaveLength(3);
-    });
+      // Step 2: Add secondary Map
+      useMapStore.getState().addMap(mockMap2);
+      expect(useMapStore.getState().activeMapId).toBe('map-2');
 
-    it('should handle multiple updates then clear', () => {
-      // First location
-      useMapStore.getState().setLocation('London');
-      useMapStore.getState().setCoords([51.5074, -0.1278]);
-      useMapStore.getState().setMap(mockGeoJSONData);
+      // Step 3: Switch active target selection manually
+      useMapStore.getState().setActiveMap('map-1');
+      expect(useMapStore.getState().activeMapId).toBe('map-1');
 
-      expect(useMapStore.getState().location).toBe('London');
+      // Step 4: Drop non-active variant tracking
+      useMapStore.getState().clearMap('map-2');
+      expect(useMapStore.getState().maps['map-2']).toBeUndefined();
+      expect(useMapStore.getState().activeMapId).toBe('map-1'); // Stays active
 
-      // Clear
+      // Step 5: Wipe state completely
       useMapStore.getState().clearMap();
-      expect(useMapStore.getState().location).toBeNull();
-      expect(useMapStore.getState().coords).toBeNull();
-
-      // Second location
-      useMapStore.getState().setLocation('Paris');
-      useMapStore.getState().setCoords([48.8566, 2.3522]);
-      useMapStore.getState().setMap(mockGeoJSONData);
-
-      expect(useMapStore.getState().location).toBe('Paris');
-      expect(useMapStore.getState().coords).toEqual([48.8566, 2.3522]);
-    });
-
-    it('should handle partial updates after setup', () => {
-      // Initial setup
-      useMapStore.getState().setLocation('Berlin');
-      useMapStore.getState().setCoords([52.52, 13.405]);
-      useMapStore.getState().setMap(mockGeoJSONData);
-      useMapStore.getState().setLegend(mockLegendData);
-
-      // Update location only
-      useMapStore.getState().setLocation('Munich');
-
-      // Verify only location changed
-      expect(useMapStore.getState().location).toBe('Munich');
-      expect(useMapStore.getState().coords).toEqual([52.52, 13.405]);
-      expect(useMapStore.getState().map?.features).toHaveLength(2);
-      expect(useMapStore.getState().legend).toHaveLength(3);
-    });
-
-    it('should handle replacing all data sequentially', () => {
-      const newMapData: HexGeoJSONData = {
-        type: 'FeatureCollection',
-        features: [mockHexFeature1],
-      };
-
-      const newLegend: LegendData[] = [{ color: '#ff0000', range: 'Test' }];
-
-      // Initial setup
-      useMapStore.getState().setLocation('Location1');
-      useMapStore.getState().setCoords([0, 0]);
-      useMapStore.getState().setMap(mockGeoJSONData);
-      useMapStore.getState().setLegend(mockLegendData);
-
-      // Replace each property
-      useMapStore.getState().setLocation('Location2');
-      useMapStore.getState().setCoords([10, 20]);
-      useMapStore.getState().setMap(newMapData);
-      useMapStore.getState().setLegend(newLegend);
-
-      // Verify all replaced
-      expect(useMapStore.getState().location).toBe('Location2');
-      expect(useMapStore.getState().coords).toEqual([10, 20]);
-      expect(useMapStore.getState().map?.features).toHaveLength(1);
-      expect(useMapStore.getState().legend).toHaveLength(1);
-    });
-
-    it('should maintain data consistency through multiple operations', () => {
-      const coords1: [number, number] = [1, 1];
-      const coords2: [number, number] = [2, 2];
-
-      useMapStore.getState().setCoords(coords1);
-      expect(useMapStore.getState().coords).toEqual(coords1);
-
-      useMapStore.getState().setMap(mockGeoJSONData);
-      expect(useMapStore.getState().coords).toEqual(coords1); // unchanged
-
-      useMapStore.getState().setCoords(coords2);
-      expect(useMapStore.getState().map?.features).toHaveLength(2); // unchanged
-
-      useMapStore.getState().setLocation('Test');
-      expect(useMapStore.getState().coords).toEqual(coords2);
-      expect(useMapStore.getState().map?.features).toHaveLength(2);
-
-      useMapStore.getState().clearMap();
-      expect(useMapStore.getState().coords).toBeNull();
-      expect(useMapStore.getState().map).toBeNull();
-      expect(useMapStore.getState().location).toBeNull();
+      expect(useMapStore.getState().maps).toEqual({});
+      expect(useMapStore.getState().activeMapId).toBeNull();
     });
   });
 });

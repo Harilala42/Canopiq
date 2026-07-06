@@ -13,7 +13,7 @@ class CanopiqState(TypedDict):
     user_prompt: str
     recent_context: list
 
-    # Extracted GIS paramerters from query
+    # Extracted GIS parameters from query
     geo_params: NotRequired[GeoSpatialQuery]
 
     # GEE computation results
