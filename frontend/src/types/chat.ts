@@ -1,5 +1,3 @@
-export type JobStatus = "queued" | "analyzing_prompt" | "computing_gee" | "generating_report" | "failed" | "completed";
-
 export interface ChatData
 {
     id: string;

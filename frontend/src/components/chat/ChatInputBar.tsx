@@ -1,6 +1,6 @@
 import { memo, JSX, useContext } from "react";
 import { LuSend, LuSquare } from "react-icons/lu";
-import { HStack, Textarea, Spinner, Box } from "@chakra-ui/react";
+import { HStack, Textarea, Box } from "@chakra-ui/react";
 import { useChatInputController } from "@/hooks/useChatInputController";
 import { ThemeContext } from "@/contexts/themeContext";
 import { IconButton } from "@/components/IconButton";
@@ -15,8 +15,8 @@ const ChatInputBar = memo((): JSX.Element => {
 		setInputValue,
 		isSending,
 		isLoading,
-        isThinking,
         isCanceling,
+        hasRunningJob,
 		handleSendMessage,
         handleCancelAnalysis
 	} = useChatInputController();
@@ -59,25 +59,17 @@ const ChatInputBar = memo((): JSX.Element => {
 
                 <IconButton 
                     aria-label="Send Message" 
-                    onClick={!isThinking ? handleSendMessage : handleCancelAnalysis}
+                    onClick={hasRunningJob ? handleCancelAnalysis : handleSendMessage}
                     disabled={
                         isSending || isCanceling ||
-                        (isLoading && !isThinking) ||
-                        (!isThinking && !inputValue.trim())
+                        (isLoading && !hasRunningJob) ||
+                        (!hasRunningJob && !inputValue.trim())
                     }
                     color={isDark ? "text" : "text"}
                     bg={isDark ? "primary" : "secondary"}
                     borderRadius={15} size="md"
                 >
-                    { 
-                        isThinking ? (
-                            <LuSquare />
-                        ) : isSending ? (
-                            <Spinner color={isDark ? "text" : "text"} size="sm" />
-                        ) : (
-                            <LuSend />
-                        )
-                    }
+                    { hasRunningJob ? <LuSquare /> : <LuSend /> }
                 </IconButton>
             </HStack>
         </Box>

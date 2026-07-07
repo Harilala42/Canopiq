@@ -106,7 +106,7 @@ export const useChatInputController = () => {
             setCurrentJobId(null);
             setCurrentStatus(null);
 
-            showAlert(true, "Successfully cancelled analysis");
+            showAlert(true, "Successfully canceled analysis");
         } catch (err) {
             console.error("Canceling GIS analysis failed:", err);
             showAlert(false, "Failed to cancel GIS analysis");
@@ -127,9 +127,9 @@ export const useChatInputController = () => {
         setInputValue,
         isSending,
         isLoading,
-        isThinking,
         isCanceling,
         handleSendMessage,
-        handleCancelAnalysis
+        handleCancelAnalysis,
+        hasRunningJob: Boolean(currentJobId)
     };
 };

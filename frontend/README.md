@@ -2,7 +2,7 @@
 
 This document covers the client half of Canopiq: a React + TypeScript app that turns a
 Celery/LangGraph job running somewhere in the background into a live, map-and-chart-driven
-chat experience. It complements the [backend architecture doc](./CANOPIQ_ARCHITECTURE.md) —
+chat experience. It complements the [backend architecture doc](../backend/README.md) —
 several patterns here exist specifically to consume what that pipeline produces.
 
 Three parts:
@@ -33,7 +33,7 @@ Canopiq's frontend maps the classic MVC split onto React fairly literally:
 ```mermaid
 flowchart LR
     subgraph View["View — Components"]
-        V["Map.tsx / ChatMessageContent.tsx / ..."]
+        V["Map.tsx / ChatMessages.tsx / ..."]
     end
     subgraph Controller["Controller — Custom Hooks"]
         C["useMapController / useChatController / ..."]
@@ -62,7 +62,7 @@ flowchart LR
   into O(1) access instead of a `find()` scan on every render.
 
 - **Controller — custom hooks** (`useMapController`, `useChatController`,
-  `useChatInputController`, `useChatMessagesController`, `useSideBarController`) are where
+  `useChatInputController`, `useChatMessagesController`, `useSideBarController`, `useRenameQueryDialogController`, `useMenuOptionsController`) are where
   the actual application logic lives: they call the API layer, own the Supabase realtime
   subscriptions, coordinate *multiple* stores at once, and translate raw state into the
   narrow, presentation-ready shape a component actually needs. `useMapController` is a
@@ -162,7 +162,7 @@ flowchart TD
 | `chats-channel` | `UPDATE chats` | `id=eq.{currentQuery.id}` | Live sidebar title once the report agent renames the chat |
 | `job-status-{jobId}` | `UPDATE jobs` | `id=eq.{jobId}` | Progress spinner + failure messaging, without polling |
 | `messages-{chatId}` | `INSERT messages` | `chat_id=eq.{chatId}` | New chat turns arriving asynchronously |
-| `geo_analysis-{chatId}` | `INSERT geo_analysis` | `chat_id=eq.{chatId}` | Charts appearing the instant GEE compute lands |
+| `geo_analysis-{chatId}` | `INSERT geo_analysis` | `chat_id=eq.{chatId}` | Charts appearing the instant GEE compute data |
 
 The `geo_analysis` INSERT handler is the frontend's direct counterpart to the backend's
 `save_geo_analysis` call inside `run_gee_computation_node`: the moment that row is
@@ -314,8 +314,7 @@ components agreeing to use the same color logic.
 
 Both chart components render a themed `Skeleton` when their analysis isn't in the store
 yet (e.g., a chart referencing an analysis that hasn't finished loading on initial chat
-open), rather than crashing on `undefined` data. Both are wrapped in `memo()` — since a
-report can embed multiple charts and `ReactMarkdown` re-invokes its component overrides on
+open), rather than crashing on `undefined` data. Both are wrapped in `memo()` — since `ReactMarkdown` re-invokes its component overrides on
 every parent re-render, memoization keeps an unrelated chat update from cascading into
 every chart on screen recomputing.
 

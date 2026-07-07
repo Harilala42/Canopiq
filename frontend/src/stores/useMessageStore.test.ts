@@ -1,5 +1,6 @@
 import useMessageStore from './useMessageStore';
-import { MessageData, JobStatus } from '@/types/chat';
+import { MessageData } from '@/types/chat';
+import { JobStatus } from '@/types/job';
 
 describe('useMessageStore', () => {
   // Mock data

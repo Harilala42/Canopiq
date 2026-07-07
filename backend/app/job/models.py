@@ -23,8 +23,8 @@ def update_job_progress(job_id: str, user_id: str, status: str, err_msg: str=Non
 		
 	client.table("jobs") \
 		.upsert({
-			"id": job_id,
-			"user_id": user_id,
+			"id": str(job_id),
+			"user_id": str(user_id),
 			"status": status,
 			"err_message": err_msg
 		}, on_conflict="id") \

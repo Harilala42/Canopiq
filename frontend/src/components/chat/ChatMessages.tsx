@@ -2,25 +2,20 @@ import {
 	VStack,
 	HStack,
 	Text,
-	Heading,
 	Box,
 	Spinner,
 	Icon,
-	Table
 } from "@chakra-ui/react";
-import remarkGfm from 'remark-gfm';
-import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
 import { ChatMessageContent } from "@/components/chat";
-import { ChartBar, ChartDonut } from "@/components/analytics";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
 import { ThemeContext } from "@/contexts/themeContext";
 import { ChatGreeting } from "@/components/chat";
 import { LuCircleX } from "react-icons/lu";
-import { JobStatus } from "@/types/chat";
+import { JobStatus } from "@/types/job";
 
 const PIPELINE_STEPS: Record<
-	Exclude<JobStatus, "completed">, 
+	Exclude<JobStatus, "completed" | "canceled">, 
 	{ label: string; desc: string }
 > = {
     queued: { 

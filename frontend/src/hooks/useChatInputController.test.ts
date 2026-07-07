@@ -185,7 +185,7 @@ describe('useChatInputController', () => {
       expect(msgStoreActions.setIsThinking).toHaveBeenCalledWith(false);
       expect(chatStoreActions.setCurrentJobId).toHaveBeenCalledWith(null);
       expect(msgStoreActions.setCurrentStatus).toHaveBeenCalledWith(null);
-      expect(mockShowAlert).toHaveBeenCalledWith(true, 'Successfully cancelled analysis');
+      expect(mockShowAlert).toHaveBeenCalledWith(true, 'Successfully canceled analysis');
     });
 
     it('should issue a failure warning banner to users if processing cancellation actions fails downstream', async () => {

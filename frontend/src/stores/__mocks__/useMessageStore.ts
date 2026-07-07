@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
-import { MessageData, JobStatus } from '@/types/chat';
+import { MessageData } from '@/types/chat';
+import { JobStatus } from '@/types/job';
 
 const initialState = {
   messages: [] as MessageData[],
