@@ -17,7 +17,11 @@ const config: Config = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.tsx',
+    '!src/theme.ts',
     '!src/types/**',
+    '!src/api/**',
+    '!src/utils/**',
+    '!src/components/**',
   ],
 
   transform: {

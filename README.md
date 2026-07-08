@@ -31,7 +31,7 @@ Traditional geospatial analysis requires deep expertise in satellite data proces
 
 - **Geospatial Computing:** Google Earth Engine, GeoPandas, H3 Grid Indexing
 
-- **Testing:** Jest, PyTest
+- **Testing:** Jest
 
 # ⚙️ Architecture
 

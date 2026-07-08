@@ -5,12 +5,17 @@ import { MessageData } from '@/types/chat';
 import useChatStore from '@/stores/useChatStore';
 import useMessageStore from '@/stores/useMessageStore';
 import { supabase, mockChannels } from '@/utils/__mocks__/supabase.utils';
+import { JobAPI } from '@/api/job.api';
 
 // Mock explicit external dependencies
 jest.mock('@/stores/useChatStore');
 jest.mock('@/stores/useMessageStore');
+jest.mock('@/api/job.api');
 jest.mock('@/utils/supabase.utils', () => {
   return jest.requireActual('@/utils/__mocks__/supabase.utils');
+});
+jest.mock('@/contexts/alertContext', () => {
+  return jest.requireActual('@/contexts/__mocks__/alertContext');
 });
 
 describe('useChatMessagesController', () => {
@@ -149,6 +154,122 @@ describe('useChatMessagesController', () => {
       unmount();
 
       expect(supabase.removeChannel).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // =========================================================================
+  // 3. FALLBACK POLLING SYSTEM
+  // =========================================================================
+  describe('Fallback Polling System', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      (JobAPI.getJob as jest.Mock).mockClear();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.clearAllTimers();
+    });
+
+    it('should start polling via API when channel status drops to CHANNEL_ERROR or TIMED_OUT', async () => {
+      const targetChannel = 'job-status-job-xyz-123';
+      useChatStore.setState({ currentJobId: 'job-xyz-123' });
+
+      (JobAPI.getJob as jest.Mock).mockResolvedValue({
+        job: { status: 'computing_gee', err_message: null }
+      });
+
+      renderHook(() => useChatMessagesController());
+      
+      const msgStore = useMessageStore.getState();
+      const subscribeCallback = mockChannels[targetChannel].subscribeCallback;
+
+      // Trigger disconnection state
+      act(() => { subscribeCallback('CHANNEL_ERROR', null); });
+
+      // Fast-forward past the 5-second setInterval
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(JobAPI.getJob).toHaveBeenCalledWith('job-xyz-123');
+      expect(msgStore.setCurrentStatus).toHaveBeenCalledWith('computing_gee');
+    });
+
+    it('should stop polling immediately when channel reconnects (SUBSCRIBED)', async () => {
+      const targetChannel = 'job-status-job-xyz-123';
+      useChatStore.setState({ currentJobId: 'job-xyz-123' });
+
+      renderHook(() => useChatMessagesController());
+      const subscribeCallback = mockChannels[targetChannel].subscribeCallback;
+
+      // Drop connection to start poller
+      act(() => { subscribeCallback('TIMED_OUT', null); });
+      
+      // Re-establish connection before interval fires
+      act(() => { subscribeCallback('SUBSCRIBED', null); });
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      // API should not have been called because stopPolling() cleared the interval
+      expect(JobAPI.getJob).not.toHaveBeenCalled();
+    });
+
+    it('should finalize state correctly if polling returns completed', async () => {
+      const targetChannel = 'job-status-job-xyz-123';
+      useChatStore.setState({ currentJobId: 'job-xyz-123' });
+
+      (JobAPI.getJob as jest.Mock).mockResolvedValue({
+        job: { status: 'completed', err_message: null }
+      });
+
+      renderHook(() => useChatMessagesController());
+      const subscribeCallback = mockChannels[targetChannel].subscribeCallback;
+
+      act(() => { subscribeCallback('CHANNEL_ERROR', null); });
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      const chatStore = useChatStore.getState();
+      const msgStore = useMessageStore.getState();
+      
+      expect(msgStore.setCurrentStatus).toHaveBeenCalledWith('completed');
+      expect(chatStore.setCurrentJobId).toHaveBeenCalledWith(null); // Clean up
+    });
+
+    it('should trigger a permanent failure after 3 consecutive polling errors', async () => {
+      const targetChannel = 'job-status-job-xyz-123';
+      useChatStore.setState({ currentJobId: 'job-xyz-123' });
+
+      // Simulate a completely dead backend where fetch throws
+      (JobAPI.getJob as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+      renderHook(() => useChatMessagesController());
+      const subscribeCallback = mockChannels[targetChannel].subscribeCallback;
+
+      act(() => { subscribeCallback('CHANNEL_ERROR', null); });
+
+      // Fast-forward 15 seconds (3 interval ticks)
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          jest.advanceTimersByTime(5000);
+        });
+      }
+
+      // It should have tried exactly 3 times
+      expect(JobAPI.getJob).toHaveBeenCalledTimes(3);
+
+      const chatStore = useChatStore.getState();
+      const msgStore = useMessageStore.getState();
+
+      // UI should reflect absolute disconnection
+      expect(msgStore.setCurrentStatus).toHaveBeenCalledWith('failed');
+      expect(msgStore.setErrorMessage).toHaveBeenCalledWith('Connection lost. Unable to reach the server.');
+      expect(chatStore.setCurrentJobId).toHaveBeenCalledWith(null);
     });
   });
 });

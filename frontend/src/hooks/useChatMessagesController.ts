@@ -30,8 +30,6 @@ export const useChatMessagesController = () => {
     }, [messages]);
 
     const finalizeJobState = useCallback((status: JobStatus, err: string = null) => {
-        if (currentJobId) return;
-
         setIsThinking(false);
         setCurrentJobId(null);
         setCurrentStatus(status);
@@ -44,6 +42,16 @@ export const useChatMessagesController = () => {
     ]);
 
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectAttempts = useRef<number>(0);
+    const MAX_POLL_RETRIES: number = 3;
+
+    const stopPolling = useCallback(() => {
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+    }, []);
+
     // FallBack polling in case of unexpected websocket disconnection 
     const startPolling = useCallback(() => {
         if (pollIntervalRef.current) return;
@@ -57,18 +65,17 @@ export const useChatMessagesController = () => {
                         finalizeJobState(status, err_message);
                     }
                 }
-            } catch (err) {
-                console.error("Poll failed:", err);
+
+                reconnectAttempts.current = 0;
+            } catch (err: any) {
+                reconnectAttempts.current += 1;
+                if (reconnectAttempts.current >= MAX_POLL_RETRIES) {
+                    stopPolling();
+                    finalizeJobState('failed', 'Connection lost. Unable to reach the server.');
+                }
             }
         }, 5000);       // polling scheduled every 5s
-    }, [currentJobId, finalizeJobState]);
-
-    const stopPolling = useCallback(() => {
-        if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
-        }
-    }, []);
+    }, [currentJobId, setCurrentStatus, finalizeJobState, stopPolling]);
 
     useEffect(() => {
         if (!currentJobId) return;
@@ -84,44 +91,19 @@ export const useChatMessagesController = () => {
                     filter: `id=eq.${currentJobId}` 
                 },
                 (payload) => {
+                    // Sync local state with real-time database changes
                     const { status, err_message } = payload.new;
                     setCurrentStatus(status);
-                    
                     if (status === 'failed' || status === 'completed') {
                         finalizeJobState(status, err_message);
                     }
                 }
             )
-            .subscribe(async (connectionStatus, err) => {
-                if (connectionStatus === 'CHANNEL_ERROR' || connectionStatus === 'TIMED_OUT') {
+            .subscribe(async (status, err) => {
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     startPolling();     // keep checking until it either resolves or reconnects
-                } else if (connectionStatus === 'SUBSCRIBED') {
+                } else if (status === 'SUBSCRIBED') {
                     stopPolling();      // realtime is back, no need to poll anymore
-                } else if (connectionStatus === 'CLOSED') {
-                    stopPolling();
-                    console.log("WebSocket disconneted...")
-                    
-                    try {
-                        // 3. Double-check the job's actual server status before canceling
-                        const result = await JobAPI.getJob(currentJobId);
-                        const serverStatus = result?.job?.status;
-
-                        // If it's already done or failed, just finalize local state
-                        if (serverStatus === 'completed' || serverStatus === 'failed') {
-                            finalizeJobState(serverStatus, result.job?.err_message);
-                            return;
-                        }
-
-                        // 4. If it's STILL running but the socket permanently closed, kill it safely
-                        await JobAPI.cancelJob(currentJobId);
-                        showAlert(false, "Geo-analysis has been canceled due to connection loss.");
-                        finalizeJobState("canceled");
-
-                    } catch (err) {
-                        console.error("Failed to safely resolve closed channel:", err);
-                        // Fallback: If the network is entirely dead (API fails), finalize as canceled
-                        finalizeJobState("canceled");
-                    }
                 }
             });
 
@@ -135,6 +117,8 @@ export const useChatMessagesController = () => {
         setErrorMessage, 
         setIsThinking,
         finalizeJobState,
+        startPolling,
+        stopPolling,
         showAlert
     ]);
 

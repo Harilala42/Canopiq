@@ -184,7 +184,7 @@ describe('useChatInputController', () => {
       expect(JobAPI.cancelJob).toHaveBeenCalledWith('job-active-777');
       expect(msgStoreActions.setIsThinking).toHaveBeenCalledWith(false);
       expect(chatStoreActions.setCurrentJobId).toHaveBeenCalledWith(null);
-      expect(msgStoreActions.setCurrentStatus).toHaveBeenCalledWith(null);
+      expect(msgStoreActions.setCurrentStatus).toHaveBeenCalledWith("canceled");
       expect(mockShowAlert).toHaveBeenCalledWith(true, 'Successfully canceled analysis');
     });
 

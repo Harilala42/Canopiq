@@ -119,11 +119,7 @@ is one-directional and narrow (cleanup + a single lookup), not a general depende
 
 ### Why this pays off: testability
 
-The file tree shows every hook and every store paired with a `.test.ts` file, backed by a
-parallel `__mocks__` directory for stores, APIs, and contexts. That's the direct payoff of
-this split — because Controllers depend on Stores and APIs through the same import paths
-every time, both are trivially mockable in isolation, and a component test never needs a
-real Supabase connection or a real backend running.
+The file tree shows every Controller hook and every Store paired with a `.test.ts` file, backed by a parallel `__mocks__` directory for stores, APIs, and contexts. That's the direct payoff of this architecture—because Controllers depend on Stores and APIs through consistent import boundaries, both are trivially mockable in isolation, and component tests never require a live Supabase instance or backend. The result is a fast, deterministic test suite with 136 passing tests across 11 test suites, achieving a global statement coverage of 73.27%. The remaining uncovered code is almost entirely composed of UI pages (App, Login, Register, Layout) and React context providers, while the application's business logic—the Controllers and Stores that implement the architecture—is comprehensively verified.
 
 ---
 
@@ -132,7 +128,7 @@ real Supabase connection or a real backend running.
 ### 2.1 One shared vocabulary, two ends of the stack
 
 The frontend's `JobStatus` type is `"queued" | "analyzing_prompt" | "computing_gee" |
-"generating_report" | "failed" | "completed"`. The three middle values are exactly the
+"generating_report" | "failed" | "completed" | "canceled"`. The three middle values are exactly the
 backend's `PipelineStage` enum values, written to the `jobs` table by
 `update_job_progress` at each LangGraph node and read here, unchanged, off a realtime
 channel. There's no status-mapping layer in between — the same three strings mean the
@@ -169,6 +165,50 @@ The `geo_analysis` INSERT handler is the frontend's direct counterpart to the ba
 written server-side, it's pushed here, added to `useAnalyticsStore`, set active, and its
 `h3_grid_map_id` is set as the active map — all without the frontend ever asking "is it
 done yet?". After the geo-analysis completes, it triggers an independent sync API call (`fetchGeoAnalysisMap`) to retrieve the heavy H3 grid GeoJSON map, avoiding WebSocket bloat.
+
+### 2.3 Graceful degradation: a polling fallback when the socket drops
+
+Real-time is the default path, not an unconditional assumption. `useChatMessagesController`
+also listens to the *channel's own connection status* — not just row payloads — via the
+second argument to `.subscribe()`:
+
+```typescript
+.subscribe(async (status, err) => {
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        startPolling();     // keep checking until it either resolves or reconnects
+    } else if (status === 'SUBSCRIBED') {
+        stopPolling();      // realtime is back, no need to poll anymore
+    }
+});
+```
+
+If the websocket subscription itself fails or times out — a dropped connection, a
+throttled background tab, a transient Realtime blip — the controller falls back to plain
+REST polling of `JobAPI.getJob(currentJobId)` every 5 seconds, and switches back the
+instant `SUBSCRIBED` fires again. A single `finalizeJobState` helper is called from
+*either* path — the realtime payload handler or the polling loop — so "the job is done" is
+resolved identically no matter which transport noticed it first; nothing downstream needs
+to know which one won.
+
+The fallback isn't unbounded either: after three consecutive failed polls
+(`MAX_POLL_RETRIES = 3`, ~15 seconds of total silence), the controller stops polling and
+finalizes the job as failed with an explicit "connection lost" message, rather than
+leaving the "thinking" indicator spinning forever on a job the client can no longer
+observe through any channel.
+
+```mermaid
+flowchart TD
+    Sub["channel.subscribe()"] -->|SUBSCRIBED| RT[Realtime updates drive the UI]
+    Sub -->|CHANNEL_ERROR / TIMED_OUT| Poll["startPolling — JobAPI.getJob every 5s"]
+    Poll -->|channel resubscribes| RT
+    Poll -->|3 consecutive failures| Fail["finalizeJobState('failed', 'Connection lost...')"]
+    RT -->|status: failed/completed| Done[finalizeJobState]
+    Poll -->|status: failed/completed| Done
+```
+
+This turns the job-status channel from "realtime or nothing" into a UI that degrades to
+REST polling under real network conditions, instead of one that hangs indefinitely the
+moment a socket silently dies.
 
 ### 2.3 Optimistic send, reconciled by realtime
 

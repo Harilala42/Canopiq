@@ -53,6 +53,7 @@ export const useChatInputController = () => {
 
         setInputValue('');
         setIsThinking(true);
+        setCurrentStatus(null);
 
         try {
             let query = currentQuery;
@@ -102,9 +103,9 @@ export const useChatInputController = () => {
         try {
             await JobAPI.cancelJob(currentJobId);
 
-            isThinking && setIsThinking(false);
+            setIsThinking(false);
             setCurrentJobId(null);
-            setCurrentStatus(null);
+            setCurrentStatus("canceled");
 
             showAlert(true, "Successfully canceled analysis");
         } catch (err) {

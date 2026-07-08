@@ -71,6 +71,8 @@ def format_biome_insights(land_use: dict, threshold: float = 3.0) -> list:
 			})
 		else:
 			others_total_value += value
+	
+	main_biomes.sort(key=lambda x: x["value"], reverse=True)
 
 	if others_total_value > 0:
 		main_biomes.append({
