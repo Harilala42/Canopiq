@@ -39,3 +39,5 @@ export const supabase = {
 
   removeChannel: jest.fn(),
 };
+
+export const syncRealtimeSession = jest.fn(() => Promise.resolve());

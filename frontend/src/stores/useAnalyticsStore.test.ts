@@ -16,8 +16,8 @@ describe('useAnalyticsStore', () => {
       coordinates: [103.82, 1.35], // [lng, lat]
     },
     h3_grid_map_id: 'map-123',
-    start_year: '2018',
-    end_year: '2022',
+    start_time: '2018',
+    end_time: '2022',
     analytics: {
       stats: { global_average: 13.5, area_coverage_ha: 477300, total_change_percent: 10.2 },
       insights: [],
@@ -45,8 +45,8 @@ describe('useAnalyticsStore', () => {
       coordinates: [-62.21, -3.46], // [lng, lat]
     },
     h3_grid_map_id: 'map-456',
-    start_year: '2020',
-    end_year: '2026',
+    start_time: '2020',
+    end_time: '2026',
     analytics: {
       stats: { global_average: 85.2, area_coverage_ha: 5000000, total_change_percent: -2.4 },
       insights: [],

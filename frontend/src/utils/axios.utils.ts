@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { syncRealtimeSession } from '@/utils/supabase.utils';
 
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -31,6 +32,8 @@ apiClient.interceptors.response.use(
 
             try {
                 await apiClient.post(import.meta.env.VITE_API_AUTH_REFRESH_TOKEN);
+                await syncRealtimeSession();
+                
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 try {

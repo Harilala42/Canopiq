@@ -324,6 +324,23 @@ router = APIRouter(dependencies=[
 	Depends(check_auth),
 	Depends(rate_limiter)
 ])
+
+@router.get("/auth/session", tags=["auth"])
+async def get_auth_session(access_token: Annotated[str | None, Cookie()]):
+    try:
+        if not access_token:
+            raise HTTPException(
+				status_code=401,
+				detail={
+					"code": "MISSING_ACCESS_TOKEN",
+					"message": "Missing access token"
+				}
+			)
+            
+        return { "access_token": access_token }
+    except Exception as err:
+        print("ERROR: Failed to retrieve session:", str(err))
+        raise HTTPException(status_code=500, detail="Internal server error")
 	
 @router.get("/auth/me", tags=["auth"])
 async def check_user_profile(request: Request):

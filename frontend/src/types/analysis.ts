@@ -54,7 +54,7 @@ export interface GeoAnalysis
         coordinates: [number, number];
     };
 	analytics: AnalyticsPayload;
-	start_year: string | null;
-	end_year: string | null;
+	start_time: string | null;
+	end_time: string | null;
 	h3_grid_map_id: string;
 }

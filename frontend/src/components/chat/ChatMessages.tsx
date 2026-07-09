@@ -28,7 +28,7 @@ const PIPELINE_STEPS: Record<
     },
     computing_gee: { 
         label: 'Satellite Analytics', 
-        desc: 'Computing Google Earth Engine biomass data...' 
+        desc: 'Computing Google Earth Engine dataset...' 
     },
     generating_report: { 
         label: 'Report Compilation', 

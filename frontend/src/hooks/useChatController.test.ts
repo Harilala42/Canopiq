@@ -52,8 +52,8 @@ describe('useChatController', () => {
       coordinates: [103.82, 1.35] // [lng, lat]
     },
     h3_grid_map_id: 'h3-map-999',
-    start_year: '2026',
-    end_year: '2026',
+    start_time: '2026',
+    end_time: '2026',
     analytics: {
       stats: { global_average: 10, area_coverage_ha: 100, total_change_percent: 0 },
       insights: [],

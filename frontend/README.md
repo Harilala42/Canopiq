@@ -128,11 +128,11 @@ The file tree shows every Controller hook and every Store paired with a `.test.t
 ### 2.1 One shared vocabulary, two ends of the stack
 
 The frontend's `JobStatus` type is `"queued" | "analyzing_prompt" | "computing_gee" |
-"generating_report" | "failed" | "completed" | "canceled"`. The three middle values are exactly the
+"generating_report" | "failed" | "completed" | "canceled"`. The values are exactly the
 backend's `PipelineStage` enum values, written to the `jobs` table by
 `update_job_progress` at each LangGraph node and read here, unchanged, off a realtime
-channel. There's no status-mapping layer in between — the same three strings mean the
-same three things on both sides of the stack.
+channel. There's no status-mapping layer in between — the same strings mean the
+same things on both sides of the stack.
 
 ### 2.2 Three narrow, purpose-scoped channels
 
@@ -169,11 +169,10 @@ done yet?". After the geo-analysis completes, it triggers an independent sync AP
 ### 2.3 Graceful degradation: a polling fallback when the socket drops
 
 Real-time is the default path, not an unconditional assumption. `useChatMessagesController`
-also listens to the *channel's own connection status* — not just row payloads — via the
-second argument to `.subscribe()`:
+also listens to the *channel's own connection status* — not just row payloads — via `.subscribe()`:
 
 ```typescript
-.subscribe(async (status, err) => {
+.subscribe((status, err) => {
     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         startPolling();     // keep checking until it either resolves or reconnects
     } else if (status === 'SUBSCRIBED') {

@@ -81,8 +81,8 @@ erDiagram
 		geometry coordinates
 		timestamp_with_time_zone created_at
 		jsonb analytics
-		date start_year
-		date end_year
+		date start_time
+		date end_time
 	}
 
 	jobs {

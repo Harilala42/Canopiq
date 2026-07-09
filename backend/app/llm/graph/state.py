@@ -4,10 +4,13 @@ from typing_extensions import TypedDict, NotRequired
 from app.llm.agent.schemas import GeoSpatialQuery
 
 class PipelineStage(str, Enum):
-    LLM_EXTRACT = "analyzing_prompt"
-    GEE_COMPUTE = "computing_gee"
-    LLM_REPORT  = "generating_report"
-    JOB_ABORTED = "canceled"
+    JOB_QUEUED    = "queued"
+    LLM_EXTRACT   = "analyzing_prompt"
+    GEE_COMPUTE   = "computing_gee"
+    LLM_REPORT    = "generating_report"
+    JOB_COMPLETED = "completed"
+    JOB_FAILED    = "failed"
+    JOB_ABORTED   = "canceled"
 
 class CanopiqState(TypedDict):
     # Inputs by FastAPI before invoking

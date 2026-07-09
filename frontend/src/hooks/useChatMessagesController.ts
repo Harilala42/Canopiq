@@ -99,7 +99,7 @@ export const useChatMessagesController = () => {
                     }
                 }
             )
-            .subscribe(async (status, err) => {
+            .subscribe((status, err) => {
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     startPolling();     // keep checking until it either resolves or reconnects
                 } else if (status === 'SUBSCRIBED') {

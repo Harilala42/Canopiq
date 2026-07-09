@@ -16,7 +16,7 @@ def handle_aborted_job(task: Task, job_id: str, user_id: str) -> Command | None:
     Check whether the job has been canceled by the user.
     """
     if task.is_aborted():
-        update_job_progress(job_id, user_id, "canceled")
+        update_job_progress(job_id, user_id, PipelineStage.JOB_ABORTED.value)
         return Command(update={"pipeline_stage": PipelineStage.JOB_ABORTED}, goto=END)
     return None
 
@@ -90,7 +90,7 @@ async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> C
 
     chat.rename_chat(cfg["chat_id"], cfg["user_id"], report["title"])
     chat.save_chat_message(cfg["chat_id"], cfg["user_id"], "model", report["report_markdown"])
-    update_job_progress(cfg["job_id"], cfg["user_id"], "completed")
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.JOB_COMPLETED.value)
 
     return { 
         "report": report,
@@ -101,7 +101,7 @@ async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> C
 # ── Handler Error Recorery: Gemini writes a friendly GEE failure message ──
 def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: NodeError) -> Command:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "failed", str(error.error))
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.JOB_FAILED.value, str(error.error))
 
     query = state.get("geo_params", {})
     stage = state.get("pipeline_stage", PipelineStage.LLM_EXTRACT)
