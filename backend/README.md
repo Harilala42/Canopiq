@@ -21,8 +21,7 @@ This document describes the three engineering pillars behind that experience:
 | Orchestration | LangGraph `StateGraph` (async), Celery (background job dispatch) |
 | Reasoning | Google Gemini via `langchain-google-genai`, structured output via Pydantic v2 |
 | Geospatial compute | Google Earth Engine (GEE) Python API |
-| Spatial indexing | Uber H3 (hexagonal hierarchical grid) |
-| Geospatial wrangling | GeoPandas |
+| Spatial indexing | Uber H3 (hexagonal hierarchical grid), boundary reconstruction via `h3-js` on the client |
 | Persistence | Supabase (Postgres) |
 | Geocoding | OpenStreetMap Nominatim |
 
@@ -58,11 +57,11 @@ every node:
 class CanopiqState(TypedDict):
     user_prompt: str
     recent_context: list
-    geo_params: NotRequired[GeoSpatialQuery]      # extracted GIS parameters
-    geo_analysis_id: NotRequired[UUID]            # GEE computation result reference
-    report: NotRequired[str]                      # final environmental report
-    recovery_reply: NotRequired[str]               # friendly failure message
-    pipeline_stage: NotRequired[PipelineStage]     # current stage, for progress/error UX
+    geo_params: NotRequired[GeoSpatialQuery]        # extracted GIS parameters
+    geo_analysis_id: NotRequired[UUID]              # GEE computation result reference
+    report: NotRequired[str]                        # final environmental report
+    recovery_reply: NotRequired[str]                # friendly failure message
+    pipeline_stage: NotRequired[PipelineStage]      # current stage, for progress/error UX
 ```
 
 `PipelineStage` is a 3-value enum (`analyzing_prompt`, `computing_gee`,
@@ -319,9 +318,8 @@ flowchart TD
     B --> C["per-hex boundary →<br/>ee.Geometry.Polygon"]
     C --> D[ee.FeatureCollection<br/>of hex_id-tagged features]
     D --> E["reduceRegions<br/>(mean or frequencyHistogram)"]
-    E --> F["ee.data.computeFeatures<br/>→ GEOPANDAS_GEODATAFRAME"]
-    F --> G[GeoDataFrame + choropleth color]
-    G --> H[GeoJSON → frontend map layer]
+    E --> F["reduceColumns(toList)<br/>→ flat [hex_id, value] rows"]
+    F --> G["List[Dict] → h3_cells payload"]
 ```
 
 `_generate_gee_h3_grid` converts the request bbox into an H3 `LatLngPoly`, enumerates
@@ -337,39 +335,40 @@ The same H3 `FeatureCollection` is reduced two different ways depending on wheth
 underlying raster is continuous or categorical:
 
 - **Continuous data** (predicted biomass/tree-cover): `reduceRegions` with
-  `Reducer.mean()` gives each hex its average predicted value. Hexes with no valid signal
-  (`mean` ≤ 0) are dropped rather than shown as false zeros.
+  `Reducer.mean()` gives each hex its average predicted value, surfaced downstream as
+  `percent`. Hexes with no valid signal are dropped **before** any data leaves Earth
+  Engine — `.filter(ee.Filter.gt('mean', 0))` runs server-side on the `FeatureCollection`
+  itself, so a zero-signal hex never shows up as a false zero and never costs a byte of
+  transfer.
 - **Categorical data** (WorldCover classes): `reduceRegions` with
-  `Reducer.frequencyHistogram()` gives each hex a full class-count histogram, and the
-  **majority class** (`max(histogram, key=histogram.get)`) becomes that hex's dominant
-  label and fill color.
+  `Reducer.frequencyHistogram()` gives each hex a full class-count histogram. Because a
+  histogram can't be filtered with a simple Earth Engine predicate the way a scalar mean
+  can, the **majority class** (`max(histogram, key=histogram.get)`) is resolved in the
+  Python loop that follows extraction instead, surfaced downstream as `class`; hexes with
+  an empty histogram or an unrecognized class ID are skipped there.
 
 Both reductions set `tileScale=4`, trading a bit of latency for a lower per-tile memory
 footprint — necessary headroom for the larger, resolution-7 regions near the 10,000 km²
 ceiling.
 
-### 3.5 From Earth Engine back to a usable map layer
+### 3.5 From Earth Engine to a lean H3 payload
 
-`ee.data.computeFeatures(..., fileFormat="GEOPANDAS_GEODATAFRAME")` pulls the reduced
-`FeatureCollection` directly into a **GeoPandas `GeoDataFrame`** (CRS pinned to
-`EPSG:4326`), skipping a manual GeoJSON round-trip. From there:
+Once `reduceRegions` has produced a per-hex statistic (a `mean` for continuous data, a `histogram` for categorical data), that result is extracted directly as flat rows rather than as a collection of geometry-bearing features:
 
-- **Continuous layer:** each hex's value is min-max normalized against the region's
-  `reduceRegion(minMax)` range and mapped to an index in the dataset's color palette
-  (`['#a34b3c', '#b37a3f', '#4b907f', '#287662']` for carbon density, a white-to-green
-  ramp for tree cover), producing a per-hex `color` column ready for direct choropleth
-  rendering.
-- **Categorical layer:** each hex's dominant class is mapped through a fixed 11-class
-  ESA WorldCover legend (`LAND_COVER_CLASSES`) to get its label and color; hexes with no
-  resolvable class are filtered out.
-- **Legend construction:** for continuous data, the value range is split into
-  even-width buckets matching the palette length; for categorical data, the legend is
-  simply the subset of the fixed 11-class table that actually appears in the region —
-  so the frontend never renders a legend entry for a land-cover class that isn't present.
+```python
+raw_data = reduced_hex.reduceColumns(
+    reducer=ee.Reducer.toList(2),
+    selectors=['hex_id', 'mean']       # or ['hex_id', 'histogram'] for land cover
+).get('list').getInfo()
+```
 
-The resulting `GeoDataFrame.__geo_interface__` — plain GeoJSON — is what actually ships
-in the GEE computation's return payload (`hex_geojson`), alongside the time series or
-land-use percentages, ready for the frontend to drop straight onto a map.
+`reduceColumns(toList(2))` runs *inside* Earth Engine, collapsing the `FeatureCollection` down to a plain list of `[hex_id, value]` pairs before anything crosses the network. The single `getInfo()` call at the end pulls back only those two columns per hex — nothing else is computed, tagged, or transferred. From there, a short Python loop turns each raw pair into a finished record:
+
+- **Continuous layer.** Each `mean` value is min-max normalized against the region's `reduceRegion(minMax)` range and mapped to an index in the dataset's color palette (`['#a34b3c', '#b37a3f', '#4b907f', '#287662']` for carbon density, a white-to-green ramp for tree cover) via `map_val_to_color`. Each hex becomes `{hex_id, percent, color}`.
+- **Categorical layer.** Each hex's `histogram` — a class-ID-to-pixel-count dictionary — is resolved to its majority class via `max(histogram, key=histogram.get)`, then mapped through the fixed 11-class ESA WorldCover legend (`LAND_COVER_CLASSES`) to get a label and color. Each hex becomes `{hex_id, class, color}`; hexes with an empty histogram or an unrecognized class ID are skipped in this same pass.
+- **Legend construction.** This runs independently of the per-hex loop, against the two region-wide aggregates computed earlier: for continuous data, `reduceRegion(minMax)`'s value range is split into even-width buckets matching the palette length; for categorical data, the legend is the subset of the fixed 11-class table that actually shows up in the region-wide `frequencyHistogram`, so the frontend never renders a legend entry for a land-cover class that isn't present.
+
+The result is a plain `List[Dict[str, Any]]` — one small dictionary per hex, keyed by `hex_id`. This is what ships in the GEE computation's return payload (`h3_cells`), alongside the time series or land-use percentages. Each record carries only what the map actually needs to render and color a hex; the hex's boundary itself is never part of the payload — it's derived on the frontend from the `hex_id` at render time.
 
 ---
 
@@ -385,3 +384,6 @@ land-use percentages, ready for the frontend to drop straight onto a map.
   fits its own regression against the region and time window it actually concerns.
 - **Area-aware H3 resolution** — a single dynamic rule keeps compute and payload size
   bounded from a city block up to the platform's 10,000 km² ceiling.
+- **Geometry-free hex payloads** — `reduceColumns(toList)` extracts flat
+  `[hex_id, value]` rows, and the hex boundary is reconstructed once, client-side, from
+  the H3 index itself.

@@ -1,24 +1,15 @@
 import useMapStore from './useMapStore';
 import useAnalyticsStore from '@/stores/useAnalyticsStore';
-import { GridMap, HexGeoJSONData, LegendData } from '@/types/map';
+import { GridMap, HexProperties, LegendData } from '@/types/map';
 import { GeoAnalysis } from '@/types/analysis';
 
 // Mock the cross-store dependency
 jest.mock('@/stores/useAnalyticsStore');
 
 describe('useMapStore', () => {
-  // Mock child data structures to form GridMap
-  const mockGeoJSONData: HexGeoJSONData = {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        id: 'hex-1',
-        geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] },
-        properties: { color: '#2ca02c', hex_id: 'hex-1', biomass: 45.5 },
-      },
-    ],
-  };
+  const mockH3Cells: HexProperties[] = [
+    { color: '#2ca02c', hex_id: 'hex-1', percent: 45.5 },
+  ];
 
   const mockLegendData: LegendData[] = [
     { color: '#2ca02c', label: '0-30 tons/ha' },
@@ -29,7 +20,7 @@ describe('useMapStore', () => {
     id: 'map-1',
     location: 'Singapore',
     coords: [1.35, 103.82],
-    hex_geojson: mockGeoJSONData,
+    h3_cells: mockH3Cells,
     legend: mockLegendData,
   };
 
@@ -37,7 +28,7 @@ describe('useMapStore', () => {
     id: 'map-2',
     location: 'Amazon Rainforest',
     coords: [-3.46, -62.21],
-    hex_geojson: mockGeoJSONData,
+    h3_cells: mockH3Cells,
     legend: mockLegendData,
   };
 

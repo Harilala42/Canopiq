@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useMapController } from './useMapController';
 import { AnalysisAPI } from '@/api/analysis.api';
-import { GridMap, HexGeoJSONData, LegendData } from '@/types/map';
+import { GridMap, HexProperties, LegendData } from '@/types/map';
 import { GeoAnalysis } from '@/types/analysis';
 
 import useMapStore from '@/stores/useMapStore';
@@ -17,17 +17,9 @@ jest.mock('@/contexts/alertContext', () => (
 ));
 
 describe('useMapController', () => {
-  const mockGeoJSONData: HexGeoJSONData = {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        id: 'hex-1',
-        geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] },
-        properties: { color: '#ff0000', hex_id: 'H1', biomass: 120.5 },
-      },
-    ],
-  };
+  const mockH3Cells: HexProperties[] = [
+    { color: '#ff0000', hex_id: 'H1', percent: 120.5 }
+  ];
 
   const mockLegendData: LegendData[] = [{ color: '#ff0000', label: '100-150 kg' }];
 
@@ -35,7 +27,7 @@ describe('useMapController', () => {
     id: 'map-111',
     location: 'Madagascar Grid',
     coords: [-20, 45],
-    hex_geojson: mockGeoJSONData,
+    h3_cells: mockH3Cells,
     legend: mockLegendData,
   };
 
@@ -86,7 +78,7 @@ describe('useMapController', () => {
 
       const { result } = renderHook(() => useMapController(), { wrapper: AlertProvider });
 
-      expect(result.current.map).toEqual(mockGeoJSONData);
+      expect(result.current.map).toEqual(mockH3Cells);
       expect(result.current.coords).toEqual([-20, 45]);
       expect(result.current.location).toBe('Madagascar Grid');
       expect(result.current.legend).toEqual(mockLegendData);
@@ -139,7 +131,7 @@ describe('useMapController', () => {
         id: 'map-111',
         location: 'Madagascar Grid',
         coords: [-20, 45], 
-        hex_geojson: mockGeoJSONData,
+        h3_cells: mockH3Cells,
         legend: mockLegendData,
       });
       expect(mockShowAlert).not.toHaveBeenCalled();
@@ -168,7 +160,7 @@ describe('useMapController', () => {
         id: 'map-111',
         location: '',
         coords: [0, 0],
-        hex_geojson: mockGeoJSONData,
+        h3_cells: mockH3Cells,
         legend: mockLegendData,
       });
     });

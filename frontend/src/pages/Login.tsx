@@ -48,7 +48,7 @@ function Login(): JSX.Element {
 		try {
 			await AuthAPI.loginWithPassword(formData)
 
-			login();
+			await login();
 			showAlert(true, "Welcome back! You’re now logged in.");
 			setTimeout(() => navigate('/'), 2000);
 		} catch (err: any) {

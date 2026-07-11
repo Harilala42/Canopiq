@@ -15,7 +15,7 @@ def run_geospatial_pipeline(self, user_id: str, chat_id: str, prompt: str):
 		update_job_progress(job_id, user_id, PipelineStage.JOB_QUEUED.value)
 
 		chat_history = chat.get_chat_message(chat_id, user_id)
-		recent_context = chat_history[-3:] if chat_history else []
+		recent_context = chat_history[-5:] if chat_history else []
 
 		initial_state = {
 			"user_prompt": prompt,

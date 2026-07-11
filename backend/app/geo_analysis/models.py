@@ -1,4 +1,3 @@
-import geopandas as gpd
 from shapely.geometry import box, Point
 from app.dependencies import get_supabase
 from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent, format_biome_insights
@@ -7,7 +6,7 @@ def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
     client = get_supabase()
     
     response = client.table("h3_grid_maps") \
-        .select("hex_geojson, legend") \
+        .select("h3_cells, legend") \
         .eq("id", h3_grid_map_id) \
         .eq("user_id", user_id) \
         .maybe_single() \
@@ -16,7 +15,7 @@ def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
     return response.data if response and response.data else None
 
 def save_h3_grid_map(
-    hex_geojson: gpd.GeoDataFrame,
+    h3_cells: list[dict[str, any]],
     legend: list[dict[str, int]],
     user_id: str,
     job_id: str
@@ -27,7 +26,7 @@ def save_h3_grid_map(
         .upsert({
             "job_id": job_id,
             "user_id": user_id,
-            "hex_geojson": hex_geojson,
+            "h3_cells": h3_cells,
             "legend": legend
         }, on_conflict="job_id") \
         .execute()
@@ -44,8 +43,8 @@ def get_geo_analysis(chat_id: str, user_id: str):
             "dataset", 
             "boundary", 
             "coordinates", 
-            "start_year", 
-            "end_year", 
+            "start_time", 
+            "end_time", 
             "analytics", 
             "h3_grid_map_id"
         ) \
@@ -137,7 +136,7 @@ def save_geo_analysis(
         payload = _build_categorical_payload(gis_analysis, meta)
 
     h3_grid_map = save_h3_grid_map(
-        hex_geojson=gis_analysis["hex_geojson"],
+        h3_cells=gis_analysis["h3_cells"],
         legend=gis_analysis["legend"],
         user_id=user_id,
         job_id=job_id
@@ -156,8 +155,8 @@ def save_geo_analysis(
             "h3_grid_map_id": h3_grid_map[0]["id"],
             "location": query['location'],
             "dataset": query['dataset'],
-            "start_year": _iso_or_none(query.get("start_time")),
-            "end_year": _iso_or_none(query.get("end_time")),
+            "start_time": _iso_or_none(query.get("start_time")),
+            "end_time": _iso_or_none(query.get("end_time")),
             "boundary": boundary,
             "coordinates": center,
             "analytics": payload

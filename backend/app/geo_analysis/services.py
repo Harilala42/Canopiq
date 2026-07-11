@@ -2,8 +2,7 @@ import os
 import ee
 import h3
 import time
-import random
-import geopandas as gpd
+import _random
 from h3 import LatLngPoly
 from google.oauth2 import service_account
 from typing import Any, List, Dict, Tuple
@@ -96,7 +95,7 @@ def compute_biomass_trend(
 		.rename('biomass')
 
 	# 4. Reduce predicted raster values to H3 hexagonal collection
-	vmin, vmax, hex_gdf = _extract_gee_image_to_h3_grid(
+	vmin, vmax, h3_cells = _extract_gee_image_to_h3_grid(
 		predicted_img=predicted_img,
 		roi=roi, scale=scale,
 		h3_vector_col=h3_vector_col,
@@ -117,7 +116,7 @@ def compute_biomass_trend(
 	legend_data = _generate_legend_intervals(vmin, vmax, palette)
 
 	return {
-		"hex_geojson": hex_gdf.__geo_interface__,
+		"h3_cells": h3_cells,
 		"time_series": processed_ts,
 		"area_ha": round(area_ha, 2),
 		"legend": legend_data
@@ -271,10 +270,10 @@ def _extract_gee_image_to_h3_grid(
 	scale: int,
 	h3_vector_col: ee.FeatureCollection,
 	palette: List[str]
-) -> Tuple[float, float, gpd.GeoDataFrame]:
+) -> Tuple[float, float, List[Dict[str, Any]]]:
 	"""
 	Reduces imagery data directly inside the provided H3 FeatureCollection 
-	and returns a clean, fully aggregated GeoPandas GeoDataFrame.
+	and returns a clean list of {hex_id, biomass, color} dicts.
 	"""
 	stats = predicted_img.reduceRegion(
 		reducer=ee.Reducer.minMax(),
@@ -292,25 +291,27 @@ def _extract_gee_image_to_h3_grid(
 		reducer=ee.Reducer.mean(),
 		scale=scale,
 		tileScale=4
-	)
-	cleaned_hex = reduced_hex.filter(ee.Filter.gt('mean', 0))
+	).filter(ee.Filter.gt('mean', 0))
 
-	hex_gdf = ee.data.computeFeatures({
-		'expression': cleaned_hex,
-		'fileFormat': 'GEOPANDAS_GEODATAFRAME'
-	})
-	hex_gdf.crs = 'EPSG:4326'
-
-	def map_val_to_color(val):
+	def map_val_to_color(val: float) -> str:
 		if vmax == vmin: return palette[0]
-		t = (val - vmin) / (vmax - vmin)
-		t = max(0.0, min(1.0, t))
-		idx = int(t * (len(palette) - 1))
-		return palette[idx]
-	hex_gdf = hex_gdf.rename(columns={'mean': band_name})
-	hex_gdf["color"] = hex_gdf[band_name].apply(map_val_to_color)
+		t = max(0.0, min(1.0, (val - vmin) / (vmax - vmin)))
+		return palette[int(t * (len(palette) - 1))]
+	
+	raw_data = reduced_hex.reduceColumns(
+		reducer=ee.Reducer.toList(2), 
+		selectors=['hex_id', 'mean']
+	).get('list').getInfo()
 
-	return vmin, vmax, hex_gdf
+	payload = []
+	for hex_id, mean in raw_data:
+		payload.append({
+			"hex_id": hex_id,
+			"percent": round(mean, 2),
+			"color": map_val_to_color(mean)
+		})
+
+	return vmin, vmax, payload
 
 def _compute_time_series(
 	collection: ee.ImageCollection, 
@@ -426,13 +427,13 @@ def compute_land_use_distribution(bbox: List[float]) -> Dict[str, Any]:
 	).getInfo()
 
 	# 4. Reduce categorical raster values to H3 grid via majority voting
-	hex_gdf = _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale)
+	h3_cells = _extract_landcover_to_h3_grid(ref_img, h3_vector_col, scale)
 
 	# 5. Extract chart distribution percentages and build the interactive map legend
 	land_use_percent, legend_data = _generate_legend_classes(histogram)
 
 	return {
-		"hex_geojson": hex_gdf.__geo_interface__,
+		"h3_cells": h3_cells,
 		"land_use": land_use_percent,
 		"area_ha": round(area_ha, 2),
 		"legend": legend_data
@@ -444,12 +445,10 @@ def _extract_landcover_to_h3_grid(
 	ref_img: ee.Image, 
 	h3_vector_col: ee.FeatureCollection, 
 	scale: int
-) -> gpd.GeoDataFrame:
+) -> List[Dict[str, Any]]:
 	"""
-	Reduces the categorical WorldCover image into the H3 grid. Land cover
-	classes are categorical (10, 20, 30...), so per-hex aggregation uses
-	frequencyHistogram (not mean) and each hex is colored/labeled by its
-	dominant class.
+	Reduces the categorical WorldCover image into the H3 grid via
+	frequencyHistogram, and returns a clean list of {hex_id, class, color} dicts.
 	"""
 	reduced_hex = ref_img.reduceRegions(
 		collection=h3_vector_col,
@@ -458,29 +457,26 @@ def _extract_landcover_to_h3_grid(
 		tileScale=4
 	)
 
-	hex_gdf = ee.data.computeFeatures({
-		'expression': reduced_hex,
-		'fileFormat': 'GEOPANDAS_GEODATAFRAME'
-	})
-	hex_gdf.crs = 'EPSG:4326'
+	raw_data = reduced_hex.reduceColumns(
+		reducer=ee.Reducer.toList(2),
+		selectors=['hex_id', 'histogram']
+	).get('list').getInfo()
 
-	dominant_labels = []
-	dominant_colors = []
-	for histogram in hex_gdf.get("histogram", []):
-		class_id = int(max(histogram, key=histogram.get)) if histogram else None
+	payload = []
+	for hex_id, histogram in raw_data:
+		if not histogram: continue
+
+		class_id = int(max(histogram, key=histogram.get))
 		info = LAND_COVER_CLASSES.get(class_id)
-		if info is None:
-			dominant_labels.append(None)
-			dominant_colors.append(None)
-		else:
-			dominant_labels.append(info["label"])
-			dominant_colors.append(info["color"])
+		if info is None: continue
 
-	hex_gdf["dominant_class"] = dominant_labels
-	hex_gdf["color"] = dominant_colors
-	hex_gdf = hex_gdf[hex_gdf["dominant_class"].notna()]
+		payload.append({
+			"hex_id": hex_id,
+			"class": info["label"],
+			"color": info["color"],
+		})
 
-	return hex_gdf
+	return payload
 
 def _generate_legend_classes(
 	histogram: Dict[str, Any]

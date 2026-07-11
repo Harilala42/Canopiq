@@ -125,7 +125,7 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			raise HTTPException(
 				status_code=403,
 				detail={
-					"code": "FORBIDDEN",
+					"code": "EMAIL_NOT_CONFIRMED",
 					"message": "Email still not confirmed. Please verify your email."
 				}
 			)

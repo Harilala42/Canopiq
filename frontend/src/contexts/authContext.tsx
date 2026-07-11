@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 		} finally {
 			setIsLoading(false);
 		}
-	}, []);
+	}, [setIsAuthenticated, setUser, setIsLoading]);
 
 	const login = async () => await checkSession();
 	

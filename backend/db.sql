@@ -44,7 +44,7 @@ CREATE TABLE h3_grid_maps (
 	id uuid NOT NULL DEFAULT gen_random_uuid(),
 	user_id uuid NOT NULL,
 	legend jsonb NOT NULL,
-	h3_cells text[] NOT NULL,
+	h3_cells jsonb NOT NULL,
 	created_at timestamp with time zone DEFAULT now(),
 	updated_at timestamp with time zone DEFAULT now(),
 	job_id uuid NOT NULL UNIQUE,
@@ -109,8 +109,8 @@ CREATE POLICY "Users can access their own chats" ON chats
 CREATE POLICY "Users can access messages from their chats" ON messages
 	FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can access their own jobs" ON jobs
+CREATE POLICY "Users can access their own geo-analysis" ON geo_analysis
 	FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can access their own geo-analysis" ON geo_analysis
+CREATE POLICY "Users can access their own jobs" ON jobs
 	FOR SELECT USING (auth.uid() = user_id);

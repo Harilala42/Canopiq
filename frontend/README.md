@@ -8,7 +8,7 @@ several patterns here exist specifically to consume what that pipeline produces.
 Three parts:
 
 1. **[An MVC-inspired split between Zustand stores and custom-hook controllers](#1-mvc-inspired-pattern-hooks-as-controllers-stores-as-models)**
-2. **[Real-time Supabase sync, and handling heavy GeoJSON on a 2D Leaflet map](#2-real-time-supabase-updates--heavy-geojson-on-react-leaflet)**
+2. **[Real-time Supabase sync, and rendering lightweight H3 Cell data on a 2D Leaflet map](#2-real-time-supabase-updates--lightweight-h3-grid-rendering)**
 3. **[Markdown reports with embedded, store-backed Recharts components](#3-react-markdown-reports-with-embedded-recharts-components)**
 
 ### Stack at a glance
@@ -18,7 +18,7 @@ Three parts:
 | State | Zustand (4 domain stores) |
 | Business logic / orchestration | Custom hooks ("controllers") |
 | Real-time sync | Supabase Realtime (`postgres_changes`) |
-| Map rendering | React-Leaflet (canvas renderer) |
+| Map rendering | `React-Leaflet` (canvas renderer) + `h3-js` for client boundary generation |
 | Charts | Recharts |
 | Report rendering | `react-markdown` + `remark-gfm` |
 | UI kit | Chakra UI |
@@ -123,7 +123,7 @@ The file tree shows every Controller hook and every Store paired with a `.test.t
 
 ---
 
-## 2. Real-Time Supabase Updates & Heavy GeoJSON on React-Leaflet
+## 2. Real-Time Supabase Updates & Lightweight H3 Grid Rendering
 
 ### 2.1 One shared vocabulary, two ends of the stack
 
@@ -160,11 +160,7 @@ flowchart TD
 | `messages-{chatId}` | `INSERT messages` | `chat_id=eq.{chatId}` | New chat turns arriving asynchronously |
 | `geo_analysis-{chatId}` | `INSERT geo_analysis` | `chat_id=eq.{chatId}` | Charts appearing the instant GEE compute data |
 
-The `geo_analysis` INSERT handler is the frontend's direct counterpart to the backend's
-`save_geo_analysis` call inside `run_gee_computation_node`: the moment that row is
-written server-side, it's pushed here, added to `useAnalyticsStore`, set active, and its
-`h3_grid_map_id` is set as the active map — all without the frontend ever asking "is it
-done yet?". After the geo-analysis completes, it triggers an independent sync API call (`fetchGeoAnalysisMap`) to retrieve the heavy H3 grid GeoJSON map, avoiding WebSocket bloat.
+The `geo_analysis` INSERT handler triggers an independent sync API call (`fetchGeoAnalysisMap` in `useMapController`) to retrieve the H3 grid payload data. By avoiding heavy GeoJSON payloads over WebSockets or REST wires, network serialization costs drop dramatically.
 
 ### 2.3 Graceful degradation: a polling fallback when the socket drops
 
@@ -226,42 +222,15 @@ Because the client generates the UUID and the server round-trips it unchanged, t
 guessing about which placeholder to replace — a small detail, but it's what makes the
 optimistic-UI reconciliation exact rather than heuristic.
 
-### 2.4 Handling heavy GeoJSON on a 2D Leaflet map
+### 2.4 Rendering Lightweight H3 Cells on a 2D Leaflet Map
 
-A single analysis can produce hundreds to low-thousands of H3 hex polygons (see the
-backend's dynamic-resolution logic). A few compounding decisions keep that from becoming
-a slow map:
+A single analysis can produce hundreds to low-thousands of H3 hex polygons. Sending full GeoJSON topologies across the wire introduces extreme payload bloat. To bypass this, the architecture transfers a slim array of `HexProperties` containing raw H3 indices and precomputed data, handling spatial reconstruction entirely on the client:
 
-- **Fetch once, cache forever (per session).** `useMapController` only calls
-  `AnalysisAPI.getMap` when the map isn't already in the store:
-  `if (!activeMapId || maps[activeMapId]) return;`. Since `maps` is keyed by ID,
-  switching between analyses in the same chat after the first load is a pure store read
-  — no network round-trip, no re-parse of the GeoJSON.
-- **Canvas rendering, not SVG.** `MapContainer` is set with `preferCanvas={true}`.
-  Leaflet's default SVG renderer creates one DOM node per polygon; for a grid with
-  thousands of hexes that's thousands of DOM nodes competing for style/layout. Canvas
-  rendering draws every hex onto a single `<canvas>` element instead, which is the
-  difference between a map that pans smoothly and one that visibly stutters once the hex
-  count grows.
-- **Conditional mount.** The hex-grid layer only mounts when there's data:
-  `{map && map.features?.length > 0 && <MapHexGrid mapData={map} />}` — Leaflet never
-  has to diff an empty GeoJSON layer on every chat with no analysis yet.
-- **Color is precomputed, not recomputed.** Every hex feature already carries its final
-  `color` in `properties` (baked in server-side during H3 aggregation, as covered in the
-  backend doc). The frontend never runs a min-max normalization or palette lookup over
-  the feature set — it just reads `feature.properties.color`. For a client rendering
-  possibly thousands of features, skipping a per-feature computation pass on every render
-  is a meaningful saving, and it keeps the "what does this color mean" logic in exactly
-  one place.
-- **Selector-scoped store reads.** Components read the *narrowest* possible slice of a
-  store — e.g. `useAnalyticsStore((state) => state.analyses[analysisId])` inside a chart,
-  not the whole `analyses` dictionary. Zustand only re-renders a component when the
-  selected slice actually changes, so one analysis updating doesn't re-render every chart
-  and map on screen referencing a different one.
-- **Guarding redundant map animations.** `MapEffects` keeps the previous coordinates in a
-  `ref` and only calls `map.flyTo` again once the new center has moved more than a small
-  threshold (`Math.hypot(...) > 0.01`), so re-renders that don't meaningfully change
-  location don't retrigger a fly-to animation.
+* **Fetch once, cache forever (per session).** `useMapController` only calls `AnalysisAPI.getMap` when the map isn't already in the store dictionary.  Since maps is keyed by ID, switching between active maps in the same session is an instant O(1) store lookup without any network round-trip.
+* **Client-side boundary generation via `h3-js`.** The backend never transmits spatial polygon coordinates. Instead, `MapHexGrid` intercepts the lightweight `HexProperties[]` array and maps each H3 index dynamically through `cellToBoundary(cell.hex_id, true)` inside a memoized `useMemo` block. This transforms raw spatial keys into a standard client-side `GeoJSON` object seamlessly.
+* **Canvas rendering, not SVG.** `MapContainer` is explicitly configured with `preferCanvas={true}`. Leaflet draws every hex onto a single `<canvas>` element instead of spawning thousands of expensive SVG DOM nodes.
+* **Color is precomputed, not recomputed.** Every hex feature already carries its final `color` in `properties` (baked in server-side during H3 aggregation, as covered in the backend doc). The frontend never runs a min-max normalization or palette lookup over the feature set — it just reads `feature.properties.color`. For a client rendering possibly thousands of features, skipping a per-feature computation pass on every render is a meaningful saving, and it keeps the "what does this color mean" logic in exactly one place.
+* **Guarding redundant map animations.** `MapEffects` keeps the previous coordinates in a ref and only calls `map.flyTo` again once the new center has moved more than a small threshold (`Math.hypot(...) > 0.01`), so re-renders that don't meaningfully change location don't retrigger a fly-to animation.
 
 ---
 
@@ -371,7 +340,7 @@ every chart on screen recomputing.
   the backend's `PipelineStage` enum are the same strings, not two systems mapped through
   a translation layer.
 - **GeoJSON performance treated as a first-class concern** — cache-by-ID, canvas
-  rendering, conditional mounts, and server-precomputed colors all stack to keep a
+  rendering, `h3-js` client boundary generation, and server-precomputed colors all stack to keep a
   thousand-hex map interactive.
 - **Data reference vs. data payload, kept separate on purpose** — chat messages carry an
   ID, not a payload, so the chart displayed is always backed by the store's live copy of

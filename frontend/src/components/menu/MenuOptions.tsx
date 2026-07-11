@@ -25,8 +25,8 @@ const MenuOptions = memo(({ query }: MenuOptionsProps) => {
     const {
         menuOpen,
         setMenuOpen,
-        isCanceleded,
-        setIsCanceleded,
+        isCanceled,
+        setIsCanceled,
         isUpdating,
         setIsUpdating,
         isPinned,
@@ -43,10 +43,10 @@ const MenuOptions = memo(({ query }: MenuOptionsProps) => {
                 <IconButton 
                     aria-label="edit query" 
                     bg={menuOpen ? (isDark ? "variantDark" : "variantLight") : "transparent"}
-                    onMouseEnter={() => setIsCanceleded(true)}
-                    onMouseLeave={() => setIsCanceleded(false)}
+                    onMouseEnter={() => setIsCanceled(true)}
+                    onMouseLeave={() => setIsCanceled(false)}
                 >
-                    { !isPinned || isCanceleded || menuOpen ? <LuEllipsisVertical /> : <LuPin /> }
+                    { !isPinned || isCanceled || menuOpen ? <LuEllipsisVertical /> : <LuPin /> }
                 </IconButton>
             </Menu.Trigger>
             <Portal>

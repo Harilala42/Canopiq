@@ -26,7 +26,7 @@ export const useSideBarController = () => {
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
-    const [isCanceleded, setIsCanceleded] = useState<boolean>(false);
+    const [isCanceled, setIsCanceled] = useState<boolean>(false);
     const { showAlert } = useContext(AlertContext);
 
     const sortedChats = useMemo(() => {
@@ -115,9 +115,9 @@ export const useSideBarController = () => {
         isOpen,
         isLoading,
         isCreating,
-        isCanceleded,
+        isCanceled,
         toggleSideBar,
-        setIsCanceleded,
+        setIsCanceled,
         handleSelectQuery,
         createNewQuery
     };
