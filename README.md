@@ -283,5 +283,6 @@ Combines **clean** and **build** to efficiently stop the stack and spin it right
 
 This project is open-source and available under the **MIT License**.
 
+---
 
 💡 Find this project interesting? Feel free to leave a ⭐ star or open an issue with feedback. It helps me improve my work and keeps me motivated to build more!
