@@ -11,6 +11,7 @@ build:
 
 clean:
 	$(DC) -f $(COMPOSE_FILE) down
+	docker system prune -f
 
 fclean: clean
 	docker volume rm $$(docker volume ls -q) || true

@@ -1,3 +1,5 @@
+import os
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as auth_router, public_router
@@ -11,8 +13,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Health Check Endpoint
+@app.get("/health", tags=["system"])
+def health_check():
+    return {"status": "ok", "message": "Canopiq service is running"}
+
 origins = [
-    "http://localhost:3000"
+    os.getenv("FRONDEND_URL")
 ]
 
 app.add_middleware(
@@ -28,3 +35,7 @@ app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
 app.include_router(chat_router, prefix="/api/v1", tags=["chat"])
 app.include_router(geo_analysis_router, prefix="/api/v1", tags=["geo-analysis"])
 app.include_router(job_router, prefix="/api/v1", tags=["job"])
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

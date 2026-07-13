@@ -58,8 +58,8 @@ export const useChatController = () => {
             if (result && result?.geo_analysis) {
                 const oldAnalyses: GeoAnalysis[] = result.geo_analysis;
 
-                setAnalyses(oldAnalyses);
                 if (oldAnalyses.length > 0) {
+                    setAnalyses(oldAnalyses);
                     setActiveAnalysis(oldAnalyses[0]);
                     setActiveMap(oldAnalyses[0].h3_grid_map_id);
                 }

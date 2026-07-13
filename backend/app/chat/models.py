@@ -1,7 +1,7 @@
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 
 def get_chat_message(chat_id: str, user_id: str):
-    client = supabase()
+    client = get_supabase()
 
     messages_list = client.table("messages") \
         .select("role", "content", "id", "created_at") \
@@ -21,7 +21,7 @@ def save_chat_message(
     content: str, 
     message_id: str = None
 ):
-    client = supabase()
+    client = get_supabase()
 
     payload = {
         "chat_id": str(chat_id),
@@ -38,7 +38,7 @@ def save_chat_message(
     return response.data if response and response.data else None
 
 def chat_exists(chat_id: str, user_id: str) -> bool:
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("chats") \
         .select("id") \
@@ -49,7 +49,7 @@ def chat_exists(chat_id: str, user_id: str) -> bool:
     return bool(response.data)
 
 def create_new_chat(user_id: str):
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("chats") \
         .insert({ "user_id": user_id }) \
@@ -58,7 +58,7 @@ def create_new_chat(user_id: str):
     return response.data if response and response.data else None
 
 def delete_chat(chat_id: str, user_id: str):
-    client = supabase()
+    client = get_supabase()
 
     client.table("chats") \
         .delete() \
@@ -67,7 +67,7 @@ def delete_chat(chat_id: str, user_id: str):
         .execute()
 
 def get_user_chats(user_id: str):
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("chats") \
         .select("id, created_at, title, is_pinned") \
@@ -78,7 +78,7 @@ def get_user_chats(user_id: str):
     return response.data if response and response.data else []
 
 def rename_chat(chat_id: str, user_id: str, new_title: str):
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("chats") \
         .update({ "title": new_title }) \
@@ -89,7 +89,7 @@ def rename_chat(chat_id: str, user_id: str, new_title: str):
     return response.data if response and response.data else None
 
 def toggle_chat_pin(chat_id: str, user_id: str, is_pinned: bool):
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("chats") \
         .update({ "is_pinned": is_pinned }) \

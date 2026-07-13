@@ -35,10 +35,12 @@ describe('useChatStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset store state before each test
+    // Reset store state before each test to match actual implementation defaults
     useChatStore.setState({
+      isOpen: false,
       queries: [],
       currentQuery: null,
+      currentJobId: null,
     });
   });
 
@@ -83,12 +85,32 @@ describe('useChatStore', () => {
       expect(useChatStore.getState().currentQuery).toBeNull();
     });
 
-    it('should replace current query', () => {
+    it('should update current query if it is a completely different query ID', () => {
       useChatStore.getState().setCurrentQuery(mockQuery1);
       expect(useChatStore.getState().currentQuery).toEqual(mockQuery1);
 
       useChatStore.getState().setCurrentQuery(mockQuery2);
       expect(useChatStore.getState().currentQuery).toEqual(mockQuery2);
+    });
+
+    it('should skip setting reference if the same query id is passed again', () => {
+      useChatStore.getState().setCurrentQuery(mockQuery1);
+      
+      const distinctRefWithSameId = { ...mockQuery1, title: 'Mutated title' };
+      useChatStore.getState().setCurrentQuery(distinctRefWithSameId);
+      
+      expect(useChatStore.getState().currentQuery?.title).toBe('Query 1');
+    });
+  });
+
+  // ========== JOB ID TRACKING TESTS ==========
+  describe('setCurrentJobId', () => {
+    it('should update current job processing identifier', () => {
+      useChatStore.getState().setCurrentJobId('job-abc-123');
+      expect(useChatStore.getState().currentJobId).toBe('job-abc-123');
+
+      useChatStore.getState().setCurrentJobId(null);
+      expect(useChatStore.getState().currentJobId).toBeNull();
     });
   });
 
@@ -205,8 +227,7 @@ describe('useChatStore', () => {
     it('should call cleanup methods when deleting current query', () => {
       const mockClearMap = jest.fn();
       const mockResetMessages = jest.fn();
-      const mockCloseChart = jest.fn();
-      const mockresetAnalyses = jest.fn();
+      const mockResetAnalyses = jest.fn();
 
       (useMapStore.getState as jest.Mock).mockReturnValue({
         clearMap: mockClearMap,
@@ -215,25 +236,22 @@ describe('useChatStore', () => {
         resetMessages: mockResetMessages,
       });
       (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
-        closeChart: mockCloseChart,
-        resetAnalyses: mockresetAnalyses,
+        resetAnalyses: mockResetAnalyses,
       });
 
       useChatStore.getState().setQueries([mockQuery1, mockQuery2]);
       useChatStore.getState().setCurrentQuery(mockQuery1);
       useChatStore.getState().deleteQuery('1');
 
-      expect(mockCloseChart).toHaveBeenCalled();
       expect(mockClearMap).toHaveBeenCalled();
       expect(mockResetMessages).toHaveBeenCalled();
-      expect(mockresetAnalyses).toHaveBeenCalled();
+      expect(mockResetAnalyses).toHaveBeenCalled();
     });
 
     it('should NOT call cleanup methods when deleting non-current query', () => {
       const mockClearMap = jest.fn();
       const mockResetMessages = jest.fn();
-      const mockCloseChart = jest.fn();
-      const mockresetAnalyses = jest.fn();
+      const mockResetAnalyses = jest.fn();
 
       (useMapStore.getState as jest.Mock).mockReturnValue({
         clearMap: mockClearMap,
@@ -242,18 +260,16 @@ describe('useChatStore', () => {
         resetMessages: mockResetMessages,
       });
       (useAnalyticsStore.getState as jest.Mock).mockReturnValue({
-        closeChart: mockCloseChart,
-        resetAnalyses: mockresetAnalyses,
+        resetAnalyses: mockResetAnalyses,
       });
 
       useChatStore.getState().setQueries([mockQuery1, mockQuery2]);
       useChatStore.getState().setCurrentQuery(mockQuery1);
       useChatStore.getState().deleteQuery('2');
 
-      expect(mockCloseChart).not.toHaveBeenCalled();
       expect(mockClearMap).not.toHaveBeenCalled();
       expect(mockResetMessages).not.toHaveBeenCalled();
-      expect(mockresetAnalyses).not.toHaveBeenCalled();
+      expect(mockResetAnalyses).not.toHaveBeenCalled();
     });
 
     it('should handle deleting from empty queries array', () => {
@@ -261,6 +277,27 @@ describe('useChatStore', () => {
 
       expect(useChatStore.getState().queries).toHaveLength(0);
       expect(useChatStore.getState().currentQuery).toBeNull();
+    });
+  });
+
+  // ========== SIDEBAR VISIBILITY TESTS ==========
+  describe('Sidebar Layout Actions', () => {
+    it('should explicitly open or close sidebar visibility flags', () => {
+      useChatStore.getState().openSidebar();
+      expect(useChatStore.getState().isOpen).toBe(true);
+
+      useChatStore.getState().closeSideBar();
+      expect(useChatStore.getState().isOpen).toBe(false);
+    });
+
+    it('should inverse sidebar layout state dynamically on toggleSideBar calls', () => {
+      expect(useChatStore.getState().isOpen).toBe(false);
+
+      useChatStore.getState().toggleSideBar();
+      expect(useChatStore.getState().isOpen).toBe(true);
+
+      useChatStore.getState().toggleSideBar();
+      expect(useChatStore.getState().isOpen).toBe(false);
     });
   });
 

@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { syncRealtimeSession } from '@/utils/supabase.utils';
 
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -14,7 +15,8 @@ const ERROR_MESSAGES: Record<string | number, string> = {
     500: "Our servers are having trouble right now. Please try again later.",
 
     "INVALID_CREDENTIALS": "The email or password you entered is incorrect.",
-    "EMAIL_ALREADY_USED": "An account with this email already exists."
+    "EMAIL_ALREADY_USED": "An account with this email already exists.",
+    "EMAIL_NOT_CONFIRMED": "The email isn't confirmed yet. Please verify your email."
 };
 
 // Interceptor to handle token refresh and error formatting
@@ -31,6 +33,8 @@ apiClient.interceptors.response.use(
 
             try {
                 await apiClient.post(import.meta.env.VITE_API_AUTH_REFRESH_TOKEN);
+                await syncRealtimeSession();
+                
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 try {
@@ -47,10 +51,10 @@ apiClient.interceptors.response.use(
         
         // 2. Handle API Errors
         let errorMessage = 'Something went wrong. Please try again later.';
-        if (status && ERROR_MESSAGES[status]) {
-            errorMessage = ERROR_MESSAGES[status];
-        } else if (code && ERROR_MESSAGES[code]) {
+        if (code && ERROR_MESSAGES[code]) {
             errorMessage = ERROR_MESSAGES[code];
+        } else if (status && ERROR_MESSAGES[status]) {
+            errorMessage = ERROR_MESSAGES[status];
         } else if (err.message?.includes('Network Error')) {
             errorMessage = "Network error. Please check your internet connection.";
         }

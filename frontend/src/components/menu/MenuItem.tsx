@@ -15,15 +15,15 @@ const MenuItem = memo(({
     name,
     onClick
 }: MenuItemProps) => {
-    const [isCanceleded, setIsCanceleded] = useState(false);
+    const [isCanceled, setIsCanceled] = useState(false);
     const { theme } = useContext(ThemeContext);
     const isDark = theme === "dark";
 
     return (
         <Menu.Item
             value={name} onClick={onClick}
-            onMouseEnter={() => setIsCanceleded(true)}
-            onMouseLeave={() => setIsCanceleded(false)}
+            onMouseEnter={() => setIsCanceled(true)}
+            onMouseLeave={() => setIsCanceled(false)}
             _hover={{ 
                 bg: isDark ? "variantDark" : "variantLight",
                 cursor: "pointer"
@@ -31,7 +31,7 @@ const MenuItem = memo(({
         >
             <HStack gap={2}>
                 <IconChakra 
-                    color={isDark ? "text" : isCanceleded ? "secondary" : "text"} 
+                    color={isDark ? "text" : isCanceled ? "secondary" : "text"} 
                     size="sm"
                 >
                     <Icon />
@@ -39,7 +39,7 @@ const MenuItem = memo(({
 
                 <Text 
                     className="text-styles" textAlign="left"
-                    color={isDark ? "text" : isCanceleded ? "secondary" : "text"}
+                    color={isDark ? "text" : isCanceled ? "secondary" : "text"}
                 >
                     { name }
                 </Text>

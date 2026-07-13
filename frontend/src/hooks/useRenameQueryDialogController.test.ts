@@ -65,7 +65,7 @@ describe('useRenameQueryDialogController', () => {
     expect(result.current.isSaveDisabled).toBe(true);
   });
 
-  // ========== RENAMEQUERY TESTS ==========
+  // ========== RENAME QUERY TESTS ==========
   describe('renameQuery', () => {
     it('should successfully rename a query, update the store, show a success message, and close', async () => {
       (ChatAPI.rename as jest.Mock).mockResolvedValue({ success: true });
@@ -138,7 +138,7 @@ describe('useRenameQueryDialogController', () => {
     });
   });
 
-  // ========== HANDLECANCEL TESTS ==========
+  // ========== HANDLE CANCEL TESTS ==========
   describe('handleCancel', () => {
     it('should reset the text state to the original title and dismiss the view wrapper', () => {
       const { result } = renderHook(

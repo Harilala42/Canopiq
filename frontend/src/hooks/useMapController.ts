@@ -33,7 +33,7 @@ export const useMapController = () => {
                         owningAnalysis.coordinates.coordinates[0],
                       ]
                     : [0, 0],
-                hex_geojson: mapData.hex_geojson,
+                h3_cells: mapData.h3_cells,
                 legend: mapData.legend,
             });
         } catch (err: any) {
@@ -47,7 +47,7 @@ export const useMapController = () => {
     }, [activeMapId, fetchGeoAnalysisMap]);
 
     return {
-        map: activeMap?.hex_geojson ?? null,
+        map: activeMap?.h3_cells ?? null,
         coords: activeMap?.coords ?? null,
         location: activeMap?.location ?? null,
         legend: activeMap?.legend ?? null,

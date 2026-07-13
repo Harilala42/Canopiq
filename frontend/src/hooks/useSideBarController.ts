@@ -26,7 +26,7 @@ export const useSideBarController = () => {
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
-    const [isCanceleded, setIsCanceleded] = useState<boolean>(false);
+    const [isCanceled, setIsCanceled] = useState<boolean>(false);
     const { showAlert } = useContext(AlertContext);
 
     const sortedChats = useMemo(() => {
@@ -38,6 +38,8 @@ export const useSideBarController = () => {
     }, [queries]);
 
     const handleSelectQuery = useCallback(async (query: ChatData) => {
+        if (currentQuery?.id === query.id) return;
+
         resetMessages();
         resetAnalyses();
         clearMap();
@@ -49,9 +51,8 @@ export const useSideBarController = () => {
         setIsLoading(true);
         try {
             const myQueries = await ChatAPI.getAll();
-            if (myQueries && myQueries.chats) {
-                setQueries(myQueries.chats);
-            }
+            if (myQueries && myQueries.chats)
+                setQueries(myQueries.chats as ChatData[]);
         } catch (err: any) {
             console.error("Failed to fetch queries:", err.message);
             showAlert(false, "Failed to load your queries. Please try again later.");
@@ -63,10 +64,12 @@ export const useSideBarController = () => {
     const createNewQuery = useCallback(async () => {
         setIsCreating(true);
         try {
-            const newQuery = await ChatAPI.create();
-            if (newQuery && newQuery.chat) {
-                addQuery(newQuery.chat);
-                handleSelectQuery(newQuery.chat);
+            const result = await ChatAPI.create();
+            if (result && result.chat) {
+                const newQuery: ChatData = result.chat;
+
+                addQuery(newQuery);
+                setCurrentQuery(newQuery);
                 showAlert(true, "New query created successfully.");
             }
         } catch (err: any) {
@@ -75,7 +78,7 @@ export const useSideBarController = () => {
         } finally {
             setIsCreating(false);
         }
-    }, [addQuery, showAlert, handleSelectQuery]);
+    }, [addQuery, showAlert, setCurrentQuery]);
 
     useEffect(() => {
         fetchQueries();
@@ -84,7 +87,7 @@ export const useSideBarController = () => {
     useEffect(() => {
         if (!currentQuery?.id) return;
 
-        const channel = supabase
+        const chatChannel = supabase
             .channel('chats-channel')
             .on(
                 'postgres_changes',
@@ -102,7 +105,7 @@ export const useSideBarController = () => {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(chatChannel);
         };
     }, [currentQuery?.id, updateQuery]);
 
@@ -112,11 +115,11 @@ export const useSideBarController = () => {
         isOpen,
         isLoading,
         isCreating,
-        isCanceleded,
+        isCanceled,
         toggleSideBar,
-        setIsCanceleded,
-        createNewQuery,
-        handleSelectQuery
+        setIsCanceled,
+        handleSelectQuery,
+        createNewQuery
     };
 };
 

@@ -44,7 +44,7 @@ async def get_geo_analysis_map(h3_grid_map_id: uuid.UUID, request: Request):
             )
         
         return {
-            "hex_geojson": h3_grid_map["hex_geojson"],
+            "h3_cells": h3_grid_map["h3_cells"],
             "legend": h3_grid_map["legend"]
         }
     except HTTPException:

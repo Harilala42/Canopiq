@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 from langchain.tools import tool
 
 @tool
@@ -46,7 +46,7 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
     the raw GEE analytics data into a compact AI-friendly structure.
     """
     try:
-        client = supabase()
+        client = get_supabase()
         response = client.table("geo_analysis") \
             .select("*") \
             .eq("id", geo_analysis_id) \
@@ -62,11 +62,11 @@ def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
         insights = analytics.get("insights") or []
         kind = metadata.get("kind")  # "categorical" | "time_series"
 
-        start_year = data.get("start_year")
-        end_year = data.get("end_year")
+        start_time = data.get("start_time")
+        end_time = data.get("end_time")
         period = (
-            f"{start_year[:4]}-{end_year[:4]}"
-            if start_year and end_year
+            f"{start_time[:4]}-{end_time[:4]}"
+            if start_time and end_time
             else None
         )
 

@@ -53,6 +53,7 @@ export const useChatInputController = () => {
 
         setInputValue('');
         setIsThinking(true);
+        setCurrentStatus(null);
 
         try {
             let query = currentQuery;
@@ -102,11 +103,11 @@ export const useChatInputController = () => {
         try {
             await JobAPI.cancelJob(currentJobId);
 
-            isThinking && setIsThinking(false);
+            setIsThinking(false);
             setCurrentJobId(null);
-            setCurrentStatus(null);
+            setCurrentStatus("canceled");
 
-            showAlert(true, "Successfully cancelled analysis");
+            showAlert(true, "Successfully canceled analysis");
         } catch (err) {
             console.error("Canceling GIS analysis failed:", err);
             showAlert(false, "Failed to cancel GIS analysis");
@@ -127,9 +128,9 @@ export const useChatInputController = () => {
         setInputValue,
         isSending,
         isLoading,
-        isThinking,
         isCanceling,
         handleSendMessage,
-        handleCancelAnalysis
+        handleCancelAnalysis,
+        hasRunningJob: Boolean(currentJobId)
     };
 };

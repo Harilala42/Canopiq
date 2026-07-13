@@ -1,52 +1,37 @@
 import { jest } from '@jest/globals';
+import { GeoAnalysis } from '@/types/analysis';
 
 const initialState = {
-  isChartOpen: false,
-  dataset: null,
-  range_times: null,
-  geo_analysis_id: null,
-  area_coverage: 0,
-  global_average: 0,
-  total_change: 0,
-  dataset_time_series: [],
-  land_use_distribution: null,
+  analyses: {} as Record<string, GeoAnalysis>,
+  activeAnalysis: null as GeoAnalysis | null,
 };
 
-export const mockOpenChart = jest.fn();
-export const mockCloseChart = jest.fn();
-export const mockToggleIsChartOpen = jest.fn();
-export const mockSetGeoAnalysisId = jest.fn();
-export const mockSetDataset = jest.fn();
-export const mockSetRangeTimes = jest.fn();
-export const mockSetAreaCoverage = jest.fn();
-export const mockSetGlobalAverage = jest.fn();
-export const mockSetTotalChange = jest.fn();
-export const mockSetDatasetTimeSeries = jest.fn();
-export const mocksetLandUse = jest.fn();
-export const mockSetAnalyticsData = jest.fn();
-export const mockresetAnalyses = jest.fn();
+// Mock all actions as Jest spy functions
+export const mockSetAnalyses = jest.fn();
+export const mockSetActiveAnalysis = jest.fn();
+export const mockAddAnalysis = jest.fn();
+export const mockUpdateAnalysis = jest.fn();
+export const mockGetAnalysisById = jest.fn(() => [] as GeoAnalysis[]);
+export const mockRemoveAnalysis = jest.fn();
+export const mockResetAnalyses = jest.fn();
 
 let mockState = {
-    ...initialState,
-    openChart: mockOpenChart,
-    closeChart: mockCloseChart,
-    toggleIsChartOpen: mockToggleIsChartOpen,
-    setGeoAnalysisId: mockSetGeoAnalysisId,
-    setDataset: mockSetDataset,
-    setRangeTimes: mockSetRangeTimes,
-    setAreaCoverage: mockSetAreaCoverage,
-    setGlobalAverage: mockSetGlobalAverage,
-    setTotalChange: mockSetTotalChange,
-    setDatasetTimeSeries: mockSetDatasetTimeSeries,
-    setLandUse: mocksetLandUse,
-    setAnalyticsData: mockSetAnalyticsData,
-    resetAnalyses: mockresetAnalyses,
-  };
+  ...initialState,
+  setAnalyses: mockSetAnalyses,
+  setActiveAnalysis: mockSetActiveAnalysis,
+  addAnalysis: mockAddAnalysis,
+  updateAnalysis: mockUpdateAnalysis,
+  getAnalysisById: mockGetAnalysisById,
+  removeAnalysis: mockRemoveAnalysis,
+  resetAnalyses: mockResetAnalyses,
+};
 
+// The main hook selector mock
 const useAnalyticsStore = jest.fn((selector: any) => {
   return selector ? selector(mockState) : mockState;
 });
 
+// Mock vanilla Zustand utilities
 (useAnalyticsStore as any).getState = jest.fn(() => mockState);
 
 (useAnalyticsStore as any).setState = jest.fn((newState: any, replace?: boolean) => {

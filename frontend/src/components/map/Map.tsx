@@ -73,9 +73,7 @@ const Map = (): JSX.Element => {
                     />
                 </Pane>
 
-                {map && map.features?.length > 0 && (
-                    <MapHexGrid mapData={map} />
-                )}
+                {map && map.length > 0 && (<MapHexGrid mapData={map} />)}
 
                 {coords && (
                     <>

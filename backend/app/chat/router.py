@@ -71,7 +71,7 @@ async def send_message_to_llm(chat_id: str, payload: MessageCreate, request: Req
             )
 
         chat_history = chat_models.get_chat_message(chat_id, user_id)
-        recent_context = chat_history[-3:] if chat_history else []
+        recent_context = chat_history[-5:] if chat_history else []
 
         chat_models.save_chat_message(
             chat_id=chat_id, 

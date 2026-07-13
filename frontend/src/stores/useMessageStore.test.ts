@@ -1,5 +1,6 @@
 import useMessageStore from './useMessageStore';
-import { MessageData, JobStatus } from '@/types/chat';
+import { MessageData } from '@/types/chat';
+import { JobStatus } from '@/types/job';
 
 describe('useMessageStore', () => {
   // Mock data
@@ -27,12 +28,12 @@ describe('useMessageStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset store state before each test
+    // Reset store state before each test to match actual implementation defaults
     useMessageStore.setState({
       messages: [],
       isLoading: false,
       isThinking: false,
-      currentStatus: 'queued',
+      currentStatus: null,
       errorMessage: null,
     });
   });
@@ -161,6 +162,27 @@ describe('useMessageStore', () => {
     });
   });
 
+  // ========== REMOVEMESSAGE TESTS ==========
+  describe('removeMessage', () => {
+    it('should filter out the target message by id', () => {
+      useMessageStore.setState({ messages: [mockMessage1, mockMessage2] });
+      
+      useMessageStore.getState().removeMessage('1');
+
+      expect(useMessageStore.getState().messages).toHaveLength(1);
+      expect(useMessageStore.getState().messages[0]).toEqual(mockMessage2);
+    });
+
+    it('should do nothing if the message id does not exist', () => {
+      useMessageStore.setState({ messages: [mockMessage1] });
+
+      useMessageStore.getState().removeMessage('non-existent-id');
+
+      expect(useMessageStore.getState().messages).toHaveLength(1);
+      expect(useMessageStore.getState().messages[0]).toEqual(mockMessage1);
+    });
+  });
+
   // ========== RESETMESSAGES TESTS ==========
   describe('resetMessages', () => {
     it('should reset messages array to empty', () => {
@@ -190,13 +212,13 @@ describe('useMessageStore', () => {
       expect(useMessageStore.getState().isThinking).toBe(false);
     });
 
-    it('should reset currentStatus to queued', () => {
+    it('should reset currentStatus to null', () => {
       useMessageStore.setState({ currentStatus: 'analyzing_prompt' });
       expect(useMessageStore.getState().currentStatus).toBe('analyzing_prompt');
 
       useMessageStore.getState().resetMessages();
 
-      expect(useMessageStore.getState().currentStatus).toBe('queued');
+      expect(useMessageStore.getState().currentStatus).toBeNull();
     });
 
     it('should reset errorMessage to null', () => {
@@ -222,7 +244,7 @@ describe('useMessageStore', () => {
       expect(useMessageStore.getState().messages).toEqual([]);
       expect(useMessageStore.getState().isLoading).toBe(false);
       expect(useMessageStore.getState().isThinking).toBe(false);
-      expect(useMessageStore.getState().currentStatus).toBe('queued');
+      expect(useMessageStore.getState().currentStatus).toBeNull();
       expect(useMessageStore.getState().errorMessage).toBeNull();
     });
   });
@@ -292,7 +314,7 @@ describe('useMessageStore', () => {
       useMessageStore.getState().resetMessages();
       expect(useMessageStore.getState().messages).toHaveLength(0);
       expect(useMessageStore.getState().isThinking).toBe(false);
-      expect(useMessageStore.getState().currentStatus).toBe('queued');
+      expect(useMessageStore.getState().currentStatus).toBeNull();
     });
 
     it('should handle error scenario: set error, prevent duplicate, then reset', () => {
@@ -311,7 +333,7 @@ describe('useMessageStore', () => {
 
       // Reset
       useMessageStore.getState().resetMessages();
-      expect(useMessageStore.getState().currentStatus).toBe('queued');
+      expect(useMessageStore.getState().currentStatus).toBeNull();
       expect(useMessageStore.getState().errorMessage).toBeNull();
       expect(useMessageStore.getState().messages).toHaveLength(0);
     });

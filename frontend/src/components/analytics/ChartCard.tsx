@@ -96,8 +96,8 @@ const ChartCard = memo((): JSX.Element | null => {
 	const stats = currentAnalysis.analytics.stats as AnalyticsStats;
 	const insights = currentAnalysis.analytics.insights;
 
-    const startYear = currentAnalysis.start_year?.split("-")[0];
-    const endYear = currentAnalysis.end_year?.split("-")[0];
+    const startYear = currentAnalysis.start_time?.split("-")[0];
+    const endYear = currentAnalysis.end_time?.split("-")[0];
 
 	const datasetConfig = {
         carbon_density: {
@@ -128,7 +128,7 @@ const ChartCard = memo((): JSX.Element | null => {
 
 	return (
 		<VStack 
-            w="300px"
+            w="350px"
             position="absolute"
             top="20px" left="20px"
             gap={2} zIndex={1000}

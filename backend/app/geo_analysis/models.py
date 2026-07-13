@@ -1,15 +1,12 @@
-from uuid import UUID
-import geopandas as gpd
-from typing import Dict, List, Any
 from shapely.geometry import box, Point
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 from app.geo_analysis.utils import compute_global_average, compute_yearly_average, compute_total_change_percent, format_biome_insights
 
-def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | None:
-    client = supabase()
+def get_h3_grid_map(h3_grid_map_id: str, user_id: str):
+    client = get_supabase()
     
     response = client.table("h3_grid_maps") \
-        .select("hex_geojson, legend") \
+        .select("h3_cells, legend") \
         .eq("id", h3_grid_map_id) \
         .eq("user_id", user_id) \
         .maybe_single() \
@@ -18,26 +15,26 @@ def get_h3_grid_map(h3_grid_map_id: UUID, user_id: UUID) -> Dict[str, Any] | Non
     return response.data if response and response.data else None
 
 def save_h3_grid_map(
-    hex_geojson: gpd.GeoDataFrame,
-    legend: List[Dict[str, int]],
-    user_id: UUID,
-    job_id: UUID
-) -> Dict[str, Any] | None:
-    client = supabase()
+    h3_cells: list[dict[str, any]],
+    legend: list[dict[str, int]],
+    user_id: str,
+    job_id: str
+):
+    client = get_supabase()
 
     response = client.table("h3_grid_maps") \
         .upsert({
             "job_id": job_id,
             "user_id": user_id,
-            "hex_geojson": hex_geojson,
+            "h3_cells": h3_cells,
             "legend": legend
         }, on_conflict="job_id") \
         .execute()
 
     return response.data if response and response.data else None
 
-def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
-    client = supabase()
+def get_geo_analysis(chat_id: str, user_id: str):
+    client = get_supabase()
 
     response = client.table("geo_analysis") \
         .select(
@@ -46,8 +43,8 @@ def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
             "dataset", 
             "boundary", 
             "coordinates", 
-            "start_year", 
-            "end_year", 
+            "start_time", 
+            "end_time", 
             "analytics", 
             "h3_grid_map_id"
         ) \
@@ -59,13 +56,13 @@ def get_geo_analysis(chat_id: UUID, user_id: UUID) -> List[Dict[str, Any]]:
     return response.data if response and response.data else []
 
 def save_geo_analysis(
-    query: Dict[str, Any], 
-    gis_analysis: Dict[str, Any], 
-    user_id: UUID, 
-    chat_id: UUID, 
-    job_id: UUID
-) -> Dict[str, Any] | None:
-    client = supabase()
+    query: dict, 
+    gis_analysis: dict, 
+    user_id: str, 
+    chat_id: str, 
+    job_id: str
+):
+    client = get_supabase()
     
     b = query['bbox']
     boundary = box(b[0], b[1], b[2], b[3]).wkt
@@ -139,7 +136,7 @@ def save_geo_analysis(
         payload = _build_categorical_payload(gis_analysis, meta)
 
     h3_grid_map = save_h3_grid_map(
-        hex_geojson=gis_analysis["hex_geojson"],
+        h3_cells=gis_analysis["h3_cells"],
         legend=gis_analysis["legend"],
         user_id=user_id,
         job_id=job_id
@@ -158,8 +155,8 @@ def save_geo_analysis(
             "h3_grid_map_id": h3_grid_map[0]["id"],
             "location": query['location'],
             "dataset": query['dataset'],
-            "start_year": _iso_or_none(query.get("start_time")),
-            "end_year": _iso_or_none(query.get("end_time")),
+            "start_time": _iso_or_none(query.get("start_time")),
+            "end_time": _iso_or_none(query.get("end_time")),
             "boundary": boundary,
             "coordinates": center,
             "analytics": payload

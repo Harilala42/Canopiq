@@ -2,25 +2,20 @@ import {
 	VStack,
 	HStack,
 	Text,
-	Heading,
 	Box,
 	Spinner,
-	Icon,
-	Table
+	Icon
 } from "@chakra-ui/react";
-import remarkGfm from 'remark-gfm';
-import ReactMarkdown from 'react-markdown';
 import { useContext, memo, JSX } from "react";
 import { ChatMessageContent } from "@/components/chat";
-import { ChartBar, ChartDonut } from "@/components/analytics";
 import { useChatMessagesController } from "@/hooks/useChatMessagesController";
 import { ThemeContext } from "@/contexts/themeContext";
 import { ChatGreeting } from "@/components/chat";
 import { LuCircleX } from "react-icons/lu";
-import { JobStatus } from "@/types/chat";
+import { JobStatus } from "@/types/job";
 
 const PIPELINE_STEPS: Record<
-	Exclude<JobStatus, "completed">, 
+	Exclude<JobStatus, "completed" | "failed" | "canceled">, 
 	{ label: string; desc: string }
 > = {
     queued: { 
@@ -33,15 +28,11 @@ const PIPELINE_STEPS: Record<
     },
     computing_gee: { 
         label: 'Satellite Analytics', 
-        desc: 'Computing Google Earth Engine biomass data...' 
+        desc: 'Computing Google Earth Engine dataset...' 
     },
     generating_report: { 
         label: 'Report Compilation', 
         desc: 'Writing final environmental brief...' 
-    },
-	failed: {
-        label: 'Job Failed',
-        desc: 'Something went wrong processing this request.'
     }
 };
 
@@ -92,7 +83,7 @@ const ChatMessages = memo((): JSX.Element => {
 
 			{!isLoading && !isThinking && !messages.length && <ChatGreeting />}
 
-			{isThinking && currentStatus !== "failed" && (
+			{isThinking && (currentStatus !== "failed" && currentStatus !== "canceled") && (
 				<HStack alignSelf="flex-start" pl={2} gap={4}>
 					<Spinner
 						color={ isDark ? "primary" : "secondary" } 
@@ -110,7 +101,7 @@ const ChatMessages = memo((): JSX.Element => {
 				</HStack>
 			)}
 
-			{!isThinking && currentStatus === "failed" && (
+			{!isThinking && (currentStatus === "failed" || currentStatus === "canceled") && (
 				<VStack 
 					alignSelf="flex-start" 
 					align="flex-start"
@@ -136,13 +127,11 @@ const ChatMessages = memo((): JSX.Element => {
 						</Text>
 					</HStack>
 
-					<Text 
-						className="text-styles" 
-						color={isDark ? "text" : "secondary"}
-						fontSize="xs" wordBreak="break-word"
-					>
-						{errMessage || "An unexpected worker error occurred while processing the query"}
-					</Text>
+					{errMessage && (
+						<Text className="text-styles" color={isDark ? "text" : "secondary"} fontSize="xs" wordBreak="break-word">
+							{errMessage}
+						</Text>
+					)}
 				</VStack>
 			)}
 

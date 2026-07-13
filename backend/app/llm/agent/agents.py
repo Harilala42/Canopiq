@@ -69,8 +69,11 @@ def classify_user_request(prompt: str, recent_context: list = None) -> str:
         - "Show me"
         when the latest assistant message proposed a new GIS analysis.
 
-        2. 'impossible_request':
-        - Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g. "France in 1520").
+        3. 'impossible_request':
+        - Any request completely unrelated to environmental monitoring (e.g., general web searches, coding help, recipes).
+        - Requests for non-Earth locations (Moon, Mars, etc.) or dates before the Sentinel-2 satellite record began (before 2015, e.g., "France in 1520").
+        - Requests specifying highly custom coordinates, micro-locations, or specific radial boundaries (e.g., "within a 5km radius of the [Specific Power Plant Name]"). Canopiq does not support custom bounding boxes yet.
+        - Requests targeting massive geographic regions exceeding the regional analysis threshold of 10,000 km² (e.g., trying to analyze an entire continent or massive country at once).
         - Comparison of multiple datasets, or queries about datasets excluding tree cover, carbon density, and land-use distribution.
 
         4. 'error'
@@ -226,6 +229,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
         ---
 
         🏷️ TITLE RULES:
+        
         - Time-series datasets (tree_cover, carbon_density):
           - "<Dataset Label> in <Location> from <Start Year> to <End Year>" → specific timeframe
           - "<Dataset Label> in <Location> since <Start Year>" → period running to today
@@ -267,6 +271,7 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
 
         [1 sentence describing what the donut chart above represents — what the slices
         encode and what unit they are expressed in.]
+
         | Dominant Land Cover Class (land_use_classes["biome"])
         | Biome Description | Percent Area Coverage (land_use_classes["percent_area"]) |
         | :--- | :--- | :--- |
@@ -293,11 +298,11 @@ def generate_environmental_report(geo_analysis_id: str, recent_context: list = N
 
         ---
         
-        🚫 SCIENTIFIC CONSTRAINT RULES:
+        🚫 STRICT RULES:
+
         - Scientific, neutral tone throughout.
-        - Include exactly ONE fenced chart block — biomass_trends OR land_use_distribution,
-        never both, matching the dataset kind returned by the tool.
-        - ALWAYS wrap the chart output in a Markdown code block (`land_use_distribution` or `biomass_trends`), with the exact geo_analysis_id.
+        - Include EXACTLY ONE fenced chart block — biomass_trends OR land_use_distribution, never both, matching the dataset kind returned by the tool.
+        - Always WRAP the embedded chart (land_use_distribution or biomass_trends) in a Markdown code block using the exact geo_analysis_id.
         - Never alter, omit, or duplicate the fenced block.
         - For categorical datasets, order table rows from highest percentage to lowest.
         - Use ONLY provided tool data. Do NOT speculate or exaggerate.
@@ -349,8 +354,8 @@ def generate_conversational_reply(prompt: str, mode: str = "conversational", rec
             - Acknowledge clearly that the requested satellite analysis could not be completed.
             - Infer the reason from the technical log provided in the prompt (e.g., if it mentions 'cloud cover', 'no imagery available', or 'computation timed out'). 
             - Never expose raw Python tracebacks, exception names, database terminology, or JSON code structures to the user.
-            - If it's an ambiguous system/worker failure, apologize for the technical issue without giving details.
-            - Provide one highly specific, constructive workaround the researcher can apply right now (e.g., narrowing the time frame, choosing a different dataset, or selecting a smaller bounding box).
+            - If it's an ambiguous system/worker failure completely unrelated to the user's request constraints, apologize for the technical issue, do NOT ask them to adjust their query, and instruct them to contact the platform's developer support team instead.
+            - If the failure is due to query constraints or resource limits (such as the location area being too large, a lack of available satellite imagery data for that period, or the computation timing out), explicitly guide the user to adjust their query by providing one highly specific, constructive workaround (e.g., narrowing the time frame, choosing a different dataset, or selecting a smaller bounding box).
             - Keep your reply short under 500 characters.
 
             Tone: Highly professional, empathetic to academic deadlines, and scientifically grounded.

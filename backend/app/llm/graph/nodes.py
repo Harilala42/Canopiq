@@ -9,10 +9,24 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeError
 from langgraph.types import Command
 from langgraph.graph import END
+from celery import Task
+
+def handle_aborted_job(task: Task, job_id: str, user_id: str) -> Command | None:
+    """
+    Check whether the job has been canceled by the user.
+    """
+    if task.is_aborted():
+        update_job_progress(job_id, user_id, PipelineStage.JOB_ABORTED.value)
+        return Command(update={"pipeline_stage": PipelineStage.JOB_ABORTED}, goto=END)
+    return None
+
 
 # ── Node 1: parses GIS parameters from user's prompt ──────────────
 async def extract_params_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
+
+    if (abort_cmd := handle_aborted_job(cfg["abortable_task"], cfg["job_id"], cfg["user_id"])):
+        return abort_cmd
     update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.LLM_EXTRACT.value)
 
     query = await asyncio.to_thread(
@@ -30,12 +44,18 @@ async def extract_params_node(state: CanopiqState, config: RunnableConfig) -> Ca
 # ── Node 2: runs heavy-lifting GEE computation in background ─────────────
 async def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
+
+    if (abort_cmd := handle_aborted_job(cfg["abortable_task"], cfg["job_id"], cfg["user_id"])):
+        return abort_cmd
     update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.GEE_COMPUTE.value)
 
     query = state["geo_params"]
     dataset = GEEDataset(query["dataset"])
 
     gis_analysis = await asyncio.to_thread(dataset.execute, query)
+
+    if (abort_cmd := handle_aborted_job(cfg["abortable_task"], cfg["job_id"], cfg["user_id"])):
+        return abort_cmd
 
     saved = save_geo_analysis(
         query=query,
@@ -54,6 +74,9 @@ async def run_gee_computation_node(state: CanopiqState, config: RunnableConfig) 
 # ── Node 3: generates final mardown environmental report ───
 async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> CanopiqState:
     cfg = config.get("configurable", {})
+
+    if (abort_cmd := handle_aborted_job(cfg["abortable_task"], cfg["job_id"], cfg["user_id"])):
+        return abort_cmd
     update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.LLM_REPORT.value)
 
     report = await asyncio.to_thread(
@@ -62,9 +85,12 @@ async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> C
         recent_context=state["recent_context"]
     )
 
+    if (abort_cmd := handle_aborted_job(cfg["abortable_task"], cfg["job_id"], cfg["user_id"])):
+        return abort_cmd
+
     chat.rename_chat(cfg["chat_id"], cfg["user_id"], report["title"])
     chat.save_chat_message(cfg["chat_id"], cfg["user_id"], "model", report["report_markdown"])
-    update_job_progress(cfg["job_id"], cfg["user_id"], "completed")
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.JOB_COMPLETED.value)
 
     return { 
         "report": report,
@@ -75,7 +101,7 @@ async def generate_report_node(state: CanopiqState, config: RunnableConfig) -> C
 # ── Handler Error Recorery: Gemini writes a friendly GEE failure message ──
 def handle_error_recovery(state: CanopiqState, config: RunnableConfig, error: NodeError) -> Command:
     cfg = config.get("configurable", {})
-    update_job_progress(cfg["job_id"], cfg["user_id"], "failed", str(error.error))
+    update_job_progress(cfg["job_id"], cfg["user_id"], PipelineStage.JOB_FAILED.value, str(error.error))
 
     query = state.get("geo_params", {})
     stage = state.get("pipeline_stage", PipelineStage.LLM_EXTRACT)

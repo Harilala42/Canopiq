@@ -1,6 +1,7 @@
 import { UserData } from "@/types/user";
 import { AuthAPI } from '@/api/auth.api';
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { syncRealtimeSession } from "@/utils/supabase.utils";
 import { AlertContext } from "@/contexts/alertContext";
 
 export const AuthContext = createContext(null);
@@ -20,6 +21,8 @@ export const AuthProvider = ({ children }) => {
 			const userData: UserData = await AuthAPI.getMe();
 			if (!userData) throw Error("User's data is missing");
 
+			await syncRealtimeSession();
+
 			setIsAuthenticated(true);
 			setUser(userData);
 		} catch(err: any) {
@@ -28,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 		} finally {
 			setIsLoading(false);
 		}
-	}, []);
+	}, [setIsAuthenticated, setUser, setIsLoading]);
 
 	const login = async () => await checkSession();
 	

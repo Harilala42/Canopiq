@@ -1,8 +1,8 @@
 import os
-from app.dependencies import get_supabase as supabase
+from app.dependencies import get_supabase
 
 def register_with_password(user_data: dict):
-    client = supabase()
+    client = get_supabase()
 
     response = client.auth.sign_up({
         "email": user_data["email"],
@@ -12,7 +12,7 @@ def register_with_password(user_data: dict):
     return response
 
 def login_with_password(user_data: dict):
-    client = supabase()
+    client = get_supabase()
 
     response = client.auth.sign_in_with_password({
         "email": user_data["email"],
@@ -22,7 +22,7 @@ def login_with_password(user_data: dict):
     return response
 
 def login_with_google():
-    client = supabase()
+    client = get_supabase()
 
     response = client.auth.sign_in_with_oauth({
         "provider": "google",
@@ -31,25 +31,30 @@ def login_with_google():
         }
     })
 
-    return response
+    storage = client.auth._storage
+    storage_key = f"{client.auth._storage_key}-code-verifier"
+    code_verifier = storage.get_item(storage_key)
 
-def handle_google_callback(code: str):
-    client = supabase()
+    return response, code_verifier
+
+def handle_google_callback(code: str, code_verifier: str):
+    client = get_supabase()
 
     response = client.auth.exchange_code_for_session({
-        "auth_code": code
+        "auth_code": code,
+        "code_verifier": code_verifier
     })
     
     return response
 
 def refresh_session(refresh_token: str):
-    client = supabase()
+    client = get_supabase()
 
     new_session = client.auth.refresh_session(refresh_token)
     return new_session
 
 def get_user_profile(user_id: str):
-    client = supabase()
+    client = get_supabase()
 
     response = client.table("users") \
         .select("*") \
@@ -60,7 +65,7 @@ def get_user_profile(user_id: str):
     return response.data if response and response.data else None
 
 def set_user_profile(user_data: dict):
-    client = supabase()
+    client = get_supabase()
 
     client.table("users").upsert(
         {

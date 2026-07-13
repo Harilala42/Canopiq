@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { MessageData, JobStatus } from '@/types/chat';
+import { JobStatus } from '@/types/job';
+import { MessageData } from '@/types/chat';
 
 interface MessageState
 {

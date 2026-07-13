@@ -48,7 +48,7 @@ function Login(): JSX.Element {
 		try {
 			await AuthAPI.loginWithPassword(formData)
 
-			login();
+			await login();
 			showAlert(true, "Welcome back! You’re now logged in.");
 			setTimeout(() => navigate('/'), 2000);
 		} catch (err: any) {
@@ -94,8 +94,8 @@ function Login(): JSX.Element {
 								{/* Email or Username Field */}
 								<LoginInput
                                     name="email" type="text"
-									label="Username or Email"
-                                    placeholder="Enter your username or email"
+									label="Email"
+                                    placeholder="Enter your email"
 									isInvalid={!!errors.email && touched.email}
 									aria-label="Enter your username or email"
 									error={errors.email} maxLength={50}

@@ -14,19 +14,19 @@ const SideBar = () => {
         isOpen,
         isLoading,
         isCreating,
-        isCanceleded,
-        setIsCanceleded,
+        isCanceled,
+        setIsCanceled,
         toggleSideBar,
-        createNewQuery,
         handleSelectQuery,
+        createNewQuery
     } = useSideBarController();
 
     return (
         <VStack
             align="center"
             justify="flex-start"
-            onMouseEnter={() => !isCanceleded && setIsCanceleded(true)}
-            onMouseLeave={() => isCanceleded && setIsCanceleded(false)}
+            onMouseEnter={() => !isCanceled && setIsCanceled(true)}
+            onMouseLeave={() => isCanceled && setIsCanceled(false)}
             bg={isDark ? "secondary" : "text"}
             borderRight="1px solid"
             borderColor={isDark ? "variantDark" : "variantLight"}
@@ -39,10 +39,10 @@ const SideBar = () => {
         >
             <SideBarHeader
                 isExpanded={isOpen}
-                isCanceleded={isCanceleded}
+                isCanceled={isCanceled}
                 onToggle={() => {
                     toggleSideBar();
-                    isCanceleded && setIsCanceleded(false);
+                    isCanceled && setIsCanceled(false);
                 }}
             />
 
