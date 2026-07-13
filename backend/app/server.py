@@ -19,7 +19,7 @@ def health_check():
     return {"status": "ok", "message": "Canopiq service is running"}
 
 origins = [
-    os.getenv("FRONDEND_URL")
+    os.getenv("FRONTEND_URL")
 ]
 
 app.add_middleware(

@@ -93,7 +93,7 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			key="access_token",
 			value=access_token,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False
 		)
 
@@ -101,7 +101,7 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			key="refresh_token",
 			value=refresh_token,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False
 		)
 
@@ -143,14 +143,14 @@ async def logout(response: Response):
 	response.delete_cookie(
 		key="access_token",
 		httponly=True,
-		samesite="lax",
+		samesite="none",
 		secure=False
 	)
 
 	response.delete_cookie(
 		key="refresh_token",
 		httponly=True,
-		samesite="lax",
+		samesite="none",
 		secure=False
 	)
 
@@ -187,7 +187,7 @@ async def refresh_access_token(
 			key="access_token",
 			value=new_access_token,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False
 		)
 
@@ -234,7 +234,7 @@ async def login_with_google():
 			key="pkce_verifier",
 			value=code_verifier,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False,
 			max_age=600
 		)
@@ -294,7 +294,7 @@ async def google_callback(code: str, request: Request):
 			key="access_token",
 			value=access_token,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False
 		)
 
@@ -302,7 +302,7 @@ async def google_callback(code: str, request: Request):
 			key="refresh_token",
 			value=refresh_token,
 			httponly=True,
-			samesite="lax",
+			samesite="none",
 			secure=False
 		)
 
