@@ -94,7 +94,7 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			value=access_token,
 			httponly=True,
 			samesite="none",
-			secure=False
+			secure=True
 		)
 
 		response.set_cookie(
@@ -102,7 +102,7 @@ async def login_user_with_password(payload: LoginForm, response: Response):
 			value=refresh_token,
 			httponly=True,
 			samesite="none",
-			secure=False
+			secure=True
 		)
 
 		return { "message": "User logged in successfully" }
@@ -144,14 +144,14 @@ async def logout(response: Response):
 		key="access_token",
 		httponly=True,
 		samesite="none",
-		secure=False
+		secure=True
 	)
 
 	response.delete_cookie(
 		key="refresh_token",
 		httponly=True,
 		samesite="none",
-		secure=False
+		secure=True
 	)
 
 	return { "message": "Logged out successfully" }
@@ -188,7 +188,7 @@ async def refresh_access_token(
 			value=new_access_token,
 			httponly=True,
 			samesite="none",
-			secure=False
+			secure=True
 		)
 
 		return { "message": "Session refreshed successfully" }
@@ -235,7 +235,7 @@ async def login_with_google():
 			value=code_verifier,
 			httponly=True,
 			samesite="none",
-			secure=False,
+			secure=True,
 			max_age=600
 		)
 
@@ -295,7 +295,7 @@ async def google_callback(code: str, request: Request):
 			value=access_token,
 			httponly=True,
 			samesite="none",
-			secure=False
+			secure=True
 		)
 
 		redirect.set_cookie(
@@ -303,7 +303,7 @@ async def google_callback(code: str, request: Request):
 			value=refresh_token,
 			httponly=True,
 			samesite="none",
-			secure=False
+			secure=True
 		)
 
 		return redirect
