@@ -13,8 +13,9 @@ export const AuthAPI = {
         return response.data;
     },
 
-    getGoogleAuthUrl: (): string => {
-        return `${import.meta.env.VITE_API_URL}${import.meta.env.VITE_API_AUTH_LOGIN_WITH_GOOGLE}`;
+    getGoogleAuthUrl: async () => {
+        const response = await apiClient.get<{ url: string }>(import.meta.env.VITE_API_AUTH_LOGIN_WITH_GOOGLE);
+        return response.data;
     },
 
     getMe: async (): Promise<UserData> => {

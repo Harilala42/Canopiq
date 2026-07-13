@@ -66,7 +66,9 @@ function Login(): JSX.Element {
 		setIsGoogleAuth(true);
 
 		try {
-			window.location.href = AuthAPI.getGoogleAuthUrl();
+			const response = await AuthAPI.getGoogleAuthUrl();
+			if (response.ok && response?.url)
+				window.location.href = response.url;
 		} catch(err: any) {
 			showAlert(false, "Google sign-in failed! Please try again.");
 			console.error("Failed to login with Google:", err.message);
