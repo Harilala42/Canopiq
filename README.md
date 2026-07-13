@@ -174,7 +174,7 @@ Canopiq relies on Supabase for its PostgreSQL database, real-time syncing, and a
 - Copy and paste the contents of **backend/db.sql** into the editor and run it to initialize the database schema.
 
 > \[!TIP]
-> Don't forget to enable the **PostGIS** extension in your Supabase database settings (usually under **Database > Extensions**), as it is strictly required for handling the geospatial coordinate routing!
+> Don't forget to enable the **PostGIS** extension in your Supabase database settings (usually under **Database > Extensions**), as it is required to enable support for storing and managing geospatial data like Points and Polygons.
 
 ## 3. External API Services Configuration
 
@@ -184,7 +184,7 @@ You will need a few API keys to power the backend pipeline:
 
 - **Redis Queue:** Create a free serverless *Redis database* on [Upstash](https://upstash.com/) for the task worker queue.
 
-- **Geospatial Computing:** Initialize a new project on [Google Earth Engine](https://earthengine.google.com/) (GEE). Generate a **Service Account** and download the .json key file.
+- **Geospatial Computing:** Initialize a new project on [Google Earth Engine](https://earthengine.google.com/) (GEE). Generate a **Service Account** and download the **.json key** file.
 
     - Place this downloaded .json file directly inside the **/backend** directory (e.g., backend/canopiq-key.json).
 
@@ -245,7 +245,15 @@ VITE_API_GEO_ANALYSIS_MAP=/api/v1/geo-analysis/map/{h3_grid_map_id}
 VITE_API_JOB=/api/v1/job/{job_id}
 ```
 
-## 5. Booting Up the Application
+## 5. API Documentation
+
+Once the application is running, you can access the **API documentation** at:
+
+    http://localhost:8000/docs
+
+This Swagger UI interface allows you to inspect and test all backend endpoints directly from your browser.
+
+## 6. Booting Up the Application
 
 Once your **.env** files are configured and the Earth Engine **.json** key is in the **backend/** folder, you can use the provided **Makefile** to quickly spin up, spin down, or completely reset the application environment.
 

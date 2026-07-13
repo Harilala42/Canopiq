@@ -94,8 +94,8 @@ function Login(): JSX.Element {
 								{/* Email or Username Field */}
 								<LoginInput
                                     name="email" type="text"
-									label="Username or Email"
-                                    placeholder="Enter your username or email"
+									label="Email"
+                                    placeholder="Enter your email"
 									isInvalid={!!errors.email && touched.email}
 									aria-label="Enter your username or email"
 									error={errors.email} maxLength={50}

@@ -42,7 +42,7 @@ Once a request is classified as `geospatial_analysis`, it is dispatched as a **C
 task** (`run_geospatial_pipeline`), which:
 
 - uses the Celery task ID as the `job_id` for progress tracking;
-- pulls the last 3 messages of chat history as `recent_context`;
+- pulls the last 5 messages of chat history as `recent_context`;
 - builds the initial LangGraph state; and
 - bridges the sync Celery worker into the async graph via `asyncio.run(graph.ainvoke(...))`.
 
@@ -64,7 +64,7 @@ class CanopiqState(TypedDict):
     pipeline_stage: NotRequired[PipelineStage]      # current stage, for progress/error UX
 ```
 
-`PipelineStage` is a 3-value enum (`analyzing_prompt`, `computing_gee`,
+`PipelineStage` is an enum (`analyzing_prompt`, `computing_gee`,
 `generating_report`) that is both a graph-internal marker and the literal string
 surfaced to the frontend as job progress — one enum, two consumers.
 
