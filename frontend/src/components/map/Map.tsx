@@ -7,12 +7,20 @@ import {
     ZoomControl, 
     useMap
 } from "react-leaflet";
+import L from "leaflet";
 import { Box } from "@chakra-ui/react";
 import { useRef, useEffect, JSX } from "react";
 import { useMapController } from "@/hooks/useMapController";
 import { MapHexGrid, MapLegend } from "@/components/map/";
 import { ChartCard } from "@/components/analytics";
+import PinIcon from "@/assets/marker.png";
 import "leaflet/dist/leaflet.css";
+
+const customMarker = L.icon({
+    iconUrl: PinIcon,
+    iconSize: [64, 64],
+    iconAnchor: [32, 64],
+});
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => { 
     const prevRef = useRef<[number, number] | null>(null);
@@ -79,7 +87,7 @@ const Map = (): JSX.Element => {
                     <>
                         <MapEffects coords={coords} />
 
-                        <Marker position={coords}>
+                        <Marker position={coords} icon={customMarker}>
                             <Popup>
                                 Analysis Point: <br />
                                 Lat: {coords[0].toFixed(2)}, Lon:{" "}
