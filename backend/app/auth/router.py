@@ -297,8 +297,7 @@ async def google_callback(
 			value=access_token,
 			httponly=True,
 			samesite="none",
-			secure=True,
-			domain=os.environ.get("BACKEND_URL")
+			secure=True
 		)
 
 		response.set_cookie(
@@ -306,8 +305,7 @@ async def google_callback(
 			value=refresh_token,
 			httponly=True,
 			samesite="none",
-			secure=True,
-			domain=os.environ.get("BACKEND_URL")
+			secure=True
 		)
 
 		return { "url": os.environ.get("FRONTEND_URL") }
