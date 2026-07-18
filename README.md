@@ -9,7 +9,7 @@ Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize comp
 Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist—asking natural-language questions about local tree cover, biomass density, or land cover —and instantly receive structured, visual, and scientifically sound analytical reports.
 
 ![Tip](https://img.shields.io/badge/%F0%9F%92%A1-Click%20the%20image%20to%20watch%20demo-blue?style=for-the-badge)
-[![Watch Demo](./frontend/public/preview.png)](./frontend/public/demo.mp4)
+[![Watch Demo](./frontend/public/preview.png)](https://youtu.be/FfyObRVKAXg)
 
 # ✨ Key Features
 
