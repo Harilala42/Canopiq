@@ -19,7 +19,7 @@ import { AuthContext } from '@/contexts/authContext';
 import { AlertContext } from "@/contexts/alertContext";
 import { ThemeContext } from '@/contexts/themeContext';
 import { FullScreen } from '@/components/FullScreen';
-import { LoginInput } from '@/components/LoginInput';
+import { FormInput } from '@/components/FormInput';
 import { Button } from '@/components/Button';
 import { LoginFormData } from '@/types/auth';
 import { AuthAPI } from '@/api/auth.api';
@@ -92,19 +92,16 @@ function Login(): JSX.Element {
 								</VStack>
 
 								{/* Email or Username Field */}
-								<LoginInput
-                                    name="email" type="text"
-									label="Email"
-                                    placeholder="Enter your email"
+								<FormInput
+                                    name="email" label="Email"
 									isInvalid={!!errors.email && touched.email}
 									aria-label="Enter your username or email"
 									error={errors.email} maxLength={50}
                                 />
 
 								{/* Password Field */}
-								<LoginInput 
-                                    name="password" type="password"
-                                    label="Password" placeholder="Enter your password"
+								<FormInput 
+                                    name="password" label="Password" type="password"
 									isInvalid={!!errors.password && touched.password}
 									aria-label="Enter your password" maxLength={30}
 									error={errors.password}
@@ -117,7 +114,7 @@ function Login(): JSX.Element {
                                             <RouterLink to="/">Forgot password?</RouterLink>
                                         </Link>
                                     </Flex>
-                                </LoginInput>
+                                </FormInput>
 
 								{/* Submit Button */}
 								<Button 

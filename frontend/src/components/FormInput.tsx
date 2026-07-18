@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react';
 import { ThemeContext } from '@/contexts/themeContext';
 
-interface RegisterInputProps extends InputProps
+interface FormInputProps extends InputProps
 {
     name: string;
     label: string;
@@ -20,7 +20,7 @@ interface RegisterInputProps extends InputProps
     children?: React.ReactNode;
 }
 
-export const RegisterInput = ({ name, label, error, type="text", isInvalid=false, children, ...props }: RegisterInputProps): JSX.Element => {
+export const FormInput = ({ name, label, error, type="text", isInvalid=false, children, ...props }: FormInputProps): JSX.Element => {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const currentType = (type != "password") ? "text" : (showPassword ? "text" : "password");
     const { theme } = useContext(ThemeContext);

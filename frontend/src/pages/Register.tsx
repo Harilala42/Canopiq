@@ -5,7 +5,7 @@ import { ThemeContext } from "@/contexts/themeContext";
 import { useContext, useState, useCallback, JSX } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Formik, Form, Field as FormikField } from 'formik';
-import { RegisterInput } from '@/components/RegisterInput';
+import { FormInput } from '@/components/FormInput';
 import { FullScreen } from '@/components/FullScreen';
 import { Button } from '@/components/Button';
 import { AuthAPI } from '@/api/auth.api';
@@ -93,7 +93,7 @@ function Register(): JSX.Element {
 								</VStack>
 
 								{/* Username Field */}
-								<RegisterInput 
+								<FormInput 
 									label="Username" name="username" 
 									isInvalid={!!errors.username && touched.username} 
 									aria-label="Enter your username" maxLength={25}
@@ -101,7 +101,7 @@ function Register(): JSX.Element {
 								/>
 
 								{/* Email Field */}
-								<RegisterInput 
+								<FormInput 
 									label="Email" name="email"
 									isInvalid={!!errors.email && touched.email} 
 									aria-label="Enter your email" maxLength={50}
@@ -109,7 +109,7 @@ function Register(): JSX.Element {
 								/>
 
 								{/* Password Field */}
-								<RegisterInput 
+								<FormInput 
 									label="Password" name="password" type="password" 
 									isInvalid={!!errors.password && touched.password} 
 									aria-label="Enter your password" maxLength={30}
@@ -125,10 +125,10 @@ function Register(): JSX.Element {
 											{values.password.length} character(s)
 										</Field.HelperText>
 									</Flex>
-								</RegisterInput>
+								</FormInput>
 
 								{/* Confirm Password Field */}
-								<RegisterInput 
+								<FormInput 
 									label="Confirm Password"
 									name="confirmPassword" type="password"
 									isInvalid={!!errors.confirmPassword && touched.confirmPassword} 

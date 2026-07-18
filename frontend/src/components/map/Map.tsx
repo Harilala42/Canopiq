@@ -20,6 +20,7 @@ const customMarker = L.icon({
     iconUrl: PinIcon,
     iconSize: [64, 64],
     iconAnchor: [32, 64],
+    popupAnchor: [0, -36]
 });
 
 const MapEffects = ({ coords }: { coords: [number, number] }) => { 
