@@ -254,11 +254,7 @@ async def login_with_google():
 		)
 
 @public_router.get("/auth/google/callback", tags=["auth"])
-async def google_callback(
-	code: str, 
-	request: Request,
-	response: Response
-):
+async def google_callback(code: str, request: Request):
 	code_verifier = request.cookies.get("pkce_verifier")
 	if not code or not code_verifier:
 		raise HTTPException(
@@ -291,8 +287,9 @@ async def google_callback(
 		
 		access_token = result.session.access_token
 		refresh_token = result.session.refresh_token
+		redirect = RedirectResponse(url=os.environ.get("FRONTEND_URL"))
 		
-		response.set_cookie(
+		redirect.set_cookie(
 			key="access_token",
 			value=access_token,
 			httponly=True,
@@ -300,7 +297,7 @@ async def google_callback(
 			secure=True
 		)
 
-		response.set_cookie(
+		redirect.set_cookie(
 			key="refresh_token",
 			value=refresh_token,
 			httponly=True,
@@ -308,7 +305,7 @@ async def google_callback(
 			secure=True
 		)
 
-		return { "url": os.environ.get("FRONTEND_URL") }
+		return redirect
 	except HTTPException:
 		raise
 	except Exception as err:
