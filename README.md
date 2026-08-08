@@ -4,16 +4,22 @@
 
 # Canopiq: GeoAI Agent for Planetary Carbon 🛰️ & Environmental Monitoring 🌱
 
-Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize complex environmental monitoring and carbon accounting. By bridging the gap between natural language processing (NLP) and cloud-based remote sensing data, Canopiq enables scientists, researchers, and academic students to estimate biomass carbon sequestration, cover vegetation and land-use distribution for any geographic location using simple, conversational queries.
+Canopiq is an advanced, planetary-scale GeoAI Agent designed to democratize complex environmental monitoring and carbon accounting. By bridging the gap between natural language processing (NLP) and cloud-based remote sensing data, Canopiq enables scientists, researchers, and substantial analysts to estimate biomass carbon sequestration, cover vegetation and land-use distribution for any geographic location using simple, conversational queries.
 
-Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist—asking natural-language questions about local tree cover, biomass density, or land cover —and instantly receive structured, visual, and scientifically sound analytical reports.
+Traditional geospatial analysis requires deep expertise in satellite data processing, complex programming languages, and heavy GIS software. Canopiq eliminates this barrier to entry. Users can interact with the platform as if they were speaking to an expert data scientist, by simply describing their area of interest in plain English, and instantly receive structured, visual, and scientifically sound analytical reports.
 
 ![Tip](https://img.shields.io/badge/%F0%9F%92%A1-Click%20the%20image%20to%20watch%20demo-blue?style=for-the-badge)
 [![Watch Demo](./frontend/public/preview.png)](https://youtu.be/FfyObRVKAXg)
 
+### 📝 Technical Article & Overview:
+
+For a quick overview of the key technical trade-offs, architecture decisions, and motivation behind building Canopiq, read **the article on Medium**:
+
+👉 **[I got tired of writing Python scripts for Google Earth Engine, so I built an GeoAI Agent instead](https://medium.com/@niriantsoaharilala/i-got-tired-of-writing-python-scripts-for-google-earth-engine-so-i-built-an-geoai-agent-instead-035ba937ff09)**
+
 # ✨ Key Features
 
-- **Graph-Based Multi-Agent Workflow:** When a user submits a natural-language query, an AI pipeline orchestrated via LangGraph and powered by Gemini models parses the user's intent. It extracts relevant spatial boundaries, timeframes, and environmental parameters, translating the prompt into executable GIS data tasks.
+- **Graph-Based Multi-Agent Workflow:** When a user submits a natural-language query, an AI pipeline orchestrated via LangGraph and powered by Gemini 3.1 Flash model parses the user's intent. It extracts relevant spatial boundaries, timeframes, and environmental parameters, translating the prompt into executable GIS data tasks.
 
 - **GIS Data Processing & Spatial Indexing:** The translated requests are routed to Google Earth Engine (GEE) to handle heavy-lifting computations, such as executing linear regression models on Sentinel-2 derived NDVI (Normalized Difference Vegetation Index) for large-scale biomass estimation asynchronously. To ensure rapid query times, spatial data is binned using Uber’s H3 spatial index, grouping geospatial regions into hexagonal cells for optimized querying.
 
@@ -124,14 +130,52 @@ erDiagram
 
 # 📂 Project Structure
 
-Canopiq is architected as a production-ready monorepo consisting of a decoupled React frontend application and a domain-driven monolithic FastAPI backend pipeline:
+Canopiq is architected as a monorepo containing both the backend agent server and the frontend client interface:
 
 	Canopiq/
-	├── backend/               # 🐍 FastAPI & Python, Monolith Server, LangChain GeoAI Agent
-	├── frontend/              # ⚛️ React & TypeScript, Geospatial Dashboard UI
-	├── docker-compose.yml     # Orchestrator spinning up backend, frontend
-	├── Makefile               # Developer environment task automations (build, test, run)
-	└── README.md              # Main project hub documentation
+	├── backend/                  # 🐍 FastAPI Backend & Agentic Pipeline
+    │   ├── app/
+    │   │   ├── auth/            # User authentication endpoints & schemas
+    │   │   ├── chat/            # Chat session management & endpoints
+    │   │   ├── dependencies.py  # Shared FastAPI dependencies & database connections
+    │   │   ├── geo_analysis/    # Spatial data processing services & GEE integration
+    │   │   ├── job/             # Async background job status tracking
+    │   │   ├── llm/             # GeoAI Agent core implementation
+    │   │   │   ├── agent/       # Agent tool definitions & schemas
+    │   │   │   ├── graph/       # LangGraph state machine, nodes, & graph pipeline
+    │   │   │   └── tasks.py     # Background task definitions for analysis workers
+    │   │   ├── server.py        # FastAPI application entry point
+    │   │   └── worker.py        # Celery / Redis background task runner
+    │   ├── db.sql               # PostgreSQL / PostGIS database initialization script
+    │   ├── Dockerfile           # Backend container image build definition
+    │   ├── supervisor.conf      # Process management for running API & workers
+    │   └── requirements.txt     # Python dependencies
+    │
+    ├── frontend/                 # ⚛️ React & TypeScript Frontend Client
+    │   ├── public/              # Static assets (diagrams, preview images, video)
+    │   ├── src/
+    │   │   ├── api/             # API client functions for backend communication
+    │   │   ├── assets/          # SVG icons and images
+    │   │   ├── components/      # Reusable UI components
+    │   │   │   ├── analytics/   # Recharts visualization components (Bar, Donut, Tooltips)
+    │   │   │   ├── chat/        # Chat message feed, input bar, and greeting views
+    │   │   │   ├── map/         # React Leaflet map view & H3 grid rendering overlays
+    │   │   │   ├── menu/        # Dropdown options and modal dialogs
+    │   │   │   ├── sidebar/     # Navigation drawer and session management
+    │   │   │   └── ui/          # Low-level UI providers, toasts, and tooltips
+    │   │   ├── contexts/        # React Context providers (Auth, Theme, Alerts)
+    │   │   ├── hooks/           # Custom controller hooks implementing frontend logic
+    │   │   ├── pages/           # Application views (Layout, Login, Register)
+    │   │   ├── stores/          # Zustand state management stores
+    │   │   ├── types/           # TypeScript type definitions for domain objects
+    │   │   └── utils/           # Helper utilities for Axios and Supabase integration
+    │   ├── Dockerfile           # Frontend container image build definition
+    │   ├── jest.config.ts       # Testing framework configuration
+    │   └── vite.config.ts       # Vite bundler configuration
+    │
+    ├── docker-compose.yml        # Orchestrates frontend, backend, and background services
+    ├── Makefile                  # Automation scripts (build, clean, fclean, restart)
+    └── README.md                 # Main repository overview and documentation
 
 # 📖 Services Documentation
 
@@ -245,13 +289,19 @@ VITE_API_GEO_ANALYSIS_MAP=/api/v1/geo-analysis/map/{h3_grid_map_id}
 VITE_API_JOB=/api/v1/job/{job_id}
 ```
 
-## 5. API Documentation
+## 5. Application Access & API Documentation
 
-Once the application is running, you can access the **API documentation** at:
+Once the application is running, you can access both the client interface and backend API documentation directly from your browser:
 
+- **Frontend Application:** Access the interactive GeoAI dashboard, chat interface, and map visualizations.
+```bash
+    http://localhost:3000
+```
+
+- **API Documentation (Swagger UI):** Inspect, explore, and test all backend REST API endpoints directly.
+```bash
     http://localhost:8000/docs
-
-This Swagger UI interface allows you to inspect and test all backend endpoints directly from your browser.
+```
 
 ## 6. Booting Up the Application
 
