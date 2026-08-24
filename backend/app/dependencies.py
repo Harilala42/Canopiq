@@ -7,7 +7,7 @@ from fastapi import HTTPException, Cookie, Request
 
 load_dotenv()
 
-redis_url = os.environ.get("UPSTASH_REDIS_URL")
+redis_url = os.environ.get("REDIS_URL")
 redis_client = Redis.from_url(redis_url, decode_responses=True)
 
 def get_supabase():

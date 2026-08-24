@@ -255,7 +255,7 @@ GEMINI_API_KEY=<your_gemini_api_key>
 GEMINI_MODEL=gemini-3.1-flash-lite
 
 # Redis Store on UpStash
-UPSTASH_REDIS_URL=<your_upstash_redis_url>
+REDIS_URL=<your_REDIS_URL>
 ```
 
 ### Frontend (frontend/.env)

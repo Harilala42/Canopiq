@@ -5,25 +5,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ssl_options = {
-    "ssl_cert_reqs": ssl.CERT_NONE
-}
-
 celery_app = Celery(
     'canopiq_worker',
-    broker=os.getenv("UPSTASH_REDIS_URL"),
-    backend=os.getenv("UPSTASH_REDIS_URL"),
+    broker=os.getenv("REDIS_URL"),
+    backend=os.getenv("REDIS_URL"),
     include=["app.llm.tasks"]
 )
 
 celery_app.conf.update(
     broker_pool_limit=1,
-    broker_use_ssl=ssl_options,
     broker_transport_options={
         "polling_interval": 10.0
     },
-
-    redis_backend_use_ssl=ssl_options,
 
     worker_prefetch_multiplier=1,
     worker_concurrency=1,
