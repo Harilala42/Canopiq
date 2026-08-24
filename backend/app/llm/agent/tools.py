@@ -1,50 +1,49 @@
 import httpx
 from typing import List, Dict, Any
 from app.dependencies import get_supabase
-from langchain.tools import tool
 
-@tool
+
 def search_location(location: str) -> dict:
-	"""
-	Search the geographic coordinates (latitude and longitude) for a given location
-	"""
+    """
+    Search the geographic coordinates (latitude and longitude) for a given location.
+    """
 
-	url = "https://nominatim.openstreetmap.org/search"
-	params = { 
-		"q": location, 
-		"format": "geojson",
-		"limit": 1
-	}
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": location,
+        "format": "geojson",
+        "limit": 1
+    }
 
-	headers = {'User-Agent': 'Canopiq/1.0 (https://github.com/Harilala42/Canopiq)'}
+    headers = {'User-Agent': 'Canopiq/1.0 (https://github.com/Harilala42/Canopiq)'}
 
-	with httpx.Client() as client:
-		response = client.get(url, params=params, headers=headers, timeout=10.0)
-		response.raise_for_status()
-		data = response.json()
-		
-	if not data["features"]:
-		raise ValueError("Location not found")
+    with httpx.Client() as client:
+        response = client.get(url, params=params, headers=headers, timeout=10.0)
+        response.raise_for_status()
+        data = response.json()
 
-	feature = data["features"][0]
-	bbox: List[float] = feature["bbox"]
-	lon, lat = feature["geometry"]["coordinates"]
-	name: str = feature["properties"]["display_name"]
+    if not data["features"]:
+        raise ValueError("Location not found")
 
-	return {
-		"location": name,
-		"latitude": lat,
-		"longitude": lon,
-		"bbox": bbox
-	}
+    feature = data["features"][0]
+    bbox: List[float] = feature["bbox"]
+    lon, lat = feature["geometry"]["coordinates"]
+    name: str = feature["properties"]["display_name"]
+
+    return {
+        "location": name,
+        "latitude": lat,
+        "longitude": lon,
+        "bbox": bbox
+    }
 
 
-@tool
 def normalizeGeoAnalysisData(geo_analysis_id: str) -> Dict[str, Any]:
     """
     Retrieve a geo analysis entry from Supabase and normalize
     the raw GEE analytics data into a compact AI-friendly structure.
     """
+
     try:
         client = get_supabase()
         response = client.table("geo_analysis") \
