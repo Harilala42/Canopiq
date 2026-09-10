@@ -7,7 +7,7 @@ answer — without touching a GIS console or writing a line of Earth Engine code
 
 This document describes the three engineering pillars behind that experience:
 
-1. **[LangGraph-orchestrated multi-agent workflow & LangChain tools](#1-langgraph-orchestrated-multi-agent-workflow)**
+1. **[LangGraph-orchestrated multi-agent workflow & Google GenAI SDK tools](#1-langgraph-orchestrated-multi-agent-workflow)**
    — how a prompt becomes a resilient, asynchronous pipeline of specialized LLM agents.
 2. **[Carbon accounting methodology](#2-carbon-accounting-methodology--remote-sensing-based-biomass-downscaling)**
    — how coarse global biomass datasets are downscaled with Sentinel-2 imagery.
@@ -19,7 +19,7 @@ This document describes the three engineering pillars behind that experience:
 | Layer | Technology |
 |---|---|
 | Orchestration | LangGraph `StateGraph` (async), Celery (background job dispatch) |
-| Reasoning | Google Gemini via `langchain-google-genai`, structured output via Pydantic v2 |
+| Reasoning | Google Gemini via the [Google GenAI SDK](https://github.com/googleapis/python-genai) (`google-genai`), structured output via Pydantic v2 |
 | Geospatial compute | Google Earth Engine (GEE) Python API |
 | Spatial indexing | Uber H3 (hexagonal hierarchical grid), boundary reconstruction via `h3-js` on the client |
 | Persistence | Supabase (Postgres) |
@@ -141,26 +141,51 @@ observability), saves the friendly reply to the chat, and returns
 `Command(update={"recovery_reply": reply}, goto=END)` — short-circuiting the graph
 cleanly regardless of which node raised.
 
-### 1.6 The LangChain agent layer
+### 1.6 The Google GenAI SDK agent layer
 
-Four purpose-built agents, all built on `create_agent` over the same `ChatGoogleGenerativeAI`
+> **Note:** Canopiq's agent layer was originally built on LangChain (`create_agent` over
+> a `ChatGoogleGenerativeAI` instance). It has since been refactored to call Gemini
+> directly through **[Google GenAI SDK](https://github.com/googleapis/python-genai)**
+> — the official `google-genai` Python package maintained by Google — removing the
+> LangChain/LangChain-Google dependency from the agent layer entirely. (LangGraph, the
+> separate orchestration layer described in §1.1–§1.5, is unaffected by this change.)
+
+Four purpose-built functions, all issued against a single shared `genai.Client(api_key=...)`
 instance (Gemini, `temperature=0.2` for low-variance structured output), each scoped to
 one job:
 
-| Agent | Structured output | Tools | Job |
+| Function | Structured output | Tools | Job |
 |---|---|---|---|
 | `classify_user_request` | `RequestClassification` | — | Route the incoming message |
 | `extract_geospatial_params` | `GeoSpatialQuery` | `search_location` | Resolve location → coordinates + bbox, dataset, date range |
 | `generate_environmental_report` | `EnvironmentalReport` | `normalizeGeoAnalysisData` | Compact GEE output → scientific markdown report |
 | `generate_conversational_reply` | *(free text)* | — | Greetings, follow-up Q&A, and all recovery messaging |
 
-Every extraction/report agent enforces its output shape via Pydantic (`response_format`),
-so downstream nodes consume validated data rather than parsing free text. `GeoSpatialQuery`
+Every extraction/report function enforces its output shape via the SDK's native structured-output
+support — `GenerateContentConfig(response_mime_type="application/json", response_schema=<PydanticModel>)`
+— with the parsed result re-validated through `Model.model_validate(...)` before it leaves the
+function, so downstream nodes consume validated data rather than parsed free text. `GeoSpatialQuery`
 itself carries domain-level guarantees beyond typing — a `field_validator` checks bbox
 coordinate ordering and ranges, and a `model_validator` enforces that
 `land_use_distribution` queries **never** carry a date range while `tree_cover` /
 `carbon_density` queries **always** do (with `start_time < end_time`). Invalid parameter
 combinations are rejected before a single GEE call is made.
+
+The two tool-using functions (`extract_geospatial_params`, `generate_environmental_report`)
+can't resolve a tool call *and* return schema-constrained JSON in a single request — the
+GenAI SDK doesn't combine function-calling tools with `response_schema` in one call — so
+each runs a **two-pass turn** via the shared `_run_tool_and_structured_turn` helper:
+
+1. A `client.chats.create(...)` session (with `tools=[...]` bound) sends the prompt and
+   lets Gemini's **automatic function calling (AFC)** resolve `search_location` or
+   `normalizeGeoAnalysisData` on its own, updating the chat history in place.
+2. A follow-up `client.models.generate_content(...)` call replays that completed history
+   with `response_schema` set, asking the model to emit only the final validated JSON
+   object — no tools bound on this pass, since Gemini has already gathered what it needs.
+
+`classify_user_request` and `generate_conversational_reply` don't need tools, so each
+makes a single `generate_content` call — the former with `response_schema` set to
+`RequestClassification`, the latter left as free-form text (`response.text`).
 
 The extraction prompt also carries the app's own guardrails: it forbids inferring
 coordinates itself (delegating that to the `search_location` tool), it resolves
@@ -170,7 +195,12 @@ and it hard-codes the platform's temporal floor (Sentinel-2 launch, 23 June 2015
 
 ### 1.7 The tool layer
 
-Two `@tool`-decorated functions, each bound to exactly one agent:
+The `google-genai` SDK
+supports **automatic function calling**: a regular function, passed straight into
+`GenerateContentConfig(tools=[...])`, has its declaration (name, parameter types, and
+description) derived directly from its type hints and docstring, and the SDK handles
+invoking it and feeding the result back to the model. Each function here is bound to
+exactly one caller in `agents.py`:
 
 - **`search_location`** — geocodes a free-text place name via the OpenStreetMap Nominatim
   API and returns `{location, latitude, longitude, bbox}`. Used by the extraction agent
@@ -379,7 +409,8 @@ The result is a plain `List[Dict[str, Any]]` — one small dictionary per hex, k
 - **Stage-aware, single-path error recovery** — one handler, three prompt templates,
   always ending in a friendly persisted chat message instead of a dead job.
 - **Structured-output contracts everywhere** — every LLM boundary (classification,
-  extraction, reporting) is Pydantic-validated before it can propagate downstream.
+  extraction, reporting) is called through the Google GenAI SDK's `response_schema`
+  and re-validated with Pydantic before it can propagate downstream.
 - **Self-calibrating downscaling** — no pre-trained model to maintain; each request
   fits its own regression against the region and time window it actually concerns.
 - **Area-aware H3 resolution** — a single dynamic rule keeps compute and payload size

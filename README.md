@@ -19,7 +19,7 @@ For a quick overview of the key technical trade-offs, architecture decisions, an
 
 # ✨ Key Features
 
-- **Graph-Based Multi-Agent Workflow:** When a user submits a natural-language query, an AI pipeline orchestrated via LangGraph and powered by Gemini 3.1 Flash model parses the user's intent. It extracts relevant spatial boundaries, timeframes, and environmental parameters, translating the prompt into executable GIS data tasks.
+- **Graph-Based Multi-Agent Workflow:** When a user submits a natural-language query, an AI pipeline orchestrated via LangGraph and powered by Gemini 3.5 Flash model parses the user's intent. It extracts relevant spatial boundaries, timeframes, and environmental parameters, translating the prompt into executable GIS data tasks.
 
 - **GIS Data Processing & Spatial Indexing:** The translated requests are routed to Google Earth Engine (GEE) to handle heavy-lifting computations, such as executing linear regression models on Sentinel-2 derived NDVI (Normalized Difference Vegetation Index) for large-scale biomass estimation asynchronously. To ensure rapid query times, spatial data is binned using Uber’s H3 spatial index, grouping geospatial regions into hexagonal cells for optimized querying.
 
@@ -33,7 +33,7 @@ For a quick overview of the key technical trade-offs, architecture decisions, an
 
 - **Database & Auth & Synchronization:** Supabase (PostgreSQL, PostGIS, Real-Time WebSocket)
 
-- **AI & LLM Orchestration:** LangChain, LangGraph, Gemini AI, Graph-based Agentic Workflow, NLP (Natural Language Processing), Prompt Engineering
+- **AI & LLM Orchestration:** LangGraph, Google GenAI SDK, Gemini AI, Graph-based Agentic Workflow, NLP (Natural Language Processing), Prompt Engineering
 
 - **Geospatial Computing:** Google Earth Engine, H3 Grid Indexing
 
@@ -226,8 +226,6 @@ You will need a few API keys to power the backend pipeline:
 
 - **LLM Orchestration:** Get a *Gemini API Key* from [Google AI Studio](https://aistudio.google.com/).
 
-- **Redis Queue:** Create a free serverless *Redis database* on [Upstash](https://upstash.com/) for the task worker queue.
-
 - **Geospatial Computing:** Initialize a new project on [Google Earth Engine](https://earthengine.google.com/) (GEE). Generate a **Service Account** and download the **.json key** file.
 
     - Place this downloaded .json file directly inside the **/backend** directory (e.g., backend/canopiq-key.json).
@@ -239,7 +237,7 @@ Create a **.env** file in both the **/backend** and **/frontend** directories. F
 ### Backend (backend/.env)
 
 ```bash
-FRONDEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
 BACKEND_URL=http://localhost:8000
 
 # GEE Account Key
@@ -255,7 +253,7 @@ GEMINI_API_KEY=<your_gemini_api_key>
 GEMINI_MODEL=gemini-3.1-flash-lite
 
 # Redis Store on UpStash
-UPSTASH_REDIS_URL=<your_upstash_redis_url>
+REDIS_URL=<your_REDIS_URL>
 ```
 
 ### Frontend (frontend/.env)

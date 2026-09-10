@@ -8,25 +8,62 @@ services:
     ports:
       - "3000:5173"
     networks:
-      - canopiq_net
+      - canopiq_network
     volumes:                  # For hot reloading
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - backend_api
     restart: unless-stopped
 
-  backend:
+  backend_api:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend
+      target: api
+    container_name: backend_api
+    env_file:
+      - ./backend/.env
     ports:
       - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     networks:
-      - canopiq_net
+      - canopiq_network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  backend_worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      target: worker
+    container_name: backend_worker
+    env_file:
+      - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - canopiq_network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    ports:
+      - "6380:6379"
+    networks:
+      - canopiq_network
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
 
 networks:
-  canopiq_net:
+  canopiq_network:
     driver: bridge
+
+volumes:
+  redis_data:

@@ -2,7 +2,7 @@ import os
 import ee
 import h3
 import time
-import _random
+import random
 from h3 import LatLngPoly
 from google.oauth2 import service_account
 from typing import Any, List, Dict, Tuple
