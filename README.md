@@ -148,7 +148,6 @@ Canopiq is architected as a monorepo containing both the backend agent server an
     │   │   └── worker.py        # Celery / Redis background task runner
     │   ├── db.sql               # PostgreSQL / PostGIS database initialization script
     │   ├── Dockerfile           # Backend container image build definition
-    │   ├── supervisor.conf      # Process management for running API & workers
     │   └── requirements.txt     # Python dependencies
     │
     ├── frontend/                 # ⚛️ React & TypeScript Frontend Client
