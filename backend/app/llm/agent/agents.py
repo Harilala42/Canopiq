@@ -18,7 +18,6 @@ def _build_contents(prompt: str = None, recent_context: list = None) -> list[typ
     Constructs a list of google-genai Content turns from historical context and
     an optional concluding user prompt.
     """
-
     contents: list[types.Content] = []
 
     if recent_context:
@@ -51,7 +50,6 @@ def _run_tool_and_structured_turn(
     Runs automatic function calling, then requests a 
     structured JSON response based on the updated conversation state.
     """
-    
     history = list(contents)
     last_prompt = "Execute the requested analysis tool and process the query."
 
