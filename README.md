@@ -249,10 +249,7 @@ SUPABASE_SERVICE_ROLE_KEY=<your_supabase_service_role_key>
 
 # Gemini API Key
 GEMINI_API_KEY=<your_gemini_api_key>
-GEMINI_MODEL=gemini-3.1-flash-lite
-
-# Redis Store on UpStash
-REDIS_URL=<your_REDIS_URL>
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 ### Frontend (frontend/.env)
@@ -314,7 +311,7 @@ Runs the containers in detached mode (in the background) and rebuilds any modifi
 ```
 
 - **Stop and Clean Containers:**
-Stops the running containers, removes them, and prunes unused Docker data to clear up system cache.
+Stops and removes the application's containers and Compose network. Persistent Docker volumes and images are preserved.
 
 ```bash
 	make clean
